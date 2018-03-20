@@ -429,7 +429,6 @@ void Mgr::handle_osd_map()
       }
 
       if (update_meta) {
-        daemon_state.notify_updating(k);
         auto c = new MetadataUpdate(daemon_state, k);
         std::ostringstream cmd;
         cmd << "{\"prefix\": \"osd metadata\", \"id\": "
@@ -561,7 +560,6 @@ void Mgr::handle_fs_map(MFSMap* m)
     }
 
     if (update) {
-      daemon_state.notify_updating(k);
       auto c = new MetadataUpdate(daemon_state, k);
 
       // Older MDS daemons don't have addr in the metadata, so
