@@ -25,17 +25,19 @@
               "node_modules/ng2-toastr/bundles/ng2-toastr.min.css",
               "node_modules/fork-awesome/css/fork-awesome.css",
               "node_modules/awesome-bootstrap-checkbox/awesome-bootstrap-checkbox.css",
-	      "node_modules/patternfly/dist/css/patternfly.min.css",
-	      "node_modules/patternfly/dist/css/patternfly-additions.min.css",
-	      "node_modules/patternfly-ng/dist/css/patternfly-ng.min.css",
+              "node_modules/patternfly/dist/css/patternfly.min.css",
+              "node_modules/patternfly/dist/css/patternfly-additions.min.css",
+              "node_modules/patternfly-ng/dist/css/patternfly-ng.min.css",
               "src/styles.scss"
             ],
             "scripts": [
-	      "node_modules/jquery/dist/jquery.min.js",
-	      "node_modules/bootstrap/dist/js/bootstrap.min.js",
-	      "node_modules/c3/c3.min.js",
-	      "node_modules/d3/d3.min.js",
-              "node_modules/chart.js/dist/Chart.bundle.js"
+              "node_modules/jquery/dist/jquery.min.js",
+              "node_modules/bootstrap/dist/js/bootstrap.min.js",
+              "node_modules/c3/c3.min.js",
+              "node_modules/d3/d3.min.js",
+              "node_modules/angular/angular.js",
+              "node_modules/chart.js/dist/Chart.bundle.js",
+              "node_modules/angular-chart.js/dist/angular-chart.js"
             ]
           },
           "configurations": {
@@ -49,12 +51,10 @@
               "extractLicenses": true,
               "vendorChunk": false,
               "buildOptimizer": true,
-              "fileReplacements": [
-                {
-                  "replace": "src/environments/environment.ts",
-                  "with": "src/environments/environment.prod.ts"
-                }
-              ]
+              "fileReplacements": [{
+                "replace": "src/environments/environment.ts",
+                "with": "src/environments/environment.prod.ts"
+              }]
             }
           }
         },
