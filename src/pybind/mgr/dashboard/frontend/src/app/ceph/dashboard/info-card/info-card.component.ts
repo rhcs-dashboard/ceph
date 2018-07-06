@@ -1,5 +1,5 @@
-import {Component, Input, OnInit} from '@angular/core';
-import {InfoCard} from "./info-card";
+import { Component, Input } from '@angular/core';
+import { InfoCard } from './info-card';
 
 @Component({
   selector: 'cd-info-card',
@@ -7,5 +7,5 @@ import {InfoCard} from "./info-card";
   styleUrls: ['./info-card.component.scss']
 })
 export class InfoCardComponent {
-  @Input('infoCard') infoCard: InfoCard;
+  @Input() infoCard: InfoCard;
 }

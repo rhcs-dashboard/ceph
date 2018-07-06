@@ -17,7 +17,7 @@ import { OsdSummaryPipe } from './osd-summary.pipe';
 import { PgStatusStylePipe } from './pg-status-style.pipe';
 import { PgStatusPipe } from './pg-status.pipe';
 
-import { InfoCardComponent } from "./info-card/info-card.component";
+import { InfoCardComponent } from './info-card/info-card.component';
 
 @NgModule({
   imports: [CommonModule, TabsModule.forRoot(), SharedModule, ChartsModule, RouterModule],

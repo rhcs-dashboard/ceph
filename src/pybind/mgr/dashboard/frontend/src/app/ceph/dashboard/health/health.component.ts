@@ -4,14 +4,14 @@ import * as _ from 'lodash';
 
 import { DashboardService } from '../../../shared/api/dashboard.service';
 
-import {InfoCard} from "../info-card/info-card";
+import { InfoCard } from '../info-card/info-card';
+import { InfoCardAdditionalInfo } from '../info-card/info-card-additional-info';
 
-import {MonSummaryPipe} from "../mon-summary.pipe";
-import {OsdSummaryPipe} from "../osd-summary.pipe";
-import {HealthColorPipe} from "../../../shared/pipes/health-color.pipe";
-import {InfoCardAdditionalInfo} from "../info-card/info-card-additional-info";
-import {MdsSummaryPipe} from "../mds-summary.pipe";
-import {MgrSummaryPipe} from "../mgr-summary.pipe";
+import { HealthColorPipe } from '../../../shared/pipes/health-color.pipe';
+import { MdsSummaryPipe } from '../mds-summary.pipe';
+import { MgrSummaryPipe } from '../mgr-summary.pipe';
+import { MonSummaryPipe } from '../mon-summary.pipe';
+import { OsdSummaryPipe } from '../osd-summary.pipe';
 
 @Component({
   selector: 'cd-health',
@@ -134,12 +134,13 @@ export class HealthComponent implements OnInit, OnDestroy {
   private initHealthStatusCard() {
     this.healthStatusCard = new InfoCard('Health');
     this.healthStatusCard.description = 'Overall status: ';
-    this.healthStatusCard.message= this.contentData.health.status;
-    this.healthStatusCard.messageStyle = this.healthColorPipe.transform(this.contentData.health.status);
+    this.healthStatusCard.message = this.contentData.health.status;
+    this.healthStatusCard.messageStyle =
+      this.healthColorPipe.transform(this.contentData.health.status);
 
-    let additionalInfo: InfoCardAdditionalInfo[] = [];
-    for (let check of this.contentData.health.checks) {
-      let additionalRow = new InfoCardAdditionalInfo(check.summary.message);
+    const additionalInfo: InfoCardAdditionalInfo[] = [];
+    for (const check of this.contentData.health.checks) {
+      const additionalRow = new InfoCardAdditionalInfo(check.summary.message);
       additionalRow.style = this.healthColorPipe.transform(check.severity);
 
       additionalInfo.push(additionalRow);
@@ -153,7 +154,7 @@ export class HealthComponent implements OnInit, OnDestroy {
       this.monitorsCard = new InfoCard('MONITORS');
       this.monitorsCard.titleLink = '/monitor/';
       this.monitorsCard.titleImageClass = 'fa fa-database fa-fw';
-      this.monitorsCard.message= this.monSummaryPipe.transform(this.contentData.mon_status);
+      this.monitorsCard.message = this.monSummaryPipe.transform(this.contentData.mon_status);
       this.monitorsCard.messageClass = 'media-text';
     }
   }
@@ -163,7 +164,7 @@ export class HealthComponent implements OnInit, OnDestroy {
       this.osdCard = new InfoCard('OSDS');
       this.osdCard.titleLink = '/osd/';
       this.osdCard.titleImageClass = 'fa fa-hdd-o fa-fw';
-      this.osdCard.message= this.osdSummaryPipe.transform(this.contentData.osd_map);
+      this.osdCard.message = this.osdSummaryPipe.transform(this.contentData.osd_map);
       this.osdCard.messageClass = 'media-text';
     }
   }
@@ -172,7 +173,7 @@ export class HealthComponent implements OnInit, OnDestroy {
     if (this.contentData.fs_map) {
       this.mdsCard = new InfoCard('METADATA SERVERS');
       this.mdsCard.titleImageClass = 'fa fa-folder fa-fw';
-      this.mdsCard.message= this.mdsSummaryPipe.transform(this.contentData.fs_map);
+      this.mdsCard.message = this.mdsSummaryPipe.transform(this.contentData.fs_map);
       this.mdsCard.messageClass = 'media-text';
     }
   }
@@ -181,7 +182,7 @@ export class HealthComponent implements OnInit, OnDestroy {
     if (this.contentData.mgr_map) {
       this.mgrCard = new InfoCard('MANAGER DAEMONS');
       this.mgrCard.titleImageClass = 'fa fa-cog fa-fw';
-      this.mgrCard.message= this.mgrSummaryPipe.transform(this.contentData.mgr_map);
+      this.mgrCard.message = this.mgrSummaryPipe.transform(this.contentData.mgr_map);
       this.mgrCard.messageClass = 'media-text';
     }
   }

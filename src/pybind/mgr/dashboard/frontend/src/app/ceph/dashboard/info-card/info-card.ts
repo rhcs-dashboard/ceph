@@ -1,11 +1,11 @@
-import {InfoCardAdditionalInfo} from "./info-card-additional-info";
+import { InfoCardAdditionalInfo } from './info-card-additional-info';
 
 export class InfoCard {
   public titleLink?: string;
   public titleImageClass?: string;
   public description?: string;
   public message?: string;
-  public messageClass?: string = '';
+  public messageClass = '';
   public messageStyle?: any;
   public additionalInfo?: InfoCardAdditionalInfo[];
 
