@@ -1,8 +1,7 @@
 <div *ngIf="contentData">
   <div class="row">
     <!-- HEALTH -->
-    <cd-info-card title="Health"
-                  class="col-md-6">
+    <cd-info-card title="Health">
       <hr class="media-underline" />
       <ng-container i18n>Overall status: </ng-container>
       <span [ngStyle]="contentData.health.status | healthColor">{{ contentData.health.status }}</span>
@@ -17,14 +16,12 @@
       <!--STATS -->
       <div class="row">
         <cd-info-card title="MONITORS"
-                      class="col-md-6"
                       imageClass="fa fa-database fa-fw"
                       link="/monitor">
           <span class="media-text">{{ contentData.mon_status | monSummary }}</span>
         </cd-info-card>
 
         <cd-info-card title="OSDs"
-                      class="col-md-6"
                       imageClass="fa fa-hdd-o fa-fw"
                       link="/osd">
           <span class="media-text">{{ contentData.osd_map | osdSummary }}</span>
@@ -32,14 +29,12 @@
       </div>
       <div class="row">
         <cd-info-card title="METADATA SERVERS"
-                      class="col-md-6"
                       imageClass="fa fa-folder fa-fw"
         >
           <span class="media-text">{{ contentData.fs_map | mdsSummary }}</span>
         </cd-info-card>
 
         <cd-info-card title="MANAGER DAEMONS"
-                      class="col-md-6"
                       imageClass="fa fa-cog fa-fw"
         >
           <span class="media-text">{{ contentData.mgr_map | mgrSummary }}</span>
