@@ -1,9 +1,5 @@
-import { Injectable, Pipe, PipeTransform } from '@angular/core';
+import { Pipe, PipeTransform } from '@angular/core';
 import * as _ from 'lodash';
-
-@Injectable({
-  providedIn: 'root',
-})
 
 @Pipe({
   name: 'mgrSummary'

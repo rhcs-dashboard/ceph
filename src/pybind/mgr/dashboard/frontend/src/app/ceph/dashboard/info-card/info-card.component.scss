@@ -32,10 +32,17 @@
 
     .media-heading {
       display: block;
-      font-size: 14px;
+      font-size: 20px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+
+    .media-underline {
+      border-bottom: 1px solid #e5e5e5;
+      margin-top: 0px;
+      margin-bottom: 18px;
+      padding: 0px;
     }
 
     .media-text {

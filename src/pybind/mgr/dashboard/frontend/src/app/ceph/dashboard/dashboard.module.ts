@@ -9,6 +9,7 @@ import { SharedModule } from '../../shared/shared.module';
 import { DashboardComponent } from './dashboard/dashboard.component';
 import { HealthPieComponent } from './health-pie/health-pie.component';
 import { HealthComponent } from './health/health.component';
+import { InfoCardComponent } from './info-card/info-card.component';
 import { LogColorPipe } from './log-color.pipe';
 import { MdsSummaryPipe } from './mds-summary.pipe';
 import { MgrSummaryPipe } from './mgr-summary.pipe';
@@ -16,8 +17,6 @@ import { MonSummaryPipe } from './mon-summary.pipe';
 import { OsdSummaryPipe } from './osd-summary.pipe';
 import { PgStatusStylePipe } from './pg-status-style.pipe';
 import { PgStatusPipe } from './pg-status.pipe';
-
-import { InfoCardComponent } from './info-card/info-card.component';
 
 @NgModule({
   imports: [CommonModule, TabsModule.forRoot(), SharedModule, ChartsModule, RouterModule],

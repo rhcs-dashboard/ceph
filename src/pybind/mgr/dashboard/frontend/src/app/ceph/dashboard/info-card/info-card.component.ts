@@ -1,11 +1,14 @@
-import { Component, Input } from '@angular/core';
-import { InfoCard } from './info-card';
+import { Component, Input, ViewEncapsulation } from '@angular/core';
 
 @Component({
   selector: 'cd-info-card',
   templateUrl: './info-card.component.html',
-  styleUrls: ['./info-card.component.scss']
+  styleUrls: ['./info-card.component.scss'],
+  encapsulation: ViewEncapsulation.None,
 })
 export class InfoCardComponent {
-  @Input() infoCard: InfoCard;
+  @Input() title: string;
+  @Input() link: string;
+  @Input() class: string;
+  @Input() imageClass: string;
 }

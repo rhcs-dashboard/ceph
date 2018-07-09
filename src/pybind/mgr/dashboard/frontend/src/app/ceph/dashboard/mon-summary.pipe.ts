@@ -1,8 +1,4 @@
-import { Injectable, Pipe, PipeTransform } from '@angular/core';
-
-@Injectable({
-  providedIn: 'root',
-})
+import { Pipe, PipeTransform } from '@angular/core';
 
 @Pipe({
   name: 'monSummary'
