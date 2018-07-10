@@ -1,0 +1,18 @@
+<div [class]="class">
+  <div class="well">
+    <div class="media">
+      <div *ngIf="imageClass" class="media-left">
+        <i [class]="imageClass"></i>
+      </div>
+      <div class="media-body">
+        <span class="media-heading" i18n>
+          <a *ngIf="link; else noLinkTitle" [routerLink]="link">{{ title }}</a>
+          <ng-template #noLinkTitle>
+            {{ title }}
+          </ng-template>
+        </span>
+        <ng-content></ng-content>
+      </div>
+    </div>
+  </div>
+</div>
