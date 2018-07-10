@@ -9,6 +9,6 @@ import { Component, Input, ViewEncapsulation } from '@angular/core';
 export class InfoCardComponent {
   @Input() title: string;
   @Input() link: string;
-  @Input() class = 'col-md-6';
+  @Input() cardClass = 'col-md-6';
   @Input() imageClass: string;
 }
