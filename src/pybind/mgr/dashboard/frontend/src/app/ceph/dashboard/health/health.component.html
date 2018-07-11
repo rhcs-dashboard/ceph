@@ -2,7 +2,7 @@
   <div class="row">
     <!-- HEALTH -->
     <cd-info-card title="Health">
-      <hr class="media-underline" />
+      <hr class="underline" />
       <ng-container i18n>Overall status: </ng-container>
       <span [ngStyle]="contentData.health.status | healthColor">{{ contentData.health.status }}</span>
       <ul>
@@ -17,27 +17,29 @@
       <div class="row">
         <cd-info-card title="MONITORS"
                       imageClass="fa fa-database fa-fw"
-                      link="/monitor">
-          <span class="media-text">{{ contentData.mon_status | monSummary }}</span>
+                      link="/monitor"
+                      contentClass="media-text">
+          {{ contentData.mon_status | monSummary }}
         </cd-info-card>
 
         <cd-info-card title="OSDs"
                       imageClass="fa fa-hdd-o fa-fw"
-                      link="/osd">
-          <span class="media-text">{{ contentData.osd_map | osdSummary }}</span>
+                      link="/osd"
+                      contentClass="media-text">
+          {{ contentData.osd_map | osdSummary }}
         </cd-info-card>
       </div>
       <div class="row">
         <cd-info-card title="METADATA SERVERS"
                       imageClass="fa fa-folder fa-fw"
-        >
-          <span class="media-text">{{ contentData.fs_map | mdsSummary }}</span>
+                      contentClass="media-text">
+          {{ contentData.fs_map | mdsSummary }}
         </cd-info-card>
 
         <cd-info-card title="MANAGER DAEMONS"
                       imageClass="fa fa-cog fa-fw"
-        >
-          <span class="media-text">{{ contentData.mgr_map | mgrSummary }}</span>
+                      contentClass="media-text">
+          {{ contentData.mgr_map | mgrSummary }}
         </cd-info-card>
       </div>
     </div>

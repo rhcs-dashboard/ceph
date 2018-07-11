@@ -2,7 +2,7 @@
   <div class="well">
     <div class="media">
       <div *ngIf="imageClass" class="media-left">
-        <i [class]="imageClass"></i>
+        <i [ngClass]="imageClass"></i>
       </div>
       <div class="media-body">
         <span class="media-heading" i18n>
@@ -11,7 +11,9 @@
             {{ title }}
           </ng-template>
         </span>
-        <ng-content></ng-content>
+        <span [ngClass]="contentClass">
+          <ng-content></ng-content>
+        </span>
       </div>
     </div>
   </div>
