@@ -9,6 +9,7 @@
           <a *ngIf="link; else noLinkTitle" [routerLink]="link">{{ title }}</a>
           <ng-template #noLinkTitle>
             {{ title }}
+            <hr *ngIf="!imageClass" class="underline" />
           </ng-template>
         </span>
         <span [ngClass]="contentClass">

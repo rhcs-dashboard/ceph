@@ -32,6 +32,13 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+
+      .underline {
+        border-bottom: 1px solid #e5e5e5;
+        margin-top: 0px;
+        margin-bottom: 18px;
+        padding: 0px;
+      }
     }
 
     .media-text {
