@@ -1,0 +1,31 @@
+.card {
+  margin: 10px auto;
+
+  .cards-pf {
+    border: 0.5px solid #999999;
+    background: #e1e1e1;
+  }
+
+  .card-pf-title {
+    font-size: 18px;
+  }
+
+  .content-highlight {
+    font-weight: bold;
+  }
+
+  .card-medium {
+    height: 200px;
+    vertical-align: middle;
+
+    .content-medium {
+      text-align: center;
+      font-size: 36px;
+      margin-top: 40px;
+    }
+  }
+}
+
+.col-md-2.dot-4 {
+  width: 20%;
+}

@@ -1,0 +1,15 @@
+<div class="card" [ngClass]="rowClass">
+  <div class="cards-pf card-pf" [ngClass]="cardClass">
+      <h1 class="card-pf-title">
+          <a *ngIf="link; else noLinkTitle" [routerLink]="link">{{ title }}</a>
+          <ng-template #noLinkTitle>
+            {{ title }}
+          </ng-template>
+      </h1>
+      <div class="card-pf-body">
+        <p [ngClass]="contentClass">
+          <ng-content></ng-content>
+        </p>
+      </div>
+  </div>
+</div>

@@ -1,0 +1,152 @@
+<div *ngIf="contentData" class="container-fluid container-cards-pf">
+  <div class="row info-group">
+    <span class="info-group-title">Configuration</span>
+    <hr class="underline" />
+      <div class="row-cards-pf">
+        <cd-info-card title="Health"
+                      rowClass="col-md-3"
+                      contentClass="content-highlight">
+          <span [ngStyle]="contentData.health.status | healthColor">{{ contentData.health.status }}</span>
+        </cd-info-card>
+
+        <cd-info-card title="Monitors"
+                      rowClass="col-md-3"
+                      contentClass="content-highlight"
+                      *ngIf="contentData.mon_status">
+          {{ contentData.mon_status | monSummary }}
+        </cd-info-card>
+
+        <cd-info-card title="OSDs"
+                      rowClass="col-md-3"
+                      contentClass="content-highlight"
+                      *ngIf="contentData.osd_map">
+          {{ contentData.osd_map | osdSummary }}
+        </cd-info-card>
+
+        <cd-info-card title="Manager Daemons"
+                      rowClass="col-md-3"
+                      contentClass="content-highlight"
+                      *ngIf="contentData.mgr_map">
+          {{ contentData.mgr_map | mgrSummary }}
+        </cd-info-card>
+
+        <cd-info-card title="Hosts"
+                      rowClass="col-md-3"
+                      contentClass="content-highlight">
+          7
+        </cd-info-card>
+
+        <cd-info-card title="Object Gateways"
+                      rowClass="col-md-3"
+                      contentClass="content-highlight">
+          3
+        </cd-info-card>
+        <cd-info-card title="Metadata Servers"
+                      rowClass="col-md-3"
+                      contentClass="content-highlight"
+                      *ngIf="contentData.fs_map">
+          {{ contentData.fs_map | mdsSummary }}
+        </cd-info-card>
+
+        <cd-info-card title="iSCSI Gateways"
+                      rowClass="col-md-3"
+                      contentClass="content-highlight">
+          N/A
+        </cd-info-card>
+      </div>
+  </div>
+
+  <div class="row info-group">
+    <span class="info-group-title">Performance</span>
+    <hr class="underline" />
+    <div class="row-cards-pf">
+      <cd-info-card title="IOPS"
+                    rowClass="col-md-2 dot-4"
+                    cardClass="card-medium"
+                    contentClass="content-medium content-highlight">
+        4000
+      </cd-info-card>
+
+      <cd-info-card title="IOPS"
+                    rowClass="col-md-2 dot-4"
+                    cardClass="card-medium"
+                    contentClass="content-medium content-highlight"
+                    *ngIf="contentData.mon_status">
+        400 MB/s
+      </cd-info-card>
+
+      <cd-info-card title="Read/Write"
+                    rowClass="col-md-2 dot-4"
+                    cardClass="card-medium"
+                    *ngIf="contentData.osd_map">
+        <div class="center-block pie">
+          <cd-health-pie [data]="contentData"
+                         (prepareFn)="preparePoolUsage($event[0], $event[1])"></cd-health-pie>
+        </div>
+      </cd-info-card>
+
+      <cd-info-card title="Recovery Ops"
+                    rowClass="col-md-2 dot-4"
+                    cardClass="card-medium"
+                    contentClass="content-medium content-highlight"
+                    *ngIf="contentData.mgr_map">
+        0
+      </cd-info-card>
+
+      <cd-info-card title="Scrub"
+                    rowClass="col-md-2 dot-4"
+                    cardClass="card-medium"
+                    contentClass="content-medium content-highlight">
+        Inactive
+      </cd-info-card>
+    </div>
+</div>
+
+  <div class="row info-group">
+    <span class="info-group-title">Capacity</span>
+    <hr class="underline" />
+    <div class="row-cards-pf">
+      <cd-info-card title="Pools"
+                    rowClass="col-md-2 dot-4"
+                    cardClass="card-medium"
+                    contentClass="content-medium content-highlight">
+        8
+      </cd-info-card>
+
+      <cd-info-card title="Raw Capacity"
+                    rowClass="col-md-2 dot-4"
+                    cardClass="content-medium"
+                    *ngIf="contentData.mon_status">
+        <div class="center-block pie">
+          <cd-health-pie [data]="contentData"
+                         (prepareFn)="preparePoolUsage($event[0], $event[1])"></cd-health-pie>
+        </div>
+      </cd-info-card>
+
+      <cd-info-card title="Objects"
+                    rowClass="col-md-2 dot-4"
+                    cardClass="card-medium"
+                    contentClass="content-medium content-highlight"
+                    *ngIf="contentData.osd_map">
+        55000
+      </cd-info-card>
+
+      <cd-info-card title="PGs per OSD"
+                    rowClass="col-md-2 dot-4"
+                    cardClass="card-medium"
+                    contentClass="content-medium content-highlight"
+                    *ngIf="contentData.mgr_map">
+        120
+      </cd-info-card>
+
+      <cd-info-card title="PG Status"
+                    rowClass="col-md-2 dot-4"
+                    cardClass="content-medium">
+        <div class="center-block pie">
+          <cd-health-pie [data]="contentData"
+                         (prepareFn)="preparePoolUsage($event[0], $event[1])"></cd-health-pie>
+        </div>
+      </cd-info-card>
+    </div>
+  </div>
+</div>

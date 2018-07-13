@@ -6,8 +6,8 @@ import { DashboardService } from '../../../shared/api/dashboard.service';
 
 @Component({
   selector: 'cd-health',
-  templateUrl: './health.component.html',
-  styleUrls: ['./health.component.scss']
+  templateUrl: './health-pf.component.html',
+  styleUrls: ['./health-pf.component.scss']
 })
 export class HealthComponent implements OnInit, OnDestroy {
   contentData: any;
