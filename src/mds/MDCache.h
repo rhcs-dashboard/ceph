@@ -152,19 +152,19 @@ class MDCache {
 
 public:
   static uint64_t cache_limit_inodes(void) {
-    return g_conf->get_val<int64_t>("mds_cache_size");
+    return g_conf().get_val<int64_t>("mds_cache_size");
   }
   static uint64_t cache_limit_memory(void) {
-    return g_conf->get_val<uint64_t>("mds_cache_memory_limit");
+    return g_conf().get_val<uint64_t>("mds_cache_memory_limit");
   }
   static double cache_reservation(void) {
-    return g_conf->get_val<double>("mds_cache_reservation");
+    return g_conf().get_val<double>("mds_cache_reservation");
   }
   static double cache_mid(void) {
-    return g_conf->get_val<double>("mds_cache_mid");
+    return g_conf().get_val<double>("mds_cache_mid");
   }
   static double cache_health_threshold(void) {
-    return g_conf->get_val<double>("mds_health_cache_threshold");
+    return g_conf().get_val<double>("mds_health_cache_threshold");
   }
   double cache_toofull_ratio(void) const {
     uint64_t inode_limit = cache_limit_inodes();
@@ -553,7 +553,9 @@ protected:
   set<mds_rank_t> rejoin_ack_gather;  // nodes from whom i need a rejoin ack
   map<mds_rank_t,map<inodeno_t,map<client_t,Capability::Import> > > rejoin_imported_caps;
   map<inodeno_t,pair<mds_rank_t,map<client_t,Capability::Export> > > rejoin_slave_exports;
+
   map<client_t,entity_inst_t> rejoin_client_map;
+  map<client_t,client_metadata_t> rejoin_client_metadata_map;
   map<client_t,pair<Session*,uint64_t> > rejoin_session_map;
 
   map<inodeno_t,pair<mds_rank_t,map<client_t,cap_reconnect_t> > > cap_exports; // ino -> target, client -> capex

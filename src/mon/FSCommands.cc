@@ -210,7 +210,7 @@ class FsNewHandler : public FileSystemCommandHandler
     // assign a standby to rank 0 to avoid health warnings
     std::string _name;
     mds_gid_t gid = fsmap.find_replacement_for({fs->fscid, 0}, _name,
-        g_conf->mon_force_standby_active);
+        g_conf()->mon_force_standby_active);
 
     if (gid != MDS_GID_NONE) {
       const auto &info = fsmap.get_info_gid(gid);
@@ -529,6 +529,18 @@ public:
       {
         fs->mds_map.set_session_autoclose((uint32_t)n);
       });
+    } else if (var == "min_compat_client") {
+      int vno = ceph_release_from_name(val.c_str());
+      if (vno <= 0) {
+	ss << "version " << val << " is not recognized";
+	return -EINVAL;
+      }
+      fsmap.modify_filesystem(
+	  fs->fscid,
+	  [vno](std::shared_ptr<Filesystem> fs)
+	{
+	  fs->mds_map.set_min_compat_client((uint8_t)vno);
+	});
     } else {
       ss << "unknown variable " << var;
       return -EINVAL;

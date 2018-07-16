@@ -103,10 +103,10 @@ public:
 
   // -- cons --
   Migrator(MDSRank *m, MDCache *c) : mds(m), cache(c) {
-    inject_session_race = g_conf->get_val<bool>("mds_inject_migrator_session_race");
+    inject_session_race = g_conf().get_val<bool>("mds_inject_migrator_session_race");
   }
 
-  void handle_conf_change(const md_config_t *conf,
+  void handle_conf_change(const ConfigProxy& conf,
                           const std::set <std::string> &changed,
                           const MDSMap &mds_map);
 
@@ -305,9 +305,11 @@ public:
   void get_export_client_set(CInode *in, set<client_t> &client_set);
 
   void encode_export_inode(CInode *in, bufferlist& bl, 
-			   map<client_t,entity_inst_t>& exported_client_map);
+			   map<client_t,entity_inst_t>& exported_client_map,
+			   map<client_t,client_metadata_t>& exported_client_metadata_map);
   void encode_export_inode_caps(CInode *in, bool auth_cap, bufferlist& bl,
-				map<client_t,entity_inst_t>& exported_client_map);
+				map<client_t,entity_inst_t>& exported_client_map,
+				map<client_t,client_metadata_t>& exported_client_metadata_map);
   void finish_export_inode(CInode *in, mds_rank_t target,
 			   map<client_t,Capability::Import>& peer_imported,
 			   list<MDSInternalContextBase*>& finished);
@@ -317,7 +319,8 @@ public:
 
   uint64_t encode_export_dir(bufferlist& exportbl,
 			CDir *dir,
-			map<client_t,entity_inst_t>& exported_client_map);
+			map<client_t,entity_inst_t>& exported_client_map,
+			map<client_t,client_metadata_t>& exported_client_metadata_map);
   void finish_export_dir(CDir *dir, mds_rank_t target,
 			 map<inodeno_t,map<client_t,Capability::Import> >& peer_imported,
 			 list<MDSInternalContextBase*>& finished, int *num_dentries);

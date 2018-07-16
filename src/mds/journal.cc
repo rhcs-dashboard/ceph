@@ -67,7 +67,7 @@ void LogSegment::try_to_expire(MDSRank *mds, MDSGatherBuilder &gather_bld, int o
 
   dout(6) << "LogSegment(" << seq << "/" << offset << ").try_to_expire" << dendl;
 
-  assert(g_conf->mds_kill_journal_expire_at != 1);
+  assert(g_conf()->mds_kill_journal_expire_at != 1);
 
   // commit dirs
   for (elist<CDir*>::iterator p = new_dirfrags.begin(); !p.end(); ++p) {
@@ -143,7 +143,7 @@ void LogSegment::try_to_expire(MDSRank *mds, MDSGatherBuilder &gather_bld, int o
     mds->locker->scatter_nudge(&in->nestlock, gather_bld.new_sub());
   }
 
-  assert(g_conf->mds_kill_journal_expire_at != 2);
+  assert(g_conf()->mds_kill_journal_expire_at != 2);
 
   // open files and snap inodes 
   if (!open_files.empty()) {
@@ -176,7 +176,7 @@ void LogSegment::try_to_expire(MDSRank *mds, MDSGatherBuilder &gather_bld, int o
     }
   }
 
-  assert(g_conf->mds_kill_journal_expire_at != 3);
+  assert(g_conf()->mds_kill_journal_expire_at != 3);
 
   // backtraces to be stored/updated
   for (elist<CInode*>::iterator p = dirty_parent_inodes.begin(); !p.end(); ++p) {
@@ -191,7 +191,7 @@ void LogSegment::try_to_expire(MDSRank *mds, MDSGatherBuilder &gather_bld, int o
     }
   }
 
-  assert(g_conf->mds_kill_journal_expire_at != 4);
+  assert(g_conf()->mds_kill_journal_expire_at != 4);
 
   // slave updates
   for (elist<MDSlaveUpdate*>::iterator p = slave_updates.begin(member_offset(MDSlaveUpdate,
@@ -266,7 +266,7 @@ void LogSegment::try_to_expire(MDSRank *mds, MDSGatherBuilder &gather_bld, int o
     dout(6) << "LogSegment(" << seq << "/" << offset << ").try_to_expire waiting" << dendl;
     mds->mdlog->flush();
   } else {
-    assert(g_conf->mds_kill_journal_expire_at != 5);
+    assert(g_conf()->mds_kill_journal_expire_at != 5);
     dout(6) << "LogSegment(" << seq << "/" << offset << ").try_to_expire success" << dendl;
   }
 }
@@ -1129,7 +1129,7 @@ void EMetaBlob::replay(MDSRank *mds, LogSegment *logseg, MDSlaveUpdate *slaveup)
 
   assert(logseg);
 
-  assert(g_conf->mds_kill_journal_replay_at != 1);
+  assert(g_conf()->mds_kill_journal_replay_at != 1);
 
   for (list<std::shared_ptr<fullbit> >::iterator p = roots.begin(); p != roots.end(); ++p) {
     CInode *in = mds->mdcache->get_inode((*p)->inode.ino);
@@ -1324,7 +1324,7 @@ void EMetaBlob::replay(MDSRank *mds, LogSegment *logseg, MDSlaveUpdate *slaveup)
 	in->state_set(CInode::STATE_AUTH);
       else
 	in->state_clear(CInode::STATE_AUTH);
-      assert(g_conf->mds_kill_journal_replay_at != 2);
+      assert(g_conf()->mds_kill_journal_replay_at != 2);
     }
 
     // remote dentries
@@ -1398,7 +1398,7 @@ void EMetaBlob::replay(MDSRank *mds, LogSegment *logseg, MDSlaveUpdate *slaveup)
     }
   }
 
-  assert(g_conf->mds_kill_journal_replay_at != 3);
+  assert(g_conf()->mds_kill_journal_replay_at != 3);
 
   if (renamed_dirino) {
     if (renamed_diri) {
@@ -1569,7 +1569,7 @@ void EMetaBlob::replay(MDSRank *mds, LogSegment *logseg, MDSlaveUpdate *slaveup)
     } else {
       mds->clog->error() << "journal replay sessionmap v " << sessionmapv
 			<< " -(1|2) > table " << mds->sessionmap.get_version();
-      assert(g_conf->mds_wipe_sessions);
+      assert(g_conf()->mds_wipe_sessions);
       mds->sessionmap.wipe();
       mds->sessionmap.set_version(sessionmapv);
     }
@@ -1652,7 +1652,7 @@ void EMetaBlob::replay(MDSRank *mds, LogSegment *logseg, MDSlaveUpdate *slaveup)
   // update segment
   update_segment(logseg);
 
-  assert(g_conf->mds_kill_journal_replay_at != 4);
+  assert(g_conf()->mds_kill_journal_replay_at != 4);
 }
 
 // -----------------------
@@ -1721,7 +1721,7 @@ void ESession::replay(MDSRank *mds)
 
 void ESession::encode(bufferlist &bl, uint64_t features) const
 {
-  ENCODE_START(4, 3, bl);
+  ENCODE_START(5, 5, bl);
   encode(stamp, bl);
   encode(client_inst, bl, features);
   encode(open, bl);
@@ -1734,7 +1734,7 @@ void ESession::encode(bufferlist &bl, uint64_t features) const
 
 void ESession::decode(bufferlist::const_iterator &bl)
 {
-  DECODE_START_LEGACY_COMPAT_LEN(4, 3, 3, bl);
+  DECODE_START_LEGACY_COMPAT_LEN(5, 3, 3, bl);
   if (struct_v >= 2)
     decode(stamp, bl);
   decode(client_inst, bl);
@@ -1742,7 +1742,9 @@ void ESession::decode(bufferlist::const_iterator &bl)
   decode(cmapv, bl);
   decode(inos, bl);
   decode(inotablev, bl);
-  if (struct_v >= 4) {
+  if (struct_v == 4) {
+    decode(client_metadata.kv_map, bl);
+  } else if (struct_v >= 5) {
     decode(client_metadata, bl);
   }
   DECODE_FINISH(bl);
@@ -1756,10 +1758,7 @@ void ESession::dump(Formatter *f) const
   f->dump_stream("inos") << inos;
   f->dump_int("inotable version", inotablev);
   f->open_object_section("client_metadata");
-  for (map<string, string>::const_iterator i = client_metadata.begin();
-      i != client_metadata.end(); ++i) {
-    f->dump_string(i->first.c_str(), i->second);
-  }
+  client_metadata.dump(f);
   f->close_section();  // client_metadata
 }
 
@@ -1773,10 +1772,11 @@ void ESession::generate_test_instances(list<ESession*>& ls)
 
 void ESessions::encode(bufferlist &bl, uint64_t features) const
 {
-  ENCODE_START(1, 1, bl);
+  ENCODE_START(2, 1, bl);
   encode(client_map, bl, features);
   encode(cmapv, bl);
   encode(stamp, bl);
+  encode(client_metadata_map, bl);
   ENCODE_FINISH(bl);
 }
 
@@ -1791,11 +1791,12 @@ void ESessions::decode_old(bufferlist::const_iterator &bl)
 
 void ESessions::decode_new(bufferlist::const_iterator &bl)
 {
-  DECODE_START(1, bl);
+  DECODE_START(2, bl);
   decode(client_map, bl);
   decode(cmapv, bl);
-  if (!bl.end())
-    decode(stamp, bl);
+  decode(stamp, bl);
+  if (struct_v >= 2)
+    decode(client_metadata_map, bl);
   DECODE_FINISH(bl);
 }
 
@@ -1832,7 +1833,7 @@ void ESessions::replay(MDSRank *mds)
   } else {
     dout(10) << "ESessions.replay sessionmap " << mds->sessionmap.get_version()
 	     << " < " << cmapv << dendl;
-    mds->sessionmap.replay_open_sessions(client_map);
+    mds->sessionmap.replay_open_sessions(client_map, client_metadata_map);
     assert(mds->sessionmap.get_version() == cmapv);
   }
   update_segment();
@@ -2105,10 +2106,14 @@ void EUpdate::replay(MDSRank *mds)
 	       << " < " << cmapv << dendl;
       // open client sessions?
       map<client_t,entity_inst_t> cm;
+      map<client_t,client_metadata_t> cmm;
       auto blp = client_map.cbegin();
       using ceph::decode;
       decode(cm, blp);
-      mds->sessionmap.replay_open_sessions(cm);
+      if (!blp.end())
+	decode(cmm, blp);
+      mds->sessionmap.replay_open_sessions(cm, cmm);
+
       assert(mds->sessionmap.get_version() == cmapv);
     }
   }
@@ -2674,7 +2679,7 @@ void ESubtreeMap::replay(MDSRank *mds)
       dout(0) << "journal subtrees: " << subtrees << dendl;
       dout(0) << "journal ambig_subtrees: " << ambiguous_subtrees << dendl;
       mds->mdcache->show_subtrees();
-      assert(!g_conf->mds_debug_subtrees || errors == 0);
+      assert(!g_conf()->mds_debug_subtrees || errors == 0);
     }
     return;
   }
@@ -2757,7 +2762,7 @@ void EFragment::replay(MDSRank *mds)
   }
 
   metablob.replay(mds, _segment);
-  if (in && g_conf->mds_debug_frag)
+  if (in && g_conf()->mds_debug_frag)
     in->verify_dirfrags();
 }
 
@@ -2944,12 +2949,15 @@ void EImportStart::replay(MDSRank *mds)
     dout(10) << "EImportStart.replay sessionmap " << mds->sessionmap.get_version() 
 	     << " < " << cmapv << dendl;
     map<client_t,entity_inst_t> cm;
+    map<client_t,client_metadata_t> cmm;
     auto blp = client_map.cbegin();
     using ceph::decode;
     decode(cm, blp);
-    mds->sessionmap.replay_open_sessions(cm);
-    if (mds->sessionmap.get_version() != cmapv)
-    {
+    if (!blp.end())
+      decode(cmm, blp);
+    mds->sessionmap.replay_open_sessions(cm, cmm);
+
+    if (mds->sessionmap.get_version() != cmapv) {
       derr << "sessionmap version " << mds->sessionmap.get_version()
            << " != cmapv " << cmapv << dendl;
       mds->clog->error() << "failure replaying journal (EImportStart)";

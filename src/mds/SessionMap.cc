@@ -222,7 +222,7 @@ void SessionMap::_load_finish(
     object_locator_t oloc(mds->mdsmap->get_metadata_pool());
     C_IO_SM_Load *c = new C_IO_SM_Load(this, false);
     ObjectOperation op;
-    op.omap_get_vals(last_key, "", g_conf->mds_sessionmap_keys_per_op,
+    op.omap_get_vals(last_key, "", g_conf()->mds_sessionmap_keys_per_op,
 		     &c->session_vals, &c->more_session_vals, &c->values_r);
     mds->objecter->read(oid, oloc, op, CEPH_NOSNAP, NULL, 0,
         new C_OnFinisher(c, mds->finisher));
@@ -265,7 +265,7 @@ void SessionMap::load(MDSInternalContextBase *onload)
 
   ObjectOperation op;
   op.omap_get_header(&c->header_bl, &c->header_r);
-  op.omap_get_vals("", "", g_conf->mds_sessionmap_keys_per_op,
+  op.omap_get_vals("", "", g_conf()->mds_sessionmap_keys_per_op,
 		   &c->session_vals, &c->more_session_vals, &c->values_r);
 
   mds->objecter->read(oid, oloc, op, CEPH_NOSNAP, NULL, 0, new C_OnFinisher(c, mds->finisher));
@@ -631,7 +631,7 @@ void SessionMap::_mark_dirty(Session *s)
   if (dirty_sessions.count(s->info.inst.name))
     return;
 
-  if (dirty_sessions.size() >= g_conf->mds_sessionmap_keys_per_op) {
+  if (dirty_sessions.size() >= g_conf()->mds_sessionmap_keys_per_op) {
     // Pre-empt the usual save() call from journal segment trim, in
     // order to avoid building up an oversized OMAP update operation
     // from too many sessions modified at once
@@ -736,7 +736,7 @@ void SessionMap::save_if_dirty(const std::set<entity_name_t> &tgt_sessions,
   dout(4) << __func__ << ": writing " << write_sessions.size() << dendl;
 
   // Batch writes into mds_sessionmap_keys_per_op
-  const uint32_t kpo = g_conf->mds_sessionmap_keys_per_op;
+  const uint32_t kpo = g_conf()->mds_sessionmap_keys_per_op;
   map<string, bufferlist> to_set;
   for (uint32_t i = 0; i < write_sessions.size(); ++i) {
     const entity_name_t &session_id = write_sessions[i];
@@ -843,7 +843,7 @@ void Session::clear_recalled_at()
   recall_release_count = 0;
 }
 
-void Session::set_client_metadata(map<string, string> const &meta)
+void Session::set_client_metadata(const client_metadata_t& meta)
 {
   info.client_metadata = meta;
 
@@ -1011,10 +1011,11 @@ bool SessionFilter::match(
   for (const auto &m : metadata) {
     const auto &k = m.first;
     const auto &v = m.second;
-    if (session.info.client_metadata.count(k) == 0) {
+    auto it = session.info.client_metadata.find(k);
+    if (it == session.info.client_metadata.end()) {
       return false;
     }
-    if (session.info.client_metadata.at(k) != v) {
+    if (it->second != v) {
       return false;
     }
   }

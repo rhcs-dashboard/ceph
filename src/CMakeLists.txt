@@ -517,6 +517,7 @@ set(libcommon_files
   common/ceph_frag.cc
   common/options.cc
   common/config.cc
+  common/config_values.cc
   common/utf8.c
   common/mime.c
   common/strtol.cc
@@ -691,8 +692,9 @@ if(WITH_DPDK)
   add_library(common_async_dpdk STATIC
     ${common_async_dpdk_files})
   # to ready the dpdk header files
-  add_dependencies(common_async_dpdk
-    ${DPDK_LIBRARIES})
+  if(TARGET dpdk-ext)
+    add_dependencies(common_async_dpdk dpdk-ext)
+  endif()
   list(APPEND ceph_common_deps common_async_dpdk)
   target_link_libraries(common_async_dpdk
     ${DPDK_LIBRARIES})

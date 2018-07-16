@@ -1532,7 +1532,7 @@ void PG::choose_async_recovery_ec(const map<pg_shard_t, pg_info_t> &all_info,
     version_t auth_version = auth_info.last_update.version;
     version_t candidate_version = shard_info.last_update.version;
     if (auth_version > candidate_version &&
-        (auth_version - candidate_version) > cct->_conf->get_val<uint64_t>("osd_async_recovery_min_pg_log_entries")) {
+        (auth_version - candidate_version) > cct->_conf.get_val<uint64_t>("osd_async_recovery_min_pg_log_entries")) {
       candidates_by_cost.insert(make_pair(auth_version - candidate_version, shard_i));
     }
   }
@@ -1583,7 +1583,7 @@ void PG::choose_async_recovery_replicated(const map<pg_shard_t, pg_info_t> &all_
     } else {
       approx_entries = candidate_version - auth_version;
     }
-    if (approx_entries > cct->_conf->get_val<uint64_t>("osd_async_recovery_min_pg_log_entries")) {
+    if (approx_entries > cct->_conf.get_val<uint64_t>("osd_async_recovery_min_pg_log_entries")) {
       candidates_by_cost.insert(make_pair(approx_entries, shard_i));
     }
   }
@@ -4929,7 +4929,7 @@ void PG::chunky_scrub(ThreadPool::TPHandle &handle)
 	  osd->clog->debug(oss);
 	}
 
-	scrubber.preempt_left = cct->_conf->get_val<uint64_t>(
+	scrubber.preempt_left = cct->_conf.get_val<uint64_t>(
 	  "osd_scrub_max_preemptions");
 	scrubber.preempt_divisor = 1;
         break;
@@ -5158,7 +5158,7 @@ void PG::chunky_scrub(ThreadPool::TPHandle &handle)
 	  break;
 	}
 
-	scrubber.preempt_left = cct->_conf->get_val<uint64_t>(
+	scrubber.preempt_left = cct->_conf.get_val<uint64_t>(
 	  "osd_scrub_max_preemptions");
 	scrubber.preempt_divisor = 1;
 
@@ -5587,9 +5587,6 @@ bool PG::append_log_entries_update_missing(
   assert(entries.begin()->version > info.last_update);
 
   PGLogEntryHandler rollbacker{this, &t};
-  if (roll_forward_to) {
-    pg_log.roll_forward(&rollbacker);
-  }
   bool invalidate_stats =
     pg_log.append_new_log_entries(info.last_backfill,
 				  info.last_backfill_bitwise,

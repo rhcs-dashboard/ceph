@@ -147,6 +147,14 @@ public:
     shutdown();
     return 0;
   }
+  int abort_conn()
+  {
+    if (mounted) {
+      client->abort_conn();
+      mounted = false;
+    }
+    return 0;
+  }
 
   void shutdown()
   {
@@ -186,11 +194,11 @@ public:
 
   int conf_read_file(const char *path_list)
   {
-    int ret = cct->_conf->parse_config_files(path_list, nullptr, 0);
+    int ret = cct->_conf.parse_config_files(path_list, nullptr, 0);
     if (ret)
       return ret;
-    cct->_conf->apply_changes(nullptr);
-    cct->_conf->complain_about_parse_errors(cct);
+    cct->_conf.apply_changes(nullptr);
+    cct->_conf.complain_about_parse_errors(cct);
     return 0;
   }
 
@@ -199,34 +207,34 @@ public:
     int ret;
     vector<const char*> args;
     argv_to_vec(argc, argv, args);
-    ret = cct->_conf->parse_argv(args);
+    ret = cct->_conf.parse_argv(args);
     if (ret)
 	return ret;
-    cct->_conf->apply_changes(nullptr);
+    cct->_conf.apply_changes(nullptr);
     return 0;
   }
 
   int conf_parse_env(const char *name)
   {
-    md_config_t *conf = cct->_conf;
-    conf->parse_env(name);
-    conf->apply_changes(nullptr);
+    auto& conf = cct->_conf;
+    conf.parse_env(name);
+    conf.apply_changes(nullptr);
     return 0;
   }
 
   int conf_set(const char *option, const char *value)
   {
-    int ret = cct->_conf->set_val(option, value);
+    int ret = cct->_conf.set_val(option, value);
     if (ret)
       return ret;
-    cct->_conf->apply_changes(nullptr);
+    cct->_conf.apply_changes(nullptr);
     return 0;
   }
 
   int conf_get(const char *option, char *buf, size_t len)
   {
     char *tmp = buf;
-    return cct->_conf->get_val(option, &tmp, len);
+    return cct->_conf.get_val(option, &tmp, len);
   }
 
   Client *get_client()
@@ -336,8 +344,8 @@ extern "C" int ceph_create(struct ceph_mount_info **cmount, const char * const i
   }
 
   CephContext *cct = common_preinit(iparams, CODE_ENVIRONMENT_LIBRARY, 0);
-  cct->_conf->parse_env(); // environment variables coverride
-  cct->_conf->apply_changes(nullptr);
+  cct->_conf.parse_env(); // environment variables coverride
+  cct->_conf.apply_changes(nullptr);
   int ret = ceph_create_with_context(cmount, cct);
   cct->put();
   cct = nullptr;
@@ -347,6 +355,11 @@ extern "C" int ceph_create(struct ceph_mount_info **cmount, const char * const i
 extern "C" int ceph_unmount(struct ceph_mount_info *cmount)
 {
   return cmount->unmount();
+}
+
+extern "C" int ceph_abort_conn(struct ceph_mount_info *cmount)
+{
+  return cmount->abort_conn();
 }
 
 extern "C" int ceph_release(struct ceph_mount_info *cmount)
@@ -363,6 +376,13 @@ extern "C" void ceph_shutdown(struct ceph_mount_info *cmount)
   cmount->shutdown();
   delete cmount;
   cmount = nullptr;
+}
+
+extern "C" uint64_t ceph_get_instance_id(struct ceph_mount_info *cmount)
+{
+  if (cmount->is_initialized())
+    return cmount->get_client()->get_nodeid().v;
+  return 0;
 }
 
 extern "C" int ceph_conf_read_file(struct ceph_mount_info *cmount, const char *path)
