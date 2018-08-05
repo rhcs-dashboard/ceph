@@ -1,0 +1,21 @@
+.logout-class {
+  border-color: transparent;
+  border-style: solid;
+  border-width: 1px 0;
+  padding: 1px 10px;
+  display: block;
+  clear: both;
+  font-weight: 400;
+  line-height: 1.66666667;
+  color: #363636;
+  white-space: nowrap;
+  background-color: transparent;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.logout-class:hover {
+  background-color: #daf3ff;
+  border-top: 1px solid #b6e0f5;
+  border-bottom: 1px solid #b6e0f5;
+}

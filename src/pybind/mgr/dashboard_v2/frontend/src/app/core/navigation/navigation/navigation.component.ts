@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { SummaryService } from '../../../shared/services/summary.service';
+import { detect } from 'detect-browser';
 
 @Component({
   selector: 'cd-navigation',
@@ -7,6 +8,11 @@ import { SummaryService } from '../../../shared/services/summary.service';
   styleUrls: ['./navigation.component.scss']
 })
 export class NavigationComponent implements OnInit {
+  hostName: string;
+  browserOS: any;
+  browserName: string;
+  browserVersion: any;
+  user: string;
   summaryData: any;
   rbdPools: Array<any> = [];
 
@@ -17,6 +23,11 @@ export class NavigationComponent implements OnInit {
       this.summaryData = data;
       this.rbdPools = data.rbd_pools;
     });
+    this.user = localStorage.getItem('dashboard_username');
+    this.browserName = detect().name;
+    this.browserVersion = detect().version;
+    this.browserOS = detect().os;
+    this.hostName = "Host";
   }
 
   blockHealthColor() {

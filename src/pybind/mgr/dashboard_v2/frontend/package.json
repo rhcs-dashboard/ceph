@@ -33,6 +33,7 @@
     "ng2-charts": "^1.6.0",
     "ng2-toastr": "4.1.2",
     "ngx-bootstrap": "^2.0.1",
+    "rcue": "^3.48.1",
     "rxjs": "^5.5.2",
     "zone.js": "^0.8.14"
   },
@@ -45,6 +46,7 @@
     "@types/node": "~6.0.60",
     "codelyzer": "^4.0.1",
     "copy-webpack-plugin": "4.3.0",
+    "detect-browser": "^3.0.0",
     "jasmine-core": "~2.6.2",
     "jasmine-spec-reporter": "~4.1.0",
     "karma": "~1.7.0",

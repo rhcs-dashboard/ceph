@@ -1,11 +1,10 @@
-<nav class="navbar navbar-default navbar-openattic">
+<nav class="navbar navbar-default navbar-pf" role="navigation">
   <!-- Brand and toggle get grouped for better mobile display -->
 
   <div class="navbar-header tc_logo_component">
     <a class="navbar-brand"
        href="#">
-      <img src="assets/Ceph_Logo_Standard_RGB_White_120411_fa.png"
-           alt="Ceph">
+      <img src="/assets/branding/RHCSD-Masthead-Logo.svg" width=100%  alt="Red Hat Ceph Storage">
     </a>
 
     <button type="button"
@@ -43,7 +42,7 @@
           class="dropdown tc_menuitem tc_menuitem_cluster">
         <a dropdownToggle
            class="dropdown-toggle"
-           data-toggle="dropdown">
+           >
           <ng-container i18n>Cluster</ng-container>
           <span class="caret"></span>
         </a>
@@ -86,7 +85,6 @@
           class="dropdown tc_menuitem tc_menuitem_block">
         <a dropdownToggle
            class="dropdown-toggle"
-           data-toggle="dropdown"
            [ngStyle]="blockHealthColor()">
           <ng-container i18n>Block</ng-container>
           <span class="caret"></span>
@@ -139,8 +137,7 @@
           routerLinkActive="active"
           class="dropdown tc_menuitem tc_menuitem_cephs">
         <a dropdownToggle
-           class="dropdown-toggle"
-           data-toggle="dropdown">
+           class="dropdown-toggle">
           <ng-container i18n>Filesystems</ng-container>
           <span class="caret"></span>
         </a>
@@ -160,20 +157,6 @@
           </li>
         </ul>
       </li>
-      <!--
-  <li routerLinkActive="active"
-          class="tc_menuitem tc_menuitem_ceph_osds">
-        <a i18n
-           routerLink="/cephOsds">OSDs
-        </a>
-      </li>
-      <li routerLinkActive="active"
-          class="tc_menuitem tc_menuitem_ceph_pools">
-        <a i18n
-           routerLink="/cephPools">Pools
-        </a>
-      </li>
-      -->
 
       <!-- Object Gateway -->
       <li routerLinkActive="active"
@@ -182,47 +165,73 @@
            routerLink="/rgw">Object Gateway
         </a>
       </li>
-
-      <!--<li class="dropdown tc_menuitem tc_menuitem_ceph_rgw">
-        <a href=""
-           class="dropdown-toggle"
-           data-toggle="dropdown">
-          <ng-container i18n>Object Gateway</ng-container>
-          <span class="caret"></span>
-        </a>
-        <ul *dropdownMenu
-            class="dropdown-menu">
-          <li routerLinkActive="active"
-              class="tc_submenuitem tc_submenuitem_rgw_users">
-            <a i18n
-               class="dropdown-item"
-               routerLink="/rgw-users">Users
-            </a>
-          </li>
-          <li routerLinkActive="active"
-              class="tc_submenuitem tc_submenuitem_rgw_buckets">
-            <a i18n
-               class="dropdown-item"
-               routerLink="/rgw-buckets">Buckets
-            </a>
-          </li>
-        </ul>
-      </li>
-      <li routerLinkActive="active"
-          class="tc_menuitem tc_submenuitem_settings">
-        <a i18n
-           routerLink="/settings">Settings
-        </a>
-      </li> -->
     </ul>
-    <!-- /.navbar-primary -->
+    <!-- /.navbar-primary-->
 
     <ul class="nav navbar-nav navbar-utility">
-      <li class="tc_logout">
-        <cd-logout class="oa-navbar"></cd-logout>
+      <li dropdown
+          routerLinkActive="active"
+          class="dropdown">
+        <button class="btn btn-link nav-item-iconic" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+          <span title="Help" class="fa pficon-help dropdown-title"></span>
+        </button>
+        <ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
+          <li><a href="http://docs.ceph.com/docs/master/" target="_blank">Help</a></li>
+          <li><a href="#0" data-toggle="modal" data-target="#about-modal">About</a></li>
+        </ul>
+      </li>
+      <li dropdown
+          routerLinkActive="active"
+          class="dropdown">
+        <button class="btn btn-link dropdown-toggle" data-toggle="dropdown">
+          <span class="pficon pficon-user"></span>
+          <span class="dropdown-title">
+            {{user}}
+            <span class="caret"></span>
+          </span>
+        </button>
+        <ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
+          <li>
+            <cd-logout class="oa-navbar"></cd-logout>
+          </li>
+        </ul>
       </li>
     </ul>
     <!-- /.navbar-utility -->
   </div>
   <!-- /.navbar-collapse -->
 </nav>
+
+
+<div class="modal fade" id="about-modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content about-modal-pf">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+          <span class="pficon pficon-close"></span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <h1>Red Hat Ceph Storage Dashboard</h1>
+        <div class="product-versions-pf">
+          <ul class="list-unstyled">
+            <li><strong>Version</strong> 3.2</li>
+            <li><strong>Ceph Manager</strong> {{ hostName }}</li>
+            <li><strong>User</strong> {{user}}</li>
+            <li><strong>User Role</strong> admin</li>
+            <li><strong>Browser</strong> {{browserName}}</li>
+            <li><strong>Browser Version</strong> {{browserVersion}}</li>
+            <li><strong>Browser OS</strong> {{browserOS}}</li>
+          </ul>
+        </div>
+        <div class="trademark-pf">
+          Copyright(c) 2018 Red Hat Inc. and contributors. Licensed under Creative Commons Attribution Share Alike 3.0 (CC-BY-SA-3.0)
+        </div>
+      </div>
+      <div class="modal-footer">
+        <img src="/assets/branding/Logo_RH_RGB_Reverse.png" class="redhat_logo" alt= "Redhat">
+        <img src="/assets/branding/RHCSD-About-Corner.png" alt=" Symbol">
+      </div>
+    </div>
+  </div>
+</div>
