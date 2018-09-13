@@ -1,26 +1,36 @@
-<div class="modal-header">
-  <button type="button"
-          class="close pull-right"
-          aria-label="Close"
-          (click)="modalRef.hide()">
-    <span aria-hidden="true">&times;</span>
-  </button>
-</div>
-<div class="modal-body">
-  <h1>ceph</h1>
-  <div class="product-versions">
-    <strong>Ceph version</strong>
-    {{ versionNumber }}
-    <br>
-    {{ versionHash }}
-    <br>
-    {{ versionName }}
+<!-- <div class="modal fade" id="about-modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">-->
+  <div class="modal-dialog">
+      <div class="modal-content about-modal-pf">
+        <div class="modal-header">
+          <button type="button" class="close pull-right" data-dismiss="modal" aria-hidden="true" (click)="modalRef.hide()">
+            <span class="pficon pficon-close"></span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <h1>Red Hat Ceph Storage Dashboard</h1>
+          <div class="product-versions-pf">
+            <ul class="list-unstyled">
+              <li><strong>Version</strong> 3.2</li>
+              <li><strong>Version</strong> {{ versionNumber }}-{{ versionHash }}-{{ versionName }}</li>
+              <li><strong>Ceph Manager</strong> {{ hostName }}</li>
+              <li><strong>User</strong> {{user}}</li>
+              <li><strong>User Role</strong> admin</li>
+              <li><strong>Browser</strong> {{browserName}}</li>
+              <li><strong>Browser Version</strong> {{browserVersion}}</li>
+              <li><strong>Browser OS</strong> {{browserOS}}</li>
+            </ul>
+          </div>
+          <div class="trademark-pf">
+            Copyright(c) 2018 Red Hat Inc. and contributors. Licensed under Creative Commons Attribution Share Alike 3.0 (CC-BY-SA-3.0)
+          </div>
+          <div class="product-versions">
+            <strong>Ceph version</strong>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <img src="/assets/branding/Logo_RH_RGB_Reverse.png" class="redhat_logo" alt= "Redhat">
+          <img src="/assets/branding/RHCSD-About-Corner.png" alt=" Symbol">
+        </div>
+      </div>
   </div>
-</div>
-<div class="modal-footer">
-  <div class="text-right">
-    <img src="assets/Ceph_Logo_Stacked_RGB_120411_fa_348x348.png"
-         class="ceph-logo"
-         alt="Ceph">
-  </div>
-</div>
+  <!--</div>-->

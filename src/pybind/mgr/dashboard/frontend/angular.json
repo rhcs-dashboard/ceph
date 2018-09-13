@@ -25,9 +25,13 @@
               "node_modules/ng2-toastr/bundles/ng2-toastr.min.css",
               "node_modules/fork-awesome/css/fork-awesome.css",
               "node_modules/awesome-bootstrap-checkbox/awesome-bootstrap-checkbox.css",
+              "node_modules/rcue/dist/css/rcue.min.css",
+              "node_modules/rcue/dist/css/rcue-additions.min.css",              
               "src/styles.scss"
             ],
             "scripts": [
+              "node_modules/rcue/node_modules/jquery/dist/jquery.min.js",
+              "node_modules/bootstrap/dist/js/bootstrap.min.js",              
               "node_modules/chart.js/dist/Chart.bundle.js"
             ]
           },
