@@ -3,6 +3,8 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { BsModalRef } from 'ngx-bootstrap';
 import { Subscription } from 'rxjs';
 
+import { detect } from 'detect-browser';
+
 import { SummaryService } from '../../../shared/services/summary.service';
 
 @Component({
@@ -15,6 +17,11 @@ export class AboutComponent implements OnInit, OnDestroy {
   versionHash: string;
   versionName: string;
   subs: Subscription;
+  hostName: string;
+  browserOS: any;
+  browserName: string;
+  browserVersion: any;
+  user: string;
 
   constructor(public modalRef: BsModalRef, private summaryService: SummaryService) {}
 
@@ -28,6 +35,11 @@ export class AboutComponent implements OnInit, OnDestroy {
       this.versionHash = version[1];
       this.versionName = version.slice(2, version.length).join(' ');
     });
+    this.user = localStorage.getItem('dashboard_username');
+    this.browserName = detect().name;
+    this.browserVersion = detect().version;
+    this.browserOS = detect().os;
+    this.hostName = "Host";
   }
 
   ngOnDestroy(): void {
