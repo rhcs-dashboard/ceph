@@ -1,26 +1,35 @@
+<div class="about-modal-pf">
 <div class="modal-header">
   <button type="button"
           class="close pull-right"
           aria-label="Close"
           (click)="modalRef.hide()">
-    <span aria-hidden="true">&times;</span>
+    <span class="pficon pficon-close"></span>
   </button>
 </div>
 <div class="modal-body">
-  <h1>ceph</h1>
-  <div class="product-versions">
-    <strong>Ceph version</strong>
-    {{ versionNumber }}
+  <h1>{{ productConstants.productName }}</h1>
+  <div class="product-versions-pf">
+    <ul class="list-unstyled">
+      <li><strong>Version</strong> {{ productConstants.version }}</li>
+      <li><strong>Host Address</strong> {{ modalVariables.hostAddr }}</li>
+      <li><strong>User</strong> {{ modalVariables.user }}</li>
+      <li><strong>User Role</strong> {{ modalVariables.role }}</li>
+      <li><strong>Browser</strong> {{ modalVariables.browserName }}</li>
+      <li><strong>Browser Version</strong> {{ modalVariables.browserVersion }}</li>
+      <li><strong>Browser OS</strong> {{ modalVariables.browserOS }}</li>
+    </ul>
+  </div>
+  <div class="trademark-pf">
+    {{ productConstants.copyRight }}
     <br>
-    {{ versionHash }}
+    {{ productConstants.license }}
     <br>
-    {{ versionName }}
+    {{ productConstants.licenseNumber }}
   </div>
 </div>
 <div class="modal-footer">
-  <div class="text-right">
-    <img src="assets/Ceph_Logo_Stacked_RGB_120411_fa_348x348.png"
-         class="ceph-logo"
-         alt="Ceph">
-  </div>
+  <img src="/assets/branding/Logo_RH_RGB_Reverse.png" class="redhat_logo" title="{{ productConstants.company }}">
+  <img src="/assets/branding/RHCSD-About-Corner.png" alt=" Symbol">
+</div>
 </div>

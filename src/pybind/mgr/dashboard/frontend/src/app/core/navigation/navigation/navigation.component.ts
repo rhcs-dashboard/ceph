@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 
+import { AppConstants } from '../../../shared/constants/app.constants';
 import { Permissions } from '../../../shared/models/permissions';
 import { AuthStorageService } from '../../../shared/services/auth-storage.service';
 import { SummaryService } from '../../../shared/services/summary.service';
@@ -13,6 +14,7 @@ export class NavigationComponent implements OnInit {
   permissions: Permissions;
   summaryData: any;
   isCollapsed = true;
+  productName: any;
 
   constructor(
     private authStorageService: AuthStorageService,
@@ -28,6 +30,7 @@ export class NavigationComponent implements OnInit {
       }
       this.summaryData = data;
     });
+    this.productName = AppConstants.productName;
   }
 
   blockHealthColor() {

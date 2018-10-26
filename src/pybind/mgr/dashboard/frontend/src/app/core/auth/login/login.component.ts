@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, Renderer2 } from '@angular/core';
 import { Router } from '@angular/router';
 
 import { BsModalService } from 'ngx-bootstrap/modal';
@@ -12,15 +12,18 @@ import { AuthStorageService } from '../../../shared/services/auth-storage.servic
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss']
 })
-export class LoginComponent implements OnInit {
+export class LoginComponent implements OnInit, OnDestroy {
   model = new Credentials();
 
   constructor(
     private authService: AuthService,
+    private renderer: Renderer2,
     private authStorageService: AuthStorageService,
     private bsModalService: BsModalService,
     private router: Router
-  ) {}
+  ) {
+    this.renderer.addClass(document.documentElement, 'login-pf');
+  }
 
   ngOnInit() {
     if (this.authStorageService.isLoggedIn()) {
@@ -34,6 +37,10 @@ export class LoginComponent implements OnInit {
         this.bsModalService.hide(i);
       }
     }
+  }
+
+  ngOnDestroy() {
+    this.renderer.removeClass(document.documentElement, 'login-pf');
   }
 
   login() {

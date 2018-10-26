@@ -1,73 +1,62 @@
-<div class="login">
-  <div class="row full-height vertical-align">
-    <div class="col-sm-6 hidden-xs">
-      <img src="assets/Ceph_Logo_Stacked_RGB_White_120411_fa_256x256.png"
-           alt="Ceph"
-           class="pull-right">
-    </div>
-    <div class="col-xs-10 col-sm-4 col-lg-3 col-xs-offset-1 col-sm-offset-0 col-md-offset-0 col-lg-offset-0">
-      <h1 i18n="The welcome message on the login page">Welcome to Ceph!</h1>
-      <form name="loginForm"
-            (ngSubmit)="login()"
-            #loginForm="ngForm"
-            novalidate>
-
-        <!-- Username -->
-        <div class="form-group has-feedback"
-             [ngClass]="{'has-error': (loginForm.submitted || username.dirty) && username.invalid}">
-          <input name="username"
-                 [(ngModel)]="model.username"
-                 #username="ngModel"
-                 type="text"
-                 placeholder="Enter your username..."
-                 class="form-control"
-                 required
-                 autofocus>
-          <div class="help-block"
-               *ngIf="(loginForm.submitted || username.dirty) && username.invalid">Username is required</div>
-        </div>
-
-        <!-- Password -->
-        <div class="form-group has-feedback"
-             [ngClass]="{'has-error': (loginForm.submitted || password.dirty) && password.invalid}">
-          <div class="input-group">
-            <input id="password"
-                   name="password"
-                   [(ngModel)]="model.password"
-                   #password="ngModel"
-                   type="password"
-                   placeholder="Enter your password..."
-                   class="form-control"
-                   required>
-            <span class="input-group-btn">
-              <button type="button"
-                      class="btn btn-default btn-password"
-                      cdPasswordButton="password">
-              </button>
-            </span>
+<div class="login-view">
+  <div class="login-pf-page">
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-sm-8 col-sm-offset-2 col-md-6 col-md-offset-3 col-lg-6 col-lg-offset-3">
+          <header class="login-pf-page-header">
+            <img class="login-pf-brand" src="assets/branding/RHCSD-Login-Logo.svg" alt="RHCS" />
+          </header>
+          <div class="row">
+            <div class="col-sm-10 col-sm-offset-1 col-md-8 col-md-offset-2 col-lg-6 col-lg-offset-3">
+              <div class="card-pf">
+                <header class="login-pf-header">
+                  <select class="selectpicker">
+                    <option>English</option>
+                  </select>
+                  <h1>Log In to Your Account</h1>
+                </header>
+                <form name="loginForm" (ngSubmit)="login()" #loginForm="ngForm" novalidate>
+                  <div class="form-group form-group has-feedback" [ngClass]="{'has-error': (loginForm.submitted || username.dirty) && username.invalid}">
+                    <label class="sr-only" for="email">Email address</label>
+                    <input name="username" [(ngModel)]="model.username" #username="ngModel" type="text" placeholder="Username" class="form-control" required autofocus>
+                    <div class="help-block" *ngIf="(loginForm.submitted || username.dirty) && username.invalid">Username is required</div>
+                  </div>
+                  <div class="form-group" class="form-group has-feedback" [ngClass]="{'has-error': (loginForm.submitted || password.dirty) && password.invalid}">
+                    <label class="sr-only" for="password">Password
+                    </label>
+                    <input id="password" name="password" [(ngModel)]="model.password" #password="ngModel" type="password" placeholder="Password" class="form-control" required>
+                    <div class="help-block" *ngIf="(loginForm.submitted || password.dirty) && password.invalid">Password is required
+                    </div>
+                  </div>
+                  <div class="form-group login-pf-settings">
+                    <label class="checkbox-label">
+                      <input type="checkbox" id="stay_signed_in" name="stay_signed_in" [(ngModel)]="model.stay_signed_in"> Keep me logged in for 30 days
+                    </label>
+                  </div>
+                  <button type="submit" class="btn btn-primary btn-block btn-lg" value="Login">Login</button>
+                </form>
+                <p class="login-pf-signup"></p>
+              </div>
+              <div class="login-logo">
+                <img src="/assets/branding/Logo_RH_RGB_Reverse.png" class="redhat_logo" alt="Redhat">
+              </div>
+            </div>
+            <footer class="login-pf-page-footer">
+              <ul class="login-pf-page-footer-links list-unstyled">
+                <li><a class="login-pf-page-footer-link" href="https://www.redhat.com/en/about/all-policies-guidelines">Terms of Use</a></li>
+                <li><a class="login-pf-page-footer-link" href="https://access.redhat.com/documentation/en-us/red_hat_ceph_storage/">Help</a></li>
+                <li><a class="login-pf-page-footer-link" href="https://www.redhat.com/en/about/privacy-policy">Privacy Policy</a></li>
+              </ul>
+            </footer>
           </div>
-          <div class="help-block"
-               *ngIf="(loginForm.submitted || password.dirty) && password.invalid">Password is required
-          </div>
+          <!-- row -->
         </div>
-
-        <!-- Stay signed in -->
-        <div class="checkbox checkbox-primary">
-          <input id="stay_signed_in"
-                 name="stay_signed_in"
-                 type="checkbox"
-                 [(ngModel)]="model.stay_signed_in">
-          <label for="stay_signed_in"
-                 i18n="A checkbox on the login page to do not expire session on browser close">
-            Keep me logged in
-          </label>
-        </div>
-
-        <input type="submit"
-               class="btn btn-primary btn-block"
-               [disabled]="loginForm.invalid"
-               value="Login">
-      </form>
+        <!-- col -->
+      </div>
+      <!-- row -->
     </div>
+    <!-- container -->
   </div>
+  <!-- login-pf-page -->
+  <!-- login-pf-page -->
 </div>

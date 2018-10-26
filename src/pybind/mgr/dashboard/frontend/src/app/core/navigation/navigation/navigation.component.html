@@ -1,11 +1,13 @@
-<nav class="navbar navbar-default navbar-main">
+<nav class="navbar navbar-default navbar-pf">
   <!-- Brand and toggle get grouped for better mobile display -->
 
   <div class="navbar-header tc_logo_component">
     <a class="navbar-brand"
        href="#">
-      <img src="assets/Ceph_Logo_Standard_RGB_White_120411_fa.png"
-           alt="Ceph">
+      <img src="/assets/branding/RHCSD-Masthead-Logo.svg"
+           width=100%
+           alt="{{ productName }}"
+           title="{{ productName }}">
     </a>
 
     <button type="button"
@@ -43,8 +45,7 @@
           class="dropdown tc_menuitem tc_menuitem_cluster"
           *ngIf="permissions.hosts.read || permissions.monitor.read || permissions.osd.read || permissions.configOpt.read">
         <a dropdownToggle
-           class="dropdown-toggle"
-           data-toggle="dropdown">
+           class="dropdown-toggle">
           <ng-container i18n>Cluster</ng-container>
           <span class="caret"></span>
         </a>
@@ -101,7 +102,6 @@
           *ngIf="permissions.rbdImage.read || permissions.rbdMirroring.read || permissions.iscsi.read">
         <a dropdownToggle
            class="dropdown-toggle"
-           data-toggle="dropdown"
            [ngStyle]="blockHealthColor()">
           <ng-container i18n>Block</ng-container>
           <span class="caret"></span>
@@ -153,8 +153,7 @@
           class="dropdown tc_menuitem tc_menuitem_rgw"
           *ngIf="permissions.rgw.read">
         <a dropdownToggle
-           class="dropdown-toggle"
-           data-toggle="dropdown">
+           class="dropdown-toggle">
           <ng-container i18n>Object Gateway</ng-container>
           <span class="caret"></span>
         </a>

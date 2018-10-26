@@ -1,22 +1,13 @@
-.product-versions {
-  margin-top: 30px;
-}
-.product-versions strong {
-  margin-right: 10px;
-}
-.modal-header {
-  border-bottom: none;
-}
-.modal-body {
-  padding-left: 80px;
-  padding-right: 80px;
-}
 .modal-footer {
-  border-top: none;
+  padding: 0;
+  margin-top: -180px;
+  .redhat_logo {
+    width: 125px;
+    position: absolute;
+    bottom: 10px;
+    right: 20px;
+  }
 }
-h1 {
-  font-size: 4em;
-}
-.ceph-logo {
-  width: 25%;
+.about-modal-pf {
+  background-image: none;
 }
