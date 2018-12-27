@@ -28,6 +28,8 @@
               "node_modules/ngx-bootstrap/datepicker/bs-datepicker.css",
               "src/styles.scss",
               "src/vendor.overrides.scss",
+              "node_modules/rcue/dist/css/rcue.min.css",
+              "node_modules/rcue/dist/css/rcue-additions.min.css",
               "node_modules/ng2-tree/styles.css"
             ],
             "scripts": [
