@@ -18,7 +18,8 @@
             "polyfills": "src/polyfills.ts",
             "assets": [
               "src/assets",
-              "src/favicon.ico"
+              "src/favicon.ico",
+	            "src/branding/assets"
             ],
             "styles": [
               "node_modules/bootstrap/dist/css/bootstrap.css",
@@ -28,6 +29,8 @@
               "node_modules/ngx-bootstrap/datepicker/bs-datepicker.css",
               "src/styles.scss",
               "src/vendor.overrides.scss",
+              "node_modules/rcue/dist/css/rcue.min.css",
+              "node_modules/rcue/dist/css/rcue-additions.min.css",
               "node_modules/ng2-tree/styles.css"
             ],
             "scripts": [

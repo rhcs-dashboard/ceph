@@ -17,9 +17,6 @@ import { SummaryService } from '../../../shared/services/summary.service';
 })
 export class AboutComponent implements OnInit, OnDestroy {
   modalVariables: any;
-  versionNumber: string;
-  versionHash: string;
-  versionName: string;
   subs: Subscription;
   userPermission: Permission;
   projectConstants: typeof AppConstants;
@@ -36,19 +33,15 @@ export class AboutComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.copyright = 'Copyright(c) ' + environment.year + ' Ceph contributors.';
     this.projectConstants = AppConstants;
+    this.copyright = 'Copyright(c) ' + environment.year + this.projectConstants.contributors;
     this.hostAddr = window.location.hostname;
     this.modalVariables = this.setVariables();
     this.subs = this.summaryService.subscribe((summary: any) => {
       if (!summary) {
         return;
       }
-      const version = summary.version.replace('ceph version ', '').split(' ');
       this.hostAddr = summary.mgr_host.replace(/(^\w+:|^)\/\//, '').replace(/\/$/, '');
-      this.versionNumber = version[0];
-      this.versionHash = version[1];
-      this.versionName = version.slice(2, version.length).join(' ');
     });
   }
 
