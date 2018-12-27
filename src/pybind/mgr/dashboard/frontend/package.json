@@ -66,6 +66,7 @@
     "ng2-toastr": "zzakir/ng2-toastr#0eafd72",
     "ng2-tree": "2.0.0-rc.11",
     "ngx-bootstrap": "3.1.4",
+    "rcue": "^3.48.1",
     "rxjs": "6.3.3",
     "rxjs-compat": "6.2.2",
     "tslib": "1.9.3",
