@@ -1,0 +1,15 @@
+@import '../../../../branding/branding.scss';
+
+.form-control {
+  width: 22%;
+  float: right;
+  border: 0;
+  padding: 0;
+  box-shadow: none;
+  color: $color-selected-language;
+  font-weight: lighter;
+}
+
+.form-control option {
+  color: $color-languages;
+}
