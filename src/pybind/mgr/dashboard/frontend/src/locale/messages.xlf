@@ -2107,31 +2107,13 @@
           <context context-type="sourcefile">app/ceph/rgw/rgw-user-details/rgw-user-details.component.html</context>
           <context context-type="linenumber">97</context>
         </context-group>
-      </trans-unit><trans-unit id="449dca3d3a93ead418b0541ea81b0dda7e6483c2" datatype="html">
-        <source>Welcome to Ceph!</source>
+      </trans-unit><trans-unit id="c9c3515c6eff42c8e95413995f9921eac48e401e" datatype="html">
+        <source>Log In to Your Account</source>
         <context-group purpose="location">
           <context context-type="sourcefile">app/core/auth/login/login.component.html</context>
-          <context context-type="linenumber">10</context>
+          <context context-type="linenumber">20</context>
         </context-group>
         <note priority="1" from="description">The welcome message on the login page</note>
-      </trans-unit><trans-unit id="0070e83d11da39d6f4bb95065c2675db1610b419" datatype="html">
-        <source>Username is required</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">app/core/auth/login/login.component.html</context>
-          <context context-type="linenumber">34</context>
-        </context-group>
-      </trans-unit><trans-unit id="1e20f8b8a4706526c9024cc2f39d568345d100dc" datatype="html">
-        <source>Password is required</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">app/core/auth/login/login.component.html</context>
-          <context context-type="linenumber">58</context>
-        </context-group>
-      </trans-unit><trans-unit id="6765b4c916060f6bc42d9bb69e80377dbcb5e4e9" datatype="html">
-        <source>Login</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">app/core/auth/login/login.component.html</context>
-          <context context-type="linenumber">64</context>
-        </context-group>
       </trans-unit><trans-unit id="d96493d07439fc50485a66b7469451d30fc8ad25" datatype="html">
         <source><x id="ICU" equiv-text="{mode, select, editing {...} other {...}}"/> Role</source>
         <context-group purpose="location">
