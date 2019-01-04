@@ -1,7 +1,14 @@
 @import '../defaults';
 
 $color-copper-black: #4d5258;
+$color-sea-blue: #0088ce;
+$color-dark-sea-blue: #00659c;
 
 /* Login Screen */
 $color-languages: $color-black;
 $color-selected-language: $color-copper-black;
+
+/* Buttons */
+$color-patternfly-button-background: $color-sea-blue;
+$color-patternfly-button-border: $color-dark-sea-blue;
+$color-disabled-button: $color-white-gray;
