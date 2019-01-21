@@ -2,10 +2,8 @@
 
 .modal-header {
   @include hf;
-  border-radius: 5px 5px 0 0;
 }
 
 ::ng-deep .modal-footer {
   @include hf;
-  border-radius: 0 0 5px 5px;
 }
