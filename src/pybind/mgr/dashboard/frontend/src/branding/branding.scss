@@ -3,6 +3,7 @@
 $color-copper-black: #4d5258;
 $color-sea-blue: #0088ce;
 $color-dark-sea-blue: #00659c;
+$color-patternfly-blue: #39a5dc;
 
 /* Navigation */
 $color-branding-nav-hover: linear-gradient(to bottom, #72757a 0, #64686c 100%);
@@ -15,3 +16,8 @@ $color-selected-language: $color-copper-black;
 $color-patternfly-button-background: $color-sea-blue;
 $color-patternfly-button-border: $color-dark-sea-blue;
 $color-disabled-button: $color-white-gray;
+
+/* Progress Bar */
+$color-patternfly-progressbar: $color-grad-gray;
+$shadow-patternfly-progressbar: inset 0 0 1px rgba(3, 3, 3, 0.25);
+$color-patternfly-progressinfo: $color-patternfly-blue;
