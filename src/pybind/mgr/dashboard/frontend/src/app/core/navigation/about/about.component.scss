@@ -1,3 +1,8 @@
+@import '../../../../branding/branding';
+
+.close {
+  color: $color-about-close;
+}
 .product-versions {
   margin-top: 30px;
 }
@@ -7,10 +12,6 @@
 .modal-header {
   border-bottom: none;
 }
-.modal-body {
-  padding-left: 80px;
-  padding-right: 80px;
-}
 .modal-footer {
   border-top: none;
 }
@@ -18,13 +19,24 @@ h2 {
   font-size: 3em;
 }
 .ceph-logo {
-  width: 10%;
+  width: 80%;
+  margin-left: -10px;
 }
 .list-unstyled li {
   margin-top: 5px;
 }
 .modal-footer {
-  padding: 15px 80px 35px 80px;
+  padding: 0;
+  margin-top: -180px;
+  .redhat_logo {
+    width: 125px;
+    position: absolute;
+    bottom: 10px;
+    right: 20px;
+  }
+}
+.about-modal-pf {
+  background-image: none;
 }
 .modal-body {
   margin-top: 0;
