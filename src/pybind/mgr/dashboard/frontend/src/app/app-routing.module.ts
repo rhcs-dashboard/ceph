@@ -28,8 +28,7 @@ import { RoleFormComponent } from './core/auth/role-form/role-form.component';
 import { RoleListComponent } from './core/auth/role-list/role-list.component';
 import { UserFormComponent } from './core/auth/user-form/user-form.component';
 import { UserListComponent } from './core/auth/user-list/user-list.component';
-import { ForbiddenComponent } from './core/forbidden/forbidden.component';
-import { NotFoundComponent } from './core/not-found/not-found.component';
+import { ErrorComponent } from './core/error/error.component';
 import { BreadcrumbsResolver, IBreadcrumb } from './shared/models/breadcrumbs';
 import { AuthGuardService } from './shared/services/auth-guard.service';
 import { ModuleStatusGuardService } from './shared/services/module-status-guard.service';
@@ -252,8 +251,8 @@ const routes: Routes = [
   // System
   { path: 'login', component: LoginComponent },
   { path: 'logout', children: [] },
-  { path: '403', component: ForbiddenComponent },
-  { path: '404', component: NotFoundComponent },
+  { path: '403', component: ErrorComponent },
+  { path: '404', component: ErrorComponent },
   { path: '**', redirectTo: '/404' }
 ];
 

@@ -2228,6 +2228,24 @@
           <context context-type="sourcefile">app/core/auth/user-form/user-form.component.html</context>
           <context context-type="linenumber">163</context>
         </context-group>
+      </trans-unit><trans-unit id="385afe9b630f434fc563d233fd57a06437b6db5c" datatype="html">
+        <source><x id="INTERPOLATION" equiv-text="{{ errorHeading }}"/></source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">app/core/error/error.component.html</context>
+          <context context-type="linenumber">3</context>
+        </context-group>
+      </trans-unit><trans-unit id="4be9fbe8901fcd4c75c46c3b6e4156fac8e5c53f" datatype="html">
+        <source><x id="INTERPOLATION" equiv-text="{{ errordesc }}"/></source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">app/core/error/error.component.html</context>
+          <context context-type="linenumber">4</context>
+        </context-group>
+      </trans-unit><trans-unit id="e3c028c58f92453d46f09b5adf95b2f013ee0300" datatype="html">
+        <source>Sorry, we could not find what you were looking for</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">app/core/not-found/not-found.component.html</context>
+          <context context-type="linenumber">3</context>
+        </context-group>
       </trans-unit><trans-unit id="471e78026c258073ba687478dc54c35d9041ea42" datatype="html">
         <source>Forbidden</source>
         <context-group purpose="location">
@@ -2239,12 +2257,6 @@
         <context-group purpose="location">
           <context context-type="sourcefile">app/core/forbidden/forbidden.component.html</context>
           <context context-type="linenumber">7</context>
-        </context-group>
-      </trans-unit><trans-unit id="e3c028c58f92453d46f09b5adf95b2f013ee0300" datatype="html">
-        <source>Sorry, we could not find what you were looking for</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">app/core/not-found/not-found.component.html</context>
-          <context context-type="linenumber">3</context>
         </context-group>
       </trans-unit><trans-unit id="1d65cc22d5842c06d33b244fc67de9db4003537e" datatype="html">
         <source>Recent Notifications</source>
