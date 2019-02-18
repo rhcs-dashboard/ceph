@@ -2111,7 +2111,7 @@
         <source>Log In to Your Account</source>
         <context-group purpose="location">
           <context context-type="sourcefile">app/core/auth/login/login.component.html</context>
-          <context context-type="linenumber">20</context>
+          <context context-type="linenumber">17</context>
         </context-group>
         <note priority="1" from="description">The welcome message on the login page</note>
       </trans-unit><trans-unit id="d96493d07439fc50485a66b7469451d30fc8ad25" datatype="html">
