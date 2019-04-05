@@ -20,9 +20,7 @@ import { NfsFormComponent } from './ceph/nfs/nfs-form/nfs-form.component';
 import { NfsListComponent } from './ceph/nfs/nfs-list/nfs-list.component';
 import { PerformanceCounterComponent } from './ceph/performance-counter/performance-counter/performance-counter.component';
 import { LoginComponent } from './core/auth/login/login.component';
-import { SsoNotFoundComponent } from './core/auth/sso/sso-not-found/sso-not-found.component';
-import { ForbiddenComponent } from './core/forbidden/forbidden.component';
-import { NotFoundComponent } from './core/not-found/not-found.component';
+import { ErrorComponent } from './core/error/error.component';
 import { BreadcrumbsResolver, IBreadcrumb } from './shared/models/breadcrumbs';
 import { AuthGuardService } from './shared/services/auth-guard.service';
 import { FeatureTogglesGuardService } from './shared/services/feature-toggles-guard.service';
@@ -215,12 +213,12 @@ const routes: Routes = [
     ]
   },
   // Single Sign-On (SSO)
-  { path: 'sso/404', component: SsoNotFoundComponent },
+  { path: 'sso/404', component: ErrorComponent },
   // System
   { path: 'login', component: LoginComponent },
   { path: 'logout', children: [] },
-  { path: '403', component: ForbiddenComponent },
-  { path: '404', component: NotFoundComponent },
+  { path: '403', component: ErrorComponent },
+  { path: '404', component: ErrorComponent },
   { path: '**', redirectTo: '/404' }
 ];
 
