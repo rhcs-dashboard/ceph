@@ -93,6 +93,63 @@
           </div>
         </div>
 
+        <!-- Zonegroup -->
+        <div class="form-group"
+             [ngClass]="{'has-error': bucketForm.showError('zonegroup', frm)}">
+          <label class="control-label col-sm-3"
+                 for="zonegroup">
+            <ng-container i18n>Zonegroup</ng-container>
+            <span class="required"></span>
+          </label>
+          <div class="col-sm-9">
+            <select id="zonegroup"
+                    name="zonegroup"
+                    class="form-control"
+                    formControlName="zonegroup"
+                    (change)="updatePlacementTargets($event)">
+              <option i18n
+                      *ngIf="zonegroups === null"
+                      [ngValue]="null">Loading...</option>
+              <option i18n
+                      *ngIf="zonegroups !== null"
+                      [ngValue]="null">-- Select a zonegroup --</option>
+              <option *ngFor="let zonegroup of zonegroups | keyvalue"
+                      [value]="zonegroup.key">{{ zonegroup.value.description }}</option>
+            </select>
+            <span class="help-block"
+                  *ngIf="bucketForm.showError('zonegroup', frm, 'required')"
+                  i18n>This field is required.</span>
+          </div>
+        </div>
+
+        <!-- Placement target -->
+        <div class="form-group"
+             [ngClass]="{'has-error': bucketForm.showError('zonegroup', frm)}">
+          <label class="control-label col-sm-3"
+                 for="placement-target">
+            <ng-container i18n>Placement target</ng-container>
+            <span class="required"></span>
+          </label>
+          <div class="col-sm-9">
+            <select id="placement-target"
+                    name="placement-target"
+                    class="form-control"
+                    formControlName="placement-target">
+              <option i18n
+                      *ngIf="placementTargets === null"
+                      [ngValue]="null">Loading...</option>
+              <option i18n
+                      *ngIf="placementTargets !== null"
+                      [ngValue]="null">-- Select a placement target --</option>
+              <option *ngFor="let placementTarget of placementTargets"
+                      [value]="placementTarget">{{ placementTarget }}</option>
+            </select>
+            <span class="help-block"
+                  *ngIf="bucketForm.showError('placement-target', frm, 'required')"
+                  i18n>This field is required.</span>
+          </div>
+        </div>
+
       </div>
       <div class="panel-footer">
         <div class="button-group text-right">

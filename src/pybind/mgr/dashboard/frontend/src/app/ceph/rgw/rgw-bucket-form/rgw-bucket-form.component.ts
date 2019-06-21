@@ -6,6 +6,7 @@ import { I18n } from '@ngx-translate/i18n-polyfill';
 import * as _ from 'lodash';
 
 import { RgwBucketService } from '../../../shared/api/rgw-bucket.service';
+import { RgwSiteService } from '../../../shared/api/rgw-site.service';
 import { RgwUserService } from '../../../shared/api/rgw-user.service';
 import { ActionLabelsI18n, URLVerbs } from '../../../shared/constants/app.constants';
 import { NotificationType } from '../../../shared/enum/notification-type.enum';
@@ -26,12 +27,15 @@ export class RgwBucketFormComponent implements OnInit {
   owners = null;
   action: string;
   resource: string;
+  zonegroups = {};
+  placementTargets: string[] = [];
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private formBuilder: CdFormBuilder,
     private rgwBucketService: RgwBucketService,
+    private rgwSiteService: RgwSiteService,
     private rgwUserService: RgwUserService,
     private notificationService: NotificationService,
     private i18n: I18n,
@@ -47,7 +51,9 @@ export class RgwBucketFormComponent implements OnInit {
     this.bucketForm = this.formBuilder.group({
       id: [null],
       bid: [null, [Validators.required], [this.bucketNameValidator()]],
-      owner: [null, [Validators.required]]
+      owner: [null, [Validators.required]],
+      zonegroup: [null, [Validators.required]],
+      'placement-target': [null, [Validators.required]]
     });
   }
 
@@ -55,6 +61,21 @@ export class RgwBucketFormComponent implements OnInit {
     // Get the list of possible owners.
     this.rgwUserService.enumerate().subscribe((resp: string[]) => {
       this.owners = resp.sort();
+    });
+
+    // Get zonegroups:
+    this.rgwSiteService.getZonegroups().subscribe((zonegroups) => {
+      // console.log('ZG', zonegroups);
+      _.forEach(zonegroups, (zonegroup, zonegroupName) => {
+        let zonegroupDescription = zonegroupName;
+        if (zonegroup['realm_name'].length > 0) {
+          zonegroupDescription = `${zonegroupName} (${this.i18n('realm')}: ${
+            zonegroup['realm_name']
+          })`;
+        }
+        zonegroup['description'] = zonegroupDescription;
+        this.zonegroups[zonegroupName] = zonegroup;
+      });
     });
 
     // Process route parameters.
@@ -96,6 +117,8 @@ export class RgwBucketFormComponent implements OnInit {
     }
     const bidCtl = this.bucketForm.get('bid');
     const ownerCtl = this.bucketForm.get('owner');
+    const zonegroupCtl = this.bucketForm.get('zonegroup');
+    const placementTargetCtl = this.bucketForm.get('placement-target');
     if (this.editing) {
       // Edit
       const idCtl = this.bucketForm.get('id');
@@ -114,19 +137,21 @@ export class RgwBucketFormComponent implements OnInit {
       );
     } else {
       // Add
-      this.rgwBucketService.create(bidCtl.value, ownerCtl.value).subscribe(
-        () => {
-          this.notificationService.show(
-            NotificationType.success,
-            this.i18n('Created Object Gateway bucket "{{bid}}"', { bid: bidCtl.value })
-          );
-          this.goToListView();
-        },
-        () => {
-          // Reset the 'Submit' button.
-          this.bucketForm.setErrors({ cdSubmitButton: true });
-        }
-      );
+      this.rgwBucketService
+        .create(bidCtl.value, ownerCtl.value, zonegroupCtl.value, placementTargetCtl.value)
+        .subscribe(
+          () => {
+            this.notificationService.show(
+              NotificationType.success,
+              this.i18n('Created Object Gateway bucket "{{bid}}"', { bid: bidCtl.value })
+            );
+            this.goToListView();
+          },
+          () => {
+            // Reset the 'Submit' button.
+            this.bucketForm.setErrors({ cdSubmitButton: true });
+          }
+        );
     }
   }
 
@@ -156,5 +181,13 @@ export class RgwBucketFormComponent implements OnInit {
         });
       });
     };
+  }
+
+  updatePlacementTargets(event) {
+    this.placementTargets = [];
+
+    _.forEach(this.zonegroups[event.target.value]['placement_targets'], (placementTarget) => {
+      this.placementTargets.push(placementTarget['name']);
+    });
   }
 }

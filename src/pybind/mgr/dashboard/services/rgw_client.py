@@ -8,7 +8,7 @@ import six
 from ..awsauth import S3Auth
 from ..settings import Settings, Options
 from ..rest_client import RestClient, RequestException
-from ..tools import build_url, dict_contains_path
+from ..tools import build_url, dict_contains_path, partial_dict, str_to_json
 from .. import mgr, logger
 
 
@@ -412,6 +412,51 @@ class RgwClient(RestClient):
             raise e
 
     @RestClient.api_put('/{bucket_name}')
-    def create_bucket(self, bucket_name, request=None):
-        logger.info("Creating bucket: %s", bucket_name)
-        return request()
+    def create_bucket(self, bucket_name, zonegroup, placement_target, request=None):
+        logger.info("Creating bucket: %s, zonegroup: %s, placement_target: %s", bucket_name, zonegroup, placement_target)
+        return request(data='<CreateBucketConfiguration><LocationConstraint>{}:{}</LocationConstraint></CreateBucketConfiguration>'.format(zonegroup, placement_target))
+
+    @staticmethod
+    def get_site_map():
+        site_map = {'zonegroups': []}
+        instance = RgwClient.admin_instance()
+        realms_info = str_to_json(instance.proxy('GET', 'realm?list', None, None))
+        if 'realms' in realms_info and realms_info['realms']:
+            realms = realms_info['realms']
+            for realm_name in realms:
+                realm = str_to_json(
+                    instance.proxy(
+                        'GET',
+                        'realm/period?realm_name={}'.format(realm_name),
+                        None,
+                        None)
+                    )
+                for zonegroup in realm['period_map']['zonegroups']:
+                    zonegroup['realm_name'] = realm_name
+                    site_map['zonegroups'].append(zonegroup)
+        else:
+            # @TODO: retrieve this from admin ops api when endpoint is available.
+            site_map['zonegroups'].append({
+                'api_name': 'default',
+                'placement_targets': [{
+                    'name': 'default-placement',
+                    'storage_classes': [
+                        'STANDARD'
+                    ]
+                }],
+                'default_placement': 'default-placement',
+                'realm_name': ''
+            })
+        # logger.error('SITE MAP ---------------------------------')
+        # logger.error(site_map)
+        return site_map
+
+    @staticmethod
+    def get_zonegroups():
+        site_map = RgwClient.get_site_map()
+
+        return {zonegroup['api_name']:
+                partial_dict(
+                    zonegroup,
+                    ['api_name', 'placement_targets', 'default_placement', 'realm_name']
+                ) for zonegroup in site_map['zonegroups']}

@@ -766,6 +766,16 @@ def str_to_bool(val):
     return bool(strtobool(val))
 
 
+def str_to_json(value):
+    if value is not None and value != '':
+        return json.loads(value.decode('utf-8'))
+    return value
+
+
+def partial_dict(orig, keys):
+    return {k: orig[k] for k in keys}
+
+
 def get_request_body_params(request):
     """
     Helper function to get parameters from the request body.

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-
+import functools
 import json
 
 import cherrypy
@@ -13,6 +13,7 @@ from ..rest_client import RequestException
 from ..security import Scope
 from ..services.ceph_service import CephService
 from ..services.rgw_client import RgwClient
+from ..tools import str_to_json
 
 
 @ApiController('/rgw', Scope.RGW)
@@ -42,6 +43,16 @@ class Rgw(BaseController):
         except (RequestException, LookupError) as ex:
             status['message'] = str(ex)
         return status
+
+    @staticmethod
+    def handle_error(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except (DashboardException, RequestException) as e:
+                raise DashboardException(e, http_status_code=500, component='rgw')
+        return wrapper
 
 
 @ApiController('/rgw/daemon', Scope.RGW)
@@ -92,15 +103,26 @@ class RgwDaemon(RESTController):
 
 class RgwRESTController(RESTController):
 
+    @Rgw.handle_error
     def proxy(self, method, path, params=None, json_response=True):
-        try:
-            instance = RgwClient.admin_instance()
-            result = instance.proxy(method, path, params, None)
-            if json_response and result != '':
-                result = json.loads(result.decode('utf-8'))
-            return result
-        except (DashboardException, RequestException) as e:
-            raise DashboardException(e, http_status_code=500, component='rgw')
+        instance = RgwClient.admin_instance()
+        result = instance.proxy(method, path, params, None)
+        if json_response:
+            result = str_to_json(result)
+        return result
+
+
+@ApiController('/rgw/site', Scope.RGW)
+class RgwSite(RgwRESTController):
+
+    @Rgw.handle_error
+    def list(self, query=None):
+        if query == 'zonegroups':
+            result = RgwClient.get_zonegroups()
+        else:
+            result = RgwClient.get_site_map()
+
+        return str_to_json(json.dumps(result))
 
 
 @ApiController('/rgw/bucket', Scope.RGW)
@@ -128,10 +150,10 @@ class RgwBucket(RgwRESTController):
         result = self.proxy('GET', 'bucket', {'bucket': bucket})
         return self._append_bid(result)
 
-    def create(self, bucket, uid):
+    def create(self, bucket, uid, zonegroup, placement_target):
         try:
             rgw_client = RgwClient.instance(uid)
-            return rgw_client.create_bucket(bucket)
+            return rgw_client.create_bucket(bucket, zonegroup, placement_target)
         except RequestException as e:
             raise DashboardException(e, http_status_code=500, component='rgw')
 
