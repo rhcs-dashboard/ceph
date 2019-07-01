@@ -338,7 +338,10 @@ uib-accordion .panel-title,
   margin-right: 10px;
 }
 .nav-tabs {
-  margin-bottom: 15px;
+  margin-bottom: 15px !important;
+}
+.alert {
+  padding-left: 14px !important;
 }
 /* Icons */
 .ceph-icon {

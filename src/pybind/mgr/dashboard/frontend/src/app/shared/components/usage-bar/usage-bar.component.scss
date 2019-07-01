@@ -1,0 +1,11 @@
+@import '../../../../branding/branding';
+
+.progress-bar {
+  background-color: $color-patternfly-progressbar !important;
+  -webkit-box-shadow: $shadow-patternfly-progressbar;
+  box-shadow: $shadow-patternfly-progressbar;
+}
+
+.progress-bar-info {
+  background-color: $color-patternfly-progressinfo !important;
+}
