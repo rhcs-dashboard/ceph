@@ -1,69 +1,95 @@
-<div class="login"
-     *ngIf="isLoginActive">
-  <div class="row full-height vertical-align">
-    <div class="col-sm-6 hidden-xs">
-      <img src="assets/Ceph_Logo_Stacked_RGB_White_120411_fa_256x256.png"
-           alt="Ceph"
-           class="pull-right">
-    </div>
-    <div class="col-xs-10 col-sm-4 col-lg-3 col-xs-offset-1 col-sm-offset-0 col-md-offset-0 col-lg-offset-0">
-      <h1 i18n="The welcome message on the login page">Welcome to Ceph!</h1>
-      <form name="loginForm"
-            (ngSubmit)="login()"
-            #loginForm="ngForm"
-            novalidate>
-
-        <!-- I18N -->
-        <div class="form-group has-feedback">
-          <cd-language-selector [isDropdown]="false"></cd-language-selector>
-        </div>
-
-        <!-- Username -->
-        <div class="form-group has-feedback"
-             [ngClass]="{'has-error': (loginForm.submitted || username.dirty) && username.invalid}">
-          <input name="username"
-                 [(ngModel)]="model.username"
-                 #username="ngModel"
-                 type="text"
-                 placeholder="Enter your username..."
-                 class="form-control"
-                 required
-                 autofocus>
-          <div class="help-block"
-               *ngIf="(loginForm.submitted || username.dirty) && username.invalid"
-               i18n>Username is required</div>
-        </div>
-
-        <!-- Password -->
-        <div class="form-group has-feedback"
-             [ngClass]="{'has-error': (loginForm.submitted || password.dirty) && password.invalid}">
-          <div class="input-group">
-            <input id="password"
-                   name="password"
-                   [(ngModel)]="model.password"
-                   #password="ngModel"
-                   type="password"
-                   placeholder="Enter your password..."
-                   class="form-control"
-                   required>
-            <span class="input-group-btn">
-              <button type="button"
-                      class="btn btn-default btn-password"
-                      cdPasswordButton="password">
+<div class="login" *ngIf="isLoginActive">
+  <div class="pf-c-login">
+    <div class="pf-c-login__container">
+      <header class="pf-c-login__header">
+        <img class="pf-c-brand" src="assets/Logo-Red_Hat-Ceph_Storage-A-Reverse-RGB.png" alt="Red Hat Ceph Storage Dashboard">
+        <p>Dashboard</p>
+      </header>
+      <main class="pf-c-login__main">
+        <header class="pf-c-login__main-header">
+          <h1 class="pf-c-title pf-m-xl">
+            Welcome to Red Hat Ceph Storage Dashboard
+          </h1>
+        </header>
+        <div class="pf-c-login__main-body">
+          <form novalidate class="pf-c-form"
+                name="loginForm"
+                (ngSubmit)="login()"
+                #loginForm="ngForm">
+            <p class="pf-c-form__helper-text pf-m-error pf-m-hidden  has-feedback">
+              <i class="fas fa-exclamation-circle pf-c-form__helper-text-icon" aria-hidden="true"></i>
+                Invalid login credentials.
+            </p>
+            <div class="pf-c-form__group">
+              <label class="pf-c-form__label" for="login-demo-form-username">
+                Username <span class="pf-c-form__label-required" aria-hidden="true">&#42;</span>
+              </label>
+              <input name="username"
+                     [(ngModel)]="model.username"
+                     #username="ngModel"
+                     type="text"
+                     class="pf-c-form-control form-control"
+                     input="true"
+                     required
+                     autofocus>
+              <div class="help-block"
+                   *ngIf="(loginForm.submitted || username.dirty) && username.invalid"
+                   i18n>Username is required
+              </div>
+              <div class="help-block"
+                   *ngIf="!((loginForm.submitted || username.dirty) && username.invalid)"
+                   i18n><br>
+              </div>
+            </div>
+            <div class="pf-c-form__group">
+              <label class="pf-c-form__label" for="login-demo-form-password">
+                Password <span class="pf-c-form__label-required" aria-hidden="true">&#42;</span>
+              </label>
+              <input id="password"
+                     name="password"
+                     [(ngModel)]="model.password"
+                     #password="ngModel"
+                     type="password"
+                     class="form-control pf-c-form-control"
+                     required>
+              <div class="help-block"
+                   *ngIf="(loginForm.submitted || password.dirty) && password.invalid"
+                   i18n>Password is required
+              </div>
+              <div class="help-block"
+                   *ngIf="!((loginForm.submitted || password.dirty) && password.invalid)"
+                   i18n><br>
+              </div>
+            </div>
+            <div class="pf-c-form__group pf-m-action">
+              <button class="pf-c-button pf-m-primary pf-m-block"
+                      type="submit"
+                      [disabled]="loginForm.invalid">
+                        Log in
               </button>
-            </span>
-          </div>
-          <div class="help-block"
-               *ngIf="(loginForm.submitted || password.dirty) && password.invalid"
-               i18n>Password is required</div>
+            </div>
+          </form>
         </div>
-
-        <input type="submit"
-               class="btn btn-primary btn-block"
-               [disabled]="loginForm.invalid"
-               value="Login"
-               i18n-value>
-      </form>
+      </main>
+      <footer class="pf-c-login__footer">
+        <ul class="pf-c-list pf-m-inline">
+          <li>
+            <a href="https://www.redhat.com/en/about/all-policies-guidelines">
+              Terms of Use
+            </a>
+          </li>
+          <li>
+            <a href="https://access.redhat.com/documentation/en-us/red_hat_ceph_storage/">
+              Help
+            </a>
+          </li>
+          <li>
+            <a href="https://www.redhat.com/en/about/privacy-policy">
+              Privacy Policy
+            </a>
+          </li>
+        </ul>
+      </footer>
     </div>
   </div>
 </div>

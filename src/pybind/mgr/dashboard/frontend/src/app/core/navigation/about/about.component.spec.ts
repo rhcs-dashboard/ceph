@@ -11,9 +11,6 @@ import { AboutComponent } from './about.component';
 
 export class SummaryServiceMock {
   summaryDataSource = new BehaviorSubject({
-    version:
-      'ceph version 14.0.0-855-gb8193bb4cd ' +
-      '(b8193bb4cda16ccc5b028c3e1df62bc72350a15d) nautilus (dev)',
     mgr_host: 'http://localhost:11000/'
   });
   summaryData$ = this.summaryDataSource.asObservable();
@@ -41,12 +38,6 @@ describe('AboutComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
-  });
-
-  it('should parse version', () => {
-    expect(component.versionNumber).toBe('14.0.0-855-gb8193bb4cd');
-    expect(component.versionHash).toBe('(b8193bb4cda16ccc5b028c3e1df62bc72350a15d)');
-    expect(component.versionName).toBe('nautilus (dev)');
   });
 
   it('should get host', () => {

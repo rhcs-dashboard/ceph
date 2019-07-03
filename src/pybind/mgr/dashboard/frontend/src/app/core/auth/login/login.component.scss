@@ -1,11 +1,43 @@
 @import '../../../../defaults';
 
 ::ng-deep .login {
-  height: 100%;
+  .pf-c-login__main-header {
+    text-align: center;
+  }
+  .pf-c-login {
+    background-image: url('../../../../assets/redhat_new_background.svg');
+    background-size: cover;
+  }
 
-  .row {
-    color: $color-login-row-text;
-    background-color: $color-login-row-bg;
+  header.pf-c-login__header {
+    margin-bottom: 50px;
+    p {
+      padding-left: 26% !important;
+      font-size: 3.5vw;
+      font-weight: 500;
+    }
+
+    img {
+      margin-bottom: 0 !important;
+    }
+  }
+
+  @media only screen and (max-width: 1199px) {
+    header.pf-c-login__header p {
+      font-size: 4em !important;
+      font-weight: 600;
+    }
+  }
+
+  @media only screen and (max-width: 500px) and (min-width: 1199px) {
+    header.pf-c-login__header p {
+      font-size: 4vw !important;
+      font-weight: 600;
+    }
+  }
+
+  footer {
+    padding-left: 26% !important;
   }
 
   h1 {
@@ -13,19 +45,7 @@
     margin-bottom: 30px;
   }
 
-  .btn-password,
-  .form-control {
-    color: $color-password-toggle-text;
-    background-color: $color-password-toggle-bg;
-  }
-
-  .btn-password:focus {
-    outline-color: $color-password-toggle-focus;
-  }
-
-  .checkbox-primary input[type='checkbox']:checked + label::before,
-  .checkbox-primary input[type='radio']:checked + label::before {
-    background-color: $color-login-checkbox-bg;
-    border-color: $color-login-checkbox-border;
+  .pf-m-action {
+    margin-top: 0;
   }
 }

@@ -7,9 +7,6 @@ $font_family_1: 'ForkAwesome';
 @import 'app/ceph/dashboard/info-card/info-card-popover.scss';
 
 /* Basics */
-html {
-  background-color: $color-app-bg;
-}
 html,
 body {
   width: 100%;
@@ -331,6 +328,26 @@ uib-accordion .panel-title,
   margin-left: 5px;
 }
 /* Modal dialog */
+.about_modal_branding {
+  background-color: transparent !important;
+  width: 180%;
+  margin-left: -40%;
+  margin-top: 140px;
+}
+@media only screen and (max-width: 1110px) {
+  .about_modal_branding {
+    width: 140%;
+    margin-left: -20%;
+  }
+}
+
+@media only screen and (max-width: 870px) {
+  .about_modal_branding {
+    width: 100%;
+    margin-left: 0;
+  }
+}
+
 .modal-footer button.btn:not(:first-child) {
   margin-left: 5px;
 }

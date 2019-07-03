@@ -1,5 +1,24 @@
+.pf-c-about-modal-box {
+  font-size: 1.2em;
+  background-image: none;
+}
+.pf-c-about-modal-box__hero {
+  background-image: url('../../../../assets/redhat_new_background.svg');
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: inherit;
+  background-position: 70% -12px;
+  background-color: #1a1a1a;
+}
+.pf-c-about-modal-box__strapline {
+  white-space: wrap;
+}
 .product-versions {
   margin-top: 30px;
+}
+.pf-c-about-modal-box {
+  overflow-y: hidden;
+  width: 100%;
 }
 .product-versions strong {
   margin-right: 10px;
@@ -15,13 +34,13 @@
   border-top: none;
 }
 h2 {
-  font-size: 3em;
+  font-size: 2em;
 }
 .ceph-logo {
   width: 10%;
 }
 .list-unstyled li {
-  margin-top: 5px;
+  margin-top: 15px;
 }
 .modal-footer {
   padding: 15px 80px 35px 80px;

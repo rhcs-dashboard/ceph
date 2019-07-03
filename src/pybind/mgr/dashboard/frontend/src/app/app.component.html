@@ -1,7 +1,7 @@
 <block-ui>
   <cd-navigation *ngIf="!isLoginActive()"></cd-navigation>
   <div class="container-fluid"
-       [ngClass]="{'full-height':isLoginActive(), 'dashboard':isDashboardPage()} ">
+       [ngClass]="{'redhat_rcue':isLoginActive(), 'dashboard':isDashboardPage()} ">
     <cd-breadcrumbs></cd-breadcrumbs>
     <router-outlet></router-outlet>
   </div>

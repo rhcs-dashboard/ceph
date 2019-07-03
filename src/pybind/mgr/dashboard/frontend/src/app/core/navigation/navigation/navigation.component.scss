@@ -3,15 +3,18 @@
 /* Navbar */
 ::ng-deep .navbar-main {
   margin-bottom: 0;
-  background: $color-navbar-bg;
+  background: #151515;
   border: 0;
   border-radius: 0;
-  border-top: 4px solid $color-nav-top-bar;
   font-size: 1.2em;
 
   .navbar-header {
     display: flex;
     float: none;
+  }
+
+  .extra-padding {
+    padding-bottom: 12px !important;
   }
 
   .navbar-brand,
@@ -25,9 +28,17 @@
   }
 
   .navbar-brand > img {
-    height: 25px;
+    height: 33px !important;
+    display: inline-block;
+    margin-right: 5px;
+    padding-right: 15px;
+    border-right: 0.8px solid #fff;
   }
 
+  .navbar-brand > .nav-title {
+    margin-left: 5px;
+    color: #fff;
+  }
   .navbar-toggle {
     margin-left: auto;
     border: 0;
@@ -62,6 +73,7 @@
   .navbar-nav > li > a {
     color: $color-nav-links;
     line-height: 1;
+    padding-bottom: 12px;
     padding: 10px 18px;
     position: relative;
     display: block;
@@ -74,14 +86,18 @@
   .navbar-nav > li > .oa-navbar > a:hover,
   .navbar-nav > li > a:focus,
   .navbar-nav > li > a:hover {
-    color: $color-nav-links;
+    color: $color-primary;
+    border-bottom: 4px solid $color-primary;
+    background-color: transparent;
   }
 
   .navbar-nav > li > .oa-navbar > [dropdown] > a:hover,
   .navbar-nav > li > .oa-navbar > [dropdown].open > a,
   .navbar-nav > li > .oa-navbar > a:hover,
   .navbar-nav > li > a:hover {
-    background-color: $color-nav-links-hover;
+    color: $color-primary;
+    border-bottom: 4px solid $color-primary;
+    background-color: transparent;
   }
 
   .navbar-nav > li a.dropdown-toggle span.caret {
@@ -97,8 +113,8 @@
   .navbar-nav > .open > a,
   .navbar-nav > .open > a:focus,
   .navbar-nav > .open > a:hover {
-    color: $color-nav-links;
-    border-color: transparent;
+    color: $color-primary;
+    border-bottom: 4px solid $color-primary;
     background-color: transparent;
   }
 
@@ -109,9 +125,9 @@
   .navbar-primary > .active > a,
   .navbar-primary > .active > a:focus,
   .navbar-primary > .active > a:hover {
-    color: $color-nav-links;
-    background-color: $color-nav-links-hover;
-    border: 0;
+    color: $color-primary;
+    border-bottom: 4px solid $color-primary;
+    background-color: transparent;
   }
 
   .navbar-utility .fa,
@@ -120,8 +136,8 @@
   }
 
   .navbar-utility > .active > a {
-    color: $color-nav-links;
-    background-color: $color-nav-links-hover;
+    color: $color-primary;
+    border-bottom: 4px solid $color-primary;
   }
 
   .navbar-utility > li > .open > a,
@@ -140,7 +156,7 @@
     .navbar-primary > .active > a:focus,
     .navbar-primary > .active > a:hover {
       background-color: transparent;
-      border-bottom: 4px solid $color-nav-bottom-bar;
+      border-bottom: 4px solid $color-primary;
     }
 
     .navbar-utility {
