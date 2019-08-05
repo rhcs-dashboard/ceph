@@ -1,0 +1,24 @@
+pull_request_rules:
+  - name: Automatic merge of Dashboard PR
+    conditions:
+    # Checks
+      - status-success=Signed-off-by
+      - status-success=Unmodified Submodules
+      - status-success=make check
+      - status-success=ceph dashboard tests
+      - "status-success=Docs: build check"
+    # https://doc.mergify.io/examples.html#require-all-requested-reviews-to-be-approved
+      - "#approved-reviews-by>=2"
+      - "#review-requested=0"
+      - "#changes-requested-reviews-by=0"
+      - "#commented-reviews-by=0"
+    # TODO: enable when CODEOWNERS becomes merged
+      #- approved-reviews-by=@ceph/dashboard
+      - "title~=^mgr/dashboard: "
+      - label=dashboard
+      - label!=DNM
+      - base=master
+    actions:
+      merge:
+        method: merge
+        strict: true
