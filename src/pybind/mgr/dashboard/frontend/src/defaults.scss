@@ -46,16 +46,20 @@ $color-transparent: rgba(0, 0, 0, 0.09) !default;
 $color-brand-teal: #2b99a8 !default;
 $color-brand-gray: #374249 !default;
 
-$color-primary: #73bcf7 !default;
+$color-text: $pf-global--Color--100 !default;
+$color-text-disabled: $pf-global--disabled-color--100 !default;
+$color-background-disabled: $pf-global--disabled-color--200 !default;
+$color-primary: $pf-global--primary-color--100 !default;
+$color-primary-2: $pf-global--primary-color--200 !default;
 $color-secondary: $color-brand-gray !default;
-$color-accent: #ef5c55 !default;
+$color-accent: $color-primary !default;
 
 $color-app-bg: $color-solid-white !default;
 $color-bg-darken: $color-dark-gray !default;
-$color-links: $color-primary !default;
-$color-links-focus: $color-dark-gray !default;
+$color-links: $pf-global--link--Color !default;
+$color-links-focus: $pf-global--link--Color--hover !default;
 $color-breadcrumb: $color-dark-gray !default;
-$color-button-text: $color-white-gray !default;
+$color-button-text: $color-solid-white !default;
 $color-button: $color-primary !default;
 $color-button-hover: darken($color-primary, 3) !default;
 $color-button-border: darken($color-primary, 6) !default;
@@ -76,7 +80,7 @@ $color-noscript-text: $color-mild-gray !default;
 $color-required-text: $color-pink !default;
 
 /*Button*/
-$button-radius: 1.875rem !default;
+$button-radius: $pf-global--BorderRadius--sm !default;
 
 /*Login*/
 $color-login-row-text: $color-solid-white !default;
@@ -100,17 +104,21 @@ $color-info-card-border: $color-soft-gray !default;
 
 /*Navigation*/
 $color-navbar-bg: $color-secondary !default;
-$color-navbar-brand: $color-white-gray !default;
+$color-navbar-brand: $color-solid-white !default;
 $color-nav-top-bar: $color-primary !default;
 $color-nav-bottom-bar: $color-primary !default;
 $color-nav-toggle-bar: $color-white-gray !default;
 $color-nav-toggle-shadow: $color-solid-white !default;
 $color-nav-collapse-border: $color-white-gray !default;
 $color-nav-open-bg: $color-primary !default;
-$color-nav-links: $color-white-gray !default;
-$color-nav-links-hover: $color-primary !default;
+$color-nav-links: $color-text !default;
+$color-nav-links-hover: $pf-global--link--Color !default;
+$color-nav-dark-links: $pf-color-black-300 !default;
+$color-nav-dark-links-hover: $pf-global--link--Color--light !default;
+$color-nav-utility-links: $pf-global--Color--200 !default;
+$color-nav-utility-links-hover: $color-solid-white !default;
 $color-nav-active-link-bg: $color-primary !default;
-$color-nav-border-top-collapse: $color-white-gray !default;
+$color-nav-border-top-collapse: $pf-global--BorderColor--100 !default;
 
 /*Helper*/
 $color-helper-bg: $color-primary !default;

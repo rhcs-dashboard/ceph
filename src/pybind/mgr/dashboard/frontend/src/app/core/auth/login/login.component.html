@@ -3,11 +3,10 @@
     <div class="pf-c-login__container">
       <header class="pf-c-login__header">
         <img class="pf-c-brand" src="assets/Logo-Red_Hat-Ceph_Storage-A-Reverse-RGB.png" alt="Red Hat Ceph Storage Dashboard">
-        <p>Dashboard</p>
       </header>
       <main class="pf-c-login__main">
         <header class="pf-c-login__main-header">
-          <h1 class="pf-c-title pf-m-xl">
+          <h1 class="pf-c-title pf-m-3xl">
             Welcome to Red Hat Ceph Storage Dashboard
           </h1>
         </header>
@@ -22,7 +21,8 @@
             </p>
             <div class="pf-c-form__group">
               <label class="pf-c-form__label" for="login-demo-form-username">
-                Username <span class="pf-c-form__label-required" aria-hidden="true">&#42;</span>
+                <span class="pf-c-form__label-text">Username</span>
+                <span class="pf-c-form__label-required" aria-hidden="true">&#42;</span>
               </label>
               <input name="username"
                      [(ngModel)]="model.username"
@@ -36,14 +36,11 @@
                    *ngIf="(loginForm.submitted || username.dirty) && username.invalid"
                    i18n>Username is required
               </div>
-              <div class="help-block"
-                   *ngIf="!((loginForm.submitted || username.dirty) && username.invalid)"
-                   i18n><br>
-              </div>
             </div>
             <div class="pf-c-form__group">
               <label class="pf-c-form__label" for="login-demo-form-password">
-                Password <span class="pf-c-form__label-required" aria-hidden="true">&#42;</span>
+                  <span class="pf-c-form__label-text">Password</span>
+                  <span class="pf-c-form__label-required" aria-hidden="true">&#42;</span>
               </label>
               <input id="password"
                      name="password"
@@ -55,10 +52,6 @@
               <div class="help-block"
                    *ngIf="(loginForm.submitted || password.dirty) && password.invalid"
                    i18n>Password is required
-              </div>
-              <div class="help-block"
-                   *ngIf="!((loginForm.submitted || password.dirty) && password.invalid)"
-                   i18n><br>
               </div>
             </div>
             <div class="pf-c-form__group pf-m-action">

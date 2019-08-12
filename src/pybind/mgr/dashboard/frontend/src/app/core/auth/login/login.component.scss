@@ -1,51 +1,24 @@
 @import '../../../../defaults';
 
-::ng-deep .login {
-  .pf-c-login__main-header {
-    text-align: center;
-  }
-  .pf-c-login {
+::ng-deep {
+
+  .login {
     background-image: url('../../../../assets/redhat_new_background.svg');
     background-size: cover;
-  }
+    background-position: center;
 
-  header.pf-c-login__header {
-    margin-bottom: 50px;
-    p {
-      padding-left: 26% !important;
-      font-size: 3.5vw;
-      font-weight: 500;
-    }
-
-    img {
-      margin-bottom: 0 !important;
+    @media (min-width: $pf-global--breakpoint--xl) {
+      background-position-x: 30%;
     }
   }
 
-  @media only screen and (max-width: 1199px) {
-    header.pf-c-login__header p {
-      font-size: 4em !important;
-      font-weight: 600;
+  @media only screen and (min-width: $pf-global--breakpoint--xl) {
+    .pf-c-login__footer {
+      padding-left: 26%;
     }
   }
 
-  @media only screen and (max-width: 500px) and (min-width: 1199px) {
-    header.pf-c-login__header p {
-      font-size: 4vw !important;
-      font-weight: 600;
-    }
-  }
-
-  footer {
-    padding-left: 26% !important;
-  }
-
-  h1 {
-    margin-top: 0;
-    margin-bottom: 30px;
-  }
-
-  .pf-m-action {
-    margin-top: 0;
+  .pf-c-login__container {
+    min-width: 0;
   }
 }

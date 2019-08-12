@@ -21,37 +21,25 @@
   </div>
   <div class="pf-c-about-modal-box__content">
     <div class="pf-c-about-modal-box__body">
-    <ul class="list-unstyled">
-      <li class="row">
-        <strong class="col-xs-5 col-sm-5">Version</strong>
-        <span class="col-xs-7 col-sm-7">{{ projectConstants.version }}</span>
-      </li>
-      <li class="row">
-        <strong class="col-xs-5 col-sm-5">Ceph Manager</strong>
-        <span class="col-xs-7 col-sm-7">{{ hostAddr }}</span>
-      </li>
-      <li class="row">
-        <strong class="col-xs-5 col-sm-5">User</strong>
-        <span class="col-xs-7 col-sm-7">{{ modalVariables.user }}</span>
-      </li>
-      <li class="row">
-        <strong class="col-xs-5 col-sm-5">User Role</strong>
-        <span class="col-xs-7 col-sm-7">{{ modalVariables.role }}</span>
-      </li>
-      <li class="row">
-        <strong class="col-xs-5 col-sm-5">Browser</strong>
-        <span class="col-xs-7 col-sm-7">{{ modalVariables.browserName }}</span>
-      </li>
-      <li class="row">
-        <strong class="col-xs-5 col-sm-5">Browser Version</strong>
-        <span class="col-xs-7 col-sm-7">{{ modalVariables.browserVersion }}</span>
-      </li>
-      <li class="row">
-        <strong class="col-xs-5 col-sm-5">Browser OS</strong>
-        <span class="col-xs-7 col-sm-7">{{ modalVariables.browserOS }}</span>
-      </li>
-    </ul>
-  </div>
+      <div class="pf-c-content">
+        <dl>
+          <dt>Version</dt>
+          <dd>{{ projectConstants.version }}</dd>
+          <dt>Ceph Manager</dt>
+          <dd>{{ hostAddr }}</dd>
+          <dt>User</dt>
+          <dd>{{ modalVariables.user }}</dd>
+          <dt>User Role</dt>
+          <dd>{{ modalVariables.role }}</dd>
+          <dt>Browser</dt>
+          <dd>{{ modalVariables.browserName }}</dd>
+          <dt>Browser Version</dt>
+          <dd>{{ modalVariables.browserVersion }}</dd>
+          <dt>Browser OS</dt>
+          <dd>{{ modalVariables.browserOS }}</dd>
+        </dl>
+      </div>
+    </div>
     <p class="pf-c-about-modal-box__strapline">
       {{ copyright }}
       <br>
