@@ -43,6 +43,21 @@
   --navbar--sm--links-nested-color: #{$color-nav-links};
   --navbar--sm--links-nested-hover-color: #{$color-nav-links-hover};
 
+  --navbar-utility-padding-bottom: var(--pf-global--spacer--md);
+  --navbar-utility--sm--padding-bottom: 0;
+
+  --navbar-utility-box-shadow: var(--pf-global--BoxShadow--md-bottom);
+  --navbar-utility--sm--box-shadow: none;
+
+  --navbar-utility-margin-top: var(--pf-global--spacer--sm);
+  --navbar-utility--sm--margin-top: 0;
+
+  --navbar-utility-padding-top: var(--pf-global--spacer--sm);
+  --navbar-utility--sm--padding-top: 0;
+
+  --navbar-utility-border-top: 1px solid $color-nav-border-top-collapse;
+  --navbar-utility--sm--border-top: 0;
+
   margin-bottom: 0;
   background: var(--pf-global--BackgroundColor--dark-100);
   border: 0;
@@ -54,14 +69,18 @@
     float: none;
   }
 
-  .navbar-brand,
-  .navbar-brand:hover {
-    color: $color-navbar-brand;
+  .navbar-brand {
     height: auto;
     margin: var(--navbar-brand-margin-top) var(--navbar-brand-margin-right) var(--navbar-brand-margin-bottom) var(--navbar-brand-margin-left);
     padding: 0;
     -webkit-align-self: flex-start;
     align-self: flex-start;
+  }
+
+  .navbar-brand,
+  .navbar-brand:hover,
+  .navbar-brand:focus {
+    color: $color-navbar-brand;
   }
 
   .navbar-brand > img {
@@ -202,9 +221,11 @@
   }
 
   .navbar-utility {
-    margin-top: var(--pf-global--spacer--sm);
-    padding-top: var(--pf-global--spacer--sm);
-    border-top: 1px solid $color-nav-border-top-collapse;
+    margin-top: var(--navbar-utility-margin-top);
+    padding-top: var(--navbar-utility-padding-top);
+    padding-bottom: var(--navbar-utility-padding-bottom);
+    border-top: var(--navbar-utility-border-top);
+    box-shadow: var(--navbar-utility-box-shadow);
 
     a {
       font-size: 1em;
@@ -221,6 +242,11 @@
     --navbar-links-padding-right: var(--navbar--sm--links-padding-right);
     --navbar-links-padding-bottom: var(--navbar--sm--links-padding-bottom);
     --navbar-links-padding-left: var(--navbar--sm--links-padding-left);
+    --navbar-utility-padding-bottom: var(--navbar-utility--sm--padding-bottom);
+    --navbar-utility-box-shadow: var(--navbar-utility--sm--box-shadow);
+    --navbar-utility-margin-top: var(--navbar-utility--sm--margin-top);
+    --navbar-utility-padding-top: var(--navbar-utility--sm--padding-top);
+    --navbar-utility-border-top: var(--navbar-utility--sm--border-top);
 
     .navbar-primary {
       display: flex;
@@ -258,9 +284,6 @@
 
     .navbar-utility {
       z-index: 1;
-      border-top: 0;
-      margin-top: 0;
-      padding-top: 0;
       font-size: 12px;
       position: absolute;
       right: var(--navbar-gutter);
