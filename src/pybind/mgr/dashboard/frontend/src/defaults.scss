@@ -10,21 +10,21 @@ $screen-xs-max: calc(#{$screen-sm-min} - 1px);
 $screen-sm-max: calc(#{$screen-md-min} - 1px);
 $screen-md-max: calc(#{$screen-lg-min} - 1px);
 
-$color-solid-red: #ff0000 !default;
-$color-pink: #a94442 !default;
+$color-solid-red: $pf-color-red-100 !default;
+$color-pink: $pf-color-red-200 !default;
 $color-light-red: #f2dede !default;
 
-$color-orange: #ff6600 !default;
+$color-orange: $pf-color-orange-200 !default;
 
-$color-bright-yellow: #ffc200 !default;
-$color-light-yellow: #fff3cd !default;
+$color-bright-yellow: $pf-color-gold-400 !default;
+$color-light-yellow: $pf-color-gold-100 !default;
 
-$color-bright-green: #00bb00 !default;
-$color-green: #71843f !default;
+$color-bright-green: $pf-color-green-400 !default;
+$color-green: $pf-color-green-600 !default;
 
-$color-blue: #288cea !default;
-$color-light-blue: #d9edf7 !default;
-$color-sky-blue: #afd9ee !default;
+$color-blue: $pf-color-blue-300 !default;
+$color-light-blue: $pf-color-blue-50 !default;
+$color-sky-blue: $pf-color-blue-100 !default;
 
 $color-black: #000 !default;
 $color-transparent-black: rgba(0, 0, 0, 0.7) !default;
@@ -53,12 +53,17 @@ $color-primary: $pf-global--primary-color--100 !default;
 $color-primary-2: $pf-global--primary-color--200 !default;
 $color-secondary: $color-brand-gray !default;
 $color-accent: $color-primary !default;
+$color-info: $pf-global--info-color--100 !default;
+$color-success: $pf-global--success-color--100 !default;
+$color-warning: $pf-global--warning-color--100 !default;
+$color-danger: $pf-global--danger-color--100 !default;
 
 $color-app-bg: $color-solid-white !default;
 $color-bg-darken: $color-dark-gray !default;
 $color-links: $pf-global--link--Color !default;
 $color-links-focus: $pf-global--link--Color--hover !default;
-$color-breadcrumb: $color-dark-gray !default;
+$color-breadcrumb: $color-text !default;
+$color-breadcrumb-divider: $pf-global--BorderColor--200 !default;
 $color-button-text: $color-solid-white !default;
 $color-button: $color-primary !default;
 $color-button-hover: darken($color-primary, 3) !default;
@@ -135,7 +140,8 @@ $color-table-progress-bar-bg: $color-sky-blue !default;
 $color-table-progress-bar-active: $color-primary !default;
 $color-table-gradient-1: $color-whitesmoke-gray !default;
 $color-table-gradient-2: $color-grad-gray !default;
-$color-table-sort: $color-primary !default;
+$color-table-sort: $color-links !default;
+$color-table-sort-hover: $color-links-focus !default;
 $color-table-empty-row: $color-light-yellow !default;
 $color-table-hover-row: $color-white-gray !default;
 $color-table-even-row-bg: $color-solid-white !default;

@@ -1,3 +1,36 @@
 /* Vendor specific scss */
 
 @import 'defaults';
+
+.toast-success {
+  background-color: $color-success;
+}
+.toast-error {
+  background-color: $color-danger;
+}
+.toast-info {
+  background-color: $color-success;
+}
+.toast-warning {
+  background-color: $color-warning;
+}
+
+.text-primary {
+  color: $color-primary;
+}
+
+.text-success {
+  color: $color-success;
+}
+
+.text-info {
+  color: $color-info;
+}
+
+.text-warning {
+  color: $color-warning;
+}
+
+.text-danger {
+  color: $color-danger;
+}

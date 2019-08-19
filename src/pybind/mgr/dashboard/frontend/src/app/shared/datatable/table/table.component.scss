@@ -148,7 +148,14 @@
     filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#fffafafa', endColorstr='#ffededed', GradientType=0);
     .sort-asc,
     .sort-desc {
-      color: $color-table-sort;
+      .datatable-header-cell-label {
+        color: $color-table-sort;
+
+        &:hover,
+        &:focus {
+          color: $color-table-sort-hover;
+        }
+      }
     }
     .datatable-header-cell {
       @include table-cell;

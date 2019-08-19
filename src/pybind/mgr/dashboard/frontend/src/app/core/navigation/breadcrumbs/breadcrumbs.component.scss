@@ -8,9 +8,9 @@
 
 .breadcrumb > li + li:before {
   padding: 0 5px 0 7px;
-  color: $color-breadcrumb;
+  color: $color-breadcrumb-divider;
   font-family: 'ForkAwesome';
-  content: '\f101';
+  content: '\f105';
 }
 
 .breadcrumb > li > span {
