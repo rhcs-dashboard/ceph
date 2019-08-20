@@ -7,7 +7,7 @@ rules:                      # Array of rules
   - base: nautilus
     upstream: ceph:nautilus # Required. Can be a branch in the same forked repo.
     assignees:              # Optional
-      - @rhcs/dashboard
+      - "@rhcs/dashboard"
     reviewers:              # Optional
-      - @rhcs/dashboard
+      - "@rhcs/dashboard"
 label: ":arrow_heading_down: pull"  # Optional
