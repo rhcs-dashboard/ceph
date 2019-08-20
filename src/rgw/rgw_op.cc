@@ -4765,7 +4765,9 @@ int RGWCopyObj::verify_permission()
   if (! s->auth.identity->is_admin_of(dest_policy.get_owner().get_id())){
     if (dest_iam_policy != boost::none) {
       rgw_add_to_iam_environment(s->env, "s3:x-amz-copy-source", copy_source);
-      rgw_add_to_iam_environment(s->env, "s3:x-amz-metadata-directive", md_directive);
+      if (md_directive)
+	rgw_add_to_iam_environment(s->env, "s3:x-amz-metadata-directive",
+				   *md_directive);
 
       auto e = dest_iam_policy->eval(s->env, *s->auth.identity,
                                      rgw::IAM::s3PutObject,
@@ -5701,7 +5703,7 @@ void RGWCompleteMultipart::execute()
   store->obj_to_raw((s->bucket_info).placement_rule, meta_obj, &raw_obj);
   store->get_obj_data_pool((s->bucket_info).placement_rule,
 			   meta_obj,&meta_pool);
-  store->open_pool_ctx(meta_pool, serializer.ioctx);
+  store->open_pool_ctx(meta_pool, serializer.ioctx, true);
 
   op_ret = serializer.try_lock(raw_obj.oid, dur);
   if (op_ret < 0) {

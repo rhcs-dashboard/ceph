@@ -3305,7 +3305,19 @@ std::vector<Option> get_global_options() {
 
     Option("osd_snap_trim_sleep", Option::TYPE_FLOAT, Option::LEVEL_ADVANCED)
     .set_default(0)
-    .set_description(""),
+    .set_description("Time in seconds to sleep before next snap trim (overrides values below)"),
+
+    Option("osd_snap_trim_sleep_hdd", Option::TYPE_FLOAT, Option::LEVEL_ADVANCED)
+    .set_default(5)
+    .set_description("Time in seconds to sleep before next snap trim for HDDs"),
+
+    Option("osd_snap_trim_sleep_ssd", Option::TYPE_FLOAT, Option::LEVEL_ADVANCED)
+    .set_default(0)
+    .set_description("Time in seconds to sleep before next snap trim for SSDs"),
+
+    Option("osd_snap_trim_sleep_hybrid", Option::TYPE_FLOAT, Option::LEVEL_ADVANCED)
+    .set_default(2)
+    .set_description("Time in seconds to sleep before next snap trim when data is on HDD and journal is on SSD"),
 
     Option("osd_scrub_invalid_stats", Option::TYPE_BOOL, Option::LEVEL_ADVANCED)
     .set_default(true)
@@ -3941,8 +3953,13 @@ std::vector<Option> get_global_options() {
     .set_description(""),
 
     Option("rocksdb_enable_rmrange", Option::TYPE_BOOL, Option::LEVEL_ADVANCED)
-    .set_default(false)
-    .set_description(""),
+    .set_default(true)
+    .set_description("Refer to github.com/facebook/rocksdb/wiki/DeleteRange-Implementation"),
+
+    Option("rocksdb_max_items_rmrange", Option::TYPE_UINT, Option::LEVEL_ADVANCED)
+    .set_default(1024)
+    .set_description("Delete Range will be called if number of keys exceeded, must enable rocksdb_enable_rmrange first")
+    .add_see_also("rocksdb_enable_rmrange"),
 
     Option("rocksdb_bloom_bits_per_key", Option::TYPE_UINT, Option::LEVEL_ADVANCED)
     .set_default(20)
@@ -4661,16 +4678,16 @@ std::vector<Option> get_global_options() {
     .set_description("Run fsck at mount"),
 
     Option("bluestore_fsck_on_mount_deep", Option::TYPE_BOOL, Option::LEVEL_DEV)
-    .set_default(true)
-    .set_description("Run deep fsck at mount"),
+    .set_default(false)
+    .set_description("Run deep fsck at mount when bluestore_fsck_on_mount is set to true"),
 
     Option("bluestore_fsck_on_umount", Option::TYPE_BOOL, Option::LEVEL_DEV)
     .set_default(false)
     .set_description("Run fsck at umount"),
 
     Option("bluestore_fsck_on_umount_deep", Option::TYPE_BOOL, Option::LEVEL_DEV)
-    .set_default(true)
-    .set_description("Run deep fsck at umount"),
+    .set_default(false)
+    .set_description("Run deep fsck at umount when bluestore_fsck_on_umount is set to true"),
 
     Option("bluestore_fsck_on_mkfs", Option::TYPE_BOOL, Option::LEVEL_DEV)
     .set_default(true)
@@ -6073,6 +6090,16 @@ std::vector<Option> get_rgw_options() {
     Option("rgw_nfs_write_completion_interval_s", Option::TYPE_INT, Option::LEVEL_ADVANCED)
     .set_default(10)
     .set_description(""),
+
+    Option("rgw_rados_pool_autoscale_bias", Option::TYPE_FLOAT, Option::LEVEL_ADVANCED)
+    .set_default(4.0)
+    .set_min_max(0.01, 100000.0)
+    .set_description("pg_autoscale_bias value for RGW metadata (omap-heavy) pools"),
+
+    Option("rgw_rados_pool_pg_num_min", Option::TYPE_UINT, Option::LEVEL_ADVANCED)
+    .set_default(8)
+    .set_min_max(1, 1024)
+    .set_description("pg_num_min value for RGW metadata (omap-heavy) pools"),
 
     Option("rgw_zone", Option::TYPE_STR, Option::LEVEL_ADVANCED)
     .set_default("")
@@ -7980,6 +8007,9 @@ std::vector<Option> get_mds_options() {
     Option("mds_hack_allow_loading_invalid_metadata", Option::TYPE_BOOL, Option::LEVEL_ADVANCED)
      .set_default(0)
      .set_description("INTENTIONALLY CAUSE DATA LOSS by bypasing checks for invalid metadata on disk. Allows testing repair tools."),
+
+    Option("mds_defer_session_stale", Option::TYPE_BOOL, Option::LEVEL_DEV)
+     .set_default(true),
 
     Option("mds_inject_migrator_session_race", Option::TYPE_BOOL, Option::LEVEL_DEV)
      .set_default(false),

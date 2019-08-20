@@ -4148,6 +4148,15 @@ void OSDMonitor::do_application_enable(int64_t pool_id,
   pending_inc.new_pools[pool_id] = p;
 }
 
+void OSDMonitor::do_set_pool_opt(int64_t pool_id,
+				 pool_opts_t::key_t opt,
+				 pool_opts_t::value_t val)
+{
+  auto p = pending_inc.new_pools.try_emplace(
+    pool_id, *osdmap.get_pg_pool(pool_id));
+  p.first->second.opts.set(opt, val);
+}
+
 unsigned OSDMonitor::scan_for_creating_pgs(
   const mempool::osdmap::map<int64_t,pg_pool_t>& pools,
   const mempool::osdmap::set<int64_t>& removed_pools,
@@ -7161,7 +7170,7 @@ int OSDMonitor::prepare_command_pool_set(const cmdmap_t& cmdmap,
 
     if (p.type != pg_pool_t::TYPE_ERASURE) {
       if (n < 1 || n > p.size) {
-	ss << "pool min_size must be between 1 and " << (int)p.size;
+	ss << "pool min_size must be between 1 and size, which is set to " << (int)p.size;
 	return -EINVAL;
       }
     } else {
@@ -7177,7 +7186,7 @@ int OSDMonitor::prepare_command_pool_set(const cmdmap_t& cmdmap,
        }
 
        if (n < k || n > p.size) {
-	 ss << "pool min_size must be between " << k << " and " << (int)p.size;
+	 ss << "pool min_size must be between " << k << " and size, which is set to " << (int)p.size;
 	 return -EINVAL;
        }
     }
@@ -7265,14 +7274,26 @@ int OSDMonitor::prepare_command_pool_set(const cmdmap_t& cmdmap,
 	return -EPERM;
       }
     }
-    // set targets; mgr will adjust pg_num_actual and pgp_num later.
-    // make pgp_num track pg_num if it already matches.  if it is set
-    // differently, leave it different and let the user control it
-    // manually.
-    if (p.get_pg_num_target() == p.get_pgp_num_target()) {
-      p.set_pgp_num_target(n);
+    if (osdmap.require_osd_release < CEPH_RELEASE_NAUTILUS) {
+      // pre-nautilus osdmap format; increase pg_num directly
+      assert(n > (int)p.get_pg_num());
+      // force pre-nautilus clients to resend their ops, since they
+      // don't understand pg_num_target changes form a new interval
+      p.last_force_op_resend_prenautilus = pending_inc.epoch;
+      // force pre-luminous clients to resend their ops, since they
+      // don't understand that split PGs now form a new interval.
+      p.last_force_op_resend_preluminous = pending_inc.epoch;
+      p.set_pg_num(n);
+    } else {
+      // set targets; mgr will adjust pg_num_actual and pgp_num later.
+      // make pgp_num track pg_num if it already matches.  if it is set
+      // differently, leave it different and let the user control it
+      // manually.
+      if (p.get_pg_num_target() == p.get_pgp_num_target()) {
+	p.set_pgp_num_target(n);
+      }
+      p.set_pg_num_target(n);
     }
-    p.set_pg_num_target(n);
   } else if (var == "pgp_num_actual") {
     if (p.has_flag(pg_pool_t::FLAG_NOPGCHANGE)) {
       ss << "pool pgp_num change is disabled; you must unset nopgchange flag for the pool first";
@@ -7313,11 +7334,20 @@ int OSDMonitor::prepare_command_pool_set(const cmdmap_t& cmdmap,
       ss << "specified pgp_num " << n << " > pg_num " << p.get_pg_num_target();
       return -EINVAL;
     }
-    p.set_pgp_num_target(n);
+    if (osdmap.require_osd_release < CEPH_RELEASE_NAUTILUS) {
+      // pre-nautilus osdmap format; increase pgp_num directly
+      p.set_pgp_num(n);
+    } else {
+      p.set_pgp_num_target(n);
+    }
   } else if (var == "pg_autoscale_mode") {
     n = pg_pool_t::get_pg_autoscale_mode_by_name(val);
     if (n < 0) {
       ss << "specified invalid mode " << val;
+      return -EINVAL;
+    }
+    if (osdmap.require_osd_release < CEPH_RELEASE_NAUTILUS) {
+      ss << "must set require_osd_release to nautilus or later before setting pg_autoscale_mode";
       return -EINVAL;
     }
     p.pg_autoscale_mode = n;
