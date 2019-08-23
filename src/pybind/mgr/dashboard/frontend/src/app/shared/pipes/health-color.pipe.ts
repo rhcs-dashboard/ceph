@@ -6,7 +6,7 @@ import { Pipe, PipeTransform } from '@angular/core';
 export class HealthColorPipe implements PipeTransform {
   transform(value: any): any {
     if (value === 'HEALTH_OK') {
-      return { color: '#92d400' };
+      return { color: '#6ca100' };
     } else if (value === 'HEALTH_WARN') {
       return { color: '#f0ab00' };
     } else if (value === 'HEALTH_ERR') {

@@ -27,12 +27,12 @@ export class SparklineComponent implements OnInit, OnChanges {
 
   public colors: Array<any> = [
     {
-      backgroundColor: 'rgba(40,140,234,0.2)',
-      borderColor: 'rgba(40,140,234,1)',
-      pointBackgroundColor: 'rgba(40,140,234,1)',
+      backgroundColor: 'rgba(0,102,204,0.2)',
+      borderColor: 'rgba(0,102,204,1)',
+      pointBackgroundColor: 'rgba(0,102,204,1)',
       pointBorderColor: '#fff',
       pointHoverBackgroundColor: '#fff',
-      pointHoverBorderColor: 'rgba(40,140,234,0.8)'
+      pointHoverBorderColor: 'rgba(0,102,204,0.8)'
     }
   ];
 

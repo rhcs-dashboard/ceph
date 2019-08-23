@@ -54,9 +54,10 @@ $color-primary-2: $pf-global--primary-color--200 !default;
 $color-secondary: $color-brand-gray !default;
 $color-accent: $color-primary !default;
 $color-info: $pf-global--info-color--100 !default;
-$color-success: $pf-global--success-color--100 !default;
+$color-success: $pf-color-light-green-500 !default;
 $color-warning: $pf-global--warning-color--100 !default;
 $color-danger: $pf-global--danger-color--100 !default;
+$color-default-bg: $pf-global--secondary-color--100 !default;
 
 $color-app-bg: $color-solid-white !default;
 $color-bg-darken: $color-dark-gray !default;
