@@ -7,7 +7,7 @@
       <main class="pf-c-login__main">
         <header class="pf-c-login__main-header">
           <h1 class="pf-c-title pf-m-3xl">
-            Welcome to Red Hat Ceph Storage Dashboard
+            Login to your account
           </h1>
         </header>
         <div class="pf-c-login__main-body">
@@ -28,7 +28,7 @@
                      [(ngModel)]="model.username"
                      #username="ngModel"
                      type="text"
-                     class="pf-c-form-control form-control"
+                     class="pf-c-form-control"
                      input="true"
                      required
                      autofocus>
@@ -39,15 +39,15 @@
             </div>
             <div class="pf-c-form__group">
               <label class="pf-c-form__label" for="login-demo-form-password">
-                  <span class="pf-c-form__label-text">Password</span>
-                  <span class="pf-c-form__label-required" aria-hidden="true">&#42;</span>
+                <span class="pf-c-form__label-text">Password</span>
+                <span class="pf-c-form__label-required" aria-hidden="true">&#42;</span>
               </label>
               <input id="password"
                      name="password"
                      [(ngModel)]="model.password"
                      #password="ngModel"
                      type="password"
-                     class="form-control pf-c-form-control"
+                     class="pf-c-form-control"
                      required>
               <div class="help-block"
                    *ngIf="(loginForm.submitted || password.dirty) && password.invalid"
@@ -58,7 +58,7 @@
               <button class="pf-c-button pf-m-primary pf-m-block"
                       type="submit"
                       [disabled]="loginForm.invalid">
-                        Log in
+                        Log In
               </button>
             </div>
           </form>

@@ -71,7 +71,8 @@
 
   .navbar-brand {
     height: auto;
-    margin: var(--navbar-brand-margin-top) var(--navbar-brand-margin-right) var(--navbar-brand-margin-bottom) var(--navbar-brand-margin-left);
+    margin: var(--navbar-brand-margin-top) var(--navbar-brand-margin-right)
+      var(--navbar-brand-margin-bottom) var(--navbar-brand-margin-left);
     padding: 0;
     -webkit-align-self: flex-start;
     align-self: flex-start;
@@ -120,7 +121,8 @@
     color: var(--navbar-links-color);
     line-height: 1;
     padding-bottom: 12px;
-    padding: var(--navbar-links-padding-top) var(--navbar-links-padding-right) var(--navbar-links-padding-bottom) var(--navbar-links-padding-left);
+    padding: var(--navbar-links-padding-top) var(--navbar-links-padding-right)
+      var(--navbar-links-padding-bottom) var(--navbar-links-padding-left);
     position: relative;
     display: block;
     text-decoration: none;
@@ -159,7 +161,7 @@
     position: relative;
 
     &::after {
-      content: "";
+      content: '';
       position: absolute;
       bottom: 0;
       left: var(--navbar-active-underline-left);
@@ -175,7 +177,6 @@
   .navbar-nav > li > .oa-navbar > .active > a {
     font-weight: bold;
   }
-
 
   .navbar-nav > li a.dropdown-toggle span.caret {
     margin-left: 5px;
@@ -214,7 +215,8 @@
 
   .navbar-nav .open .dropdown-menu .dropdown-header,
   .navbar-nav .open .dropdown-menu > li > a {
-    padding: var(--navbar-links-nested-padding-top) var(--navbar-links-nested-padding-right) var(--navbar-links-nested-padding-bottom) var(--navbar-links-nested-padding-left);
+    padding: var(--navbar-links-nested-padding-top) var(--navbar-links-nested-padding-right)
+      var(--navbar-links-nested-padding-bottom) var(--navbar-links-nested-padding-left);
   }
 
   .navbar-utility {
@@ -284,7 +286,12 @@
       font-size: 12px;
       position: absolute;
       right: var(--navbar-gutter);
-      top: calc(calc(var(--navbar-brand-margin-top) + var(--navbar-brand-margin-bottom) + var(--navbar-brand-logo-height)) / 2);
+      top: calc(
+        calc(
+            var(--navbar-brand-margin-top) + var(--navbar-brand-margin-bottom) +
+              var(--navbar-brand-logo-height)
+          ) / 2
+      );
       transform: translateY(-50%);
 
       .caret {

@@ -8,15 +8,15 @@ describe('HealthColorPipe', () => {
   });
 
   it('transforms "HEALTH_OK"', () => {
-    expect(pipe.transform('HEALTH_OK')).toEqual({ color: '#00bb00' });
+    expect(pipe.transform('HEALTH_OK')).toEqual({ color: '#6ca100' });
   });
 
   it('transforms "HEALTH_WARN"', () => {
-    expect(pipe.transform('HEALTH_WARN')).toEqual({ color: '#ffa500' });
+    expect(pipe.transform('HEALTH_WARN')).toEqual({ color: '#f0ab00' });
   });
 
   it('transforms "HEALTH_ERR"', () => {
-    expect(pipe.transform('HEALTH_ERR')).toEqual({ color: '#ff0000' });
+    expect(pipe.transform('HEALTH_ERR')).toEqual({ color: '#c9190b' });
   });
 
   it('transforms others', () => {
