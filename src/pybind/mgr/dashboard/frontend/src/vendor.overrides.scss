@@ -46,3 +46,7 @@
 .text-danger {
   color: $color-danger;
 }
+
+.badge {
+  @extend .pf-c-label, .pf-m-compact;
+}
