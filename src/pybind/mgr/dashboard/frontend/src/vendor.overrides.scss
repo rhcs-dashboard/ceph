@@ -50,3 +50,9 @@
 .badge {
   @extend .pf-c-label, .pf-m-compact;
 }
+
+// Hide Refresh component
+cd-refresh-selector {
+  display: none;
+}
+
