@@ -51,8 +51,19 @@
   @extend .pf-c-label, .pf-m-compact;
 }
 
+// Stop resizing below iphone 5 width
+html,
+body {
+  min-width: 320px;
+}
+
+// Fix bottom white stripe in landing page
+// 109px is navbar height
+.dashboard {
+  min-height: calc(100% - 109px);
+}
+
 // Hide Refresh component
 cd-refresh-selector {
   display: none;
 }
-
