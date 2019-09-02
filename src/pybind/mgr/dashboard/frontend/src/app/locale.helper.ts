@@ -107,7 +107,7 @@ const i18nProviders = [
   {
     provide: TRANSLATIONS,
     useFactory: (locale) => {
-      locale = locale || 'en-US';
+      locale = 'en-US';
       try {
         return require(`raw-loader!locale/messages.${locale}.xlf`);
       } catch (error) {
