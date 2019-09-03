@@ -67,3 +67,21 @@ body {
 cd-refresh-selector {
   display: none;
 }
+
+// Headers & Titles
+.panel-title,
+.modal-title,
+.info-group-title {
+  @extend .pf-c-title, .pf-m-xl;
+}
+
+h2.page-header,
+legend,
+.card-title {
+  @extend .pf-c-title, .pf-m-lg;
+}
+
+h3.page-header,
+.card-body {
+  @extend .pf-c-title, .pf-m-md;
+}
