@@ -60,7 +60,7 @@ body {
 // Fix bottom white stripe in landing page
 // 109px is navbar height
 .dashboard {
-  min-height: calc(100% - 109px);
+  min-height: calc(100% - 109px) !important;
 }
 
 // Hide Refresh component
@@ -68,20 +68,122 @@ cd-refresh-selector {
   display: none;
 }
 
+cd-dashboard > div {
+  padding-top: 1vh !important;
+}
+
 // Headers & Titles
 .panel-title,
-.modal-title,
-.info-group-title {
+.modal-title {
   @extend .pf-c-title, .pf-m-xl;
 }
 
 h2.page-header,
-legend,
-.card-title {
+legend {
   @extend .pf-c-title, .pf-m-lg;
 }
 
-h3.page-header,
-.card-body {
+h3.page-header {
   @extend .pf-c-title, .pf-m-md;
+}
+
+cd-info-group[grouptitle='Status'] {
+  & > cd-info-card {
+    width: calc(100% / 5) !important;
+
+    @media (max-width: 1599px) {
+      width: calc(100% / 4) !important;
+    }
+
+    @media (max-width: $screen-md-max) {
+      width: calc(100% / 3) !important;
+    }
+
+    @media (max-width: $screen-sm-max) {
+      width: calc(100% / 2) !important;
+    }
+
+    @media (max-width: $screen-xs-max) {
+      width: calc(100%) !important;
+    }
+  }
+}
+
+.cd-container-flex {
+  justify-content: start !important;
+}
+
+// Info group & info cards
+.info-group-title {
+  @extend .pf-c-title;
+  font-size: var(--pf-global--FontSize--lg) !important;
+  color: var(--pf-global--Color--300) !important;
+  margin: 0.75vh 1vh 0vh !important;
+}
+
+cd-info-card {
+  padding: 0 !important;
+
+  .card {
+    @extend .pf-c-card;
+
+    margin: 0.5rem !important;
+    min-height: 12vh !important;
+  }
+
+  .card-title {
+    @extend .pf-c-card__header;
+    font-size: var(--pf-global--FontSize--md) !important;
+    padding-top: calc(var(--pf-c-card--m-compact--first-child--PaddingTop) / 1.5) !important;
+    padding-bottom: calc(var(--pf-c-card--m-compact--child--PaddingBottom) / 2) !important;
+    padding-left: var(--pf-c-card--m-compact--child--PaddingLeft) !important;
+    padding-right: var(--pf-c-card--m-compact--child--PaddingRight) !important;
+    border-bottom: 1px solid $pf-color-black-300;
+    &,
+    & > a {
+      font-weight: 300 !important;
+    }
+  }
+
+  .card-body {
+    @extend .pf-c-card__body;
+    display: flex;
+    margin: 0 !important;
+    padding-top: calc(var(--pf-c-card--m-compact--first-child--PaddingTop) / 2) !important;
+    padding-bottom: calc(var(--pf-c-card--m-compact--child--PaddingBottom) / 1.5) !important;
+    padding-left: var(--pf-c-card--m-compact--child--PaddingLeft) !important;
+    padding-right: var(--pf-c-card--m-compact--child--PaddingRight) !important;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--pf-global--FontSize--md) !important;
+    font-weight: var(--pf-global--FontWeight--normal) !important;
+  }
+
+  .content-chart {
+    display: block !important;
+  }
+
+  .chart-container {
+    position: relative !important;
+    height: 16vh !important;
+  }
+
+  .card-text-line-break:after {
+    content: ' - ' !important;
+  }
+
+  .info-card-content-clickable {
+    padding: unset;
+    border: unset;
+    border-radius: unset;
+    border-color: unset;
+
+    &:hover {
+      border-color: unset;
+    }
+  }
+}
+
+.popover-content {
+  font-family: var(--pf-global--FontFamily--sans-serif) !important;
 }

@@ -35,7 +35,8 @@
              container="body"
              containerClass="info-card-popover-cluster-status"
              (click)="healthChecksTarget.toggle()">
-          {{ healthData.health.status }}
+          {{ healthData.health.status }} <i
+            *ngIf="healthData.health.status != 'HEALTH_OK'" class="pf-icon pf-icon-warning-triangle"></i>
         </div>
       </ng-container>
       <ng-container *ngIf="!healthData.health?.checks?.length">
@@ -43,6 +44,15 @@
           {{ healthData.health.status }}
         </div>
       </ng-container>
+    </cd-info-card>
+
+    <cd-info-card cardTitle="Hosts"
+                  i18n-cardTitle
+                  link="/hosts"
+                  class="col-sm-6 col-md-4 col-lg-3"
+                  contentClass="content-medium content-highlight"
+                  *ngIf="healthData.hosts != null">
+      {{ healthData.hosts }} total
     </cd-info-card>
 
     <cd-info-card cardTitle="Monitors"
@@ -66,7 +76,7 @@
       </span>
     </cd-info-card>
 
-    <cd-info-card cardTitle="Manager Daemons"
+    <cd-info-card cardTitle="Managers"
                   i18n-cardTitle
                   class="col-sm-6 col-md-4 col-lg-3"
                   contentClass="content-highlight text-area-size-2"
@@ -76,15 +86,6 @@
             [title]="result.titleText != null ? result.titleText : ''">
         {{ result.content }}
       </span>
-    </cd-info-card>
-
-    <cd-info-card cardTitle="Hosts"
-                  i18n-cardTitle
-                  link="/hosts"
-                  class="col-sm-6 col-md-4 col-lg-3"
-                  contentClass="content-medium content-highlight"
-                  *ngIf="healthData.hosts != null">
-      {{ healthData.hosts }} total
     </cd-info-card>
 
     <cd-info-card cardTitle="Object Gateways"
@@ -116,65 +117,6 @@
     </cd-info-card>
   </cd-info-group>
 
-  <cd-info-group groupTitle="Performance"
-                 i18n-groupTitle
-                 class="row info-group"
-                 *ngIf="healthData.client_perf || healthData.scrub_status">
-
-    <div class="cd-container-flex">
-      <cd-info-card cardTitle="Client IOPS"
-                    i18n-cardTitle
-                    class="cd-col-5"
-                    cardClass="card-medium"
-                    contentClass="content-medium content-highlight"
-                    *ngIf="healthData.client_perf">
-        {{ (healthData.client_perf.read_op_per_sec + healthData.client_perf.write_op_per_sec) | round:1 }}
-      </cd-info-card>
-
-      <cd-info-card cardTitle="Client Throughput"
-                    i18n-cardTitle
-                    class="cd-col-5"
-                    cardClass="card-medium"
-                    contentClass="content-medium content-highlight"
-                    *ngIf="healthData.client_perf">
-        {{ ((healthData.client_perf.read_bytes_sec + healthData.client_perf.write_bytes_sec) | dimlessBinary) + '/s' }}
-      </cd-info-card>
-
-      <cd-info-card cardTitle="Client Read/Write"
-                    i18n-cardTitle
-                    class="cd-col-5"
-                    cardClass="card-medium"
-                    [contentClass]="isClientReadWriteChartShowable() ? 'content-chart': 'content-medium content-highlight'"
-                    *ngIf="healthData.client_perf">
-        <cd-health-pie *ngIf="isClientReadWriteChartShowable()"
-                       [data]="healthData"
-                       (prepareFn)="prepareReadWriteRatio($event[0], $event[1])">
-        </cd-health-pie>
-        <span *ngIf="!isClientReadWriteChartShowable()">
-          N/A
-        </span>
-      </cd-info-card>
-
-      <cd-info-card cardTitle="Recovery Throughput"
-                    i18n-cardTitle
-                    class="cd-col-5"
-                    cardClass="card-medium"
-                    contentClass="content-medium content-highlight"
-                    *ngIf="healthData.client_perf">
-        {{ (healthData.client_perf.recovering_bytes_per_sec | dimlessBinary) + '/s' }}
-      </cd-info-card>
-
-      <cd-info-card cardTitle="Scrub"
-                    i18n-cardTitle
-                    class="cd-col-5"
-                    cardClass="card-medium"
-                    contentClass="content-medium content-highlight"
-                    *ngIf="healthData.scrub_status">
-        {{ healthData.scrub_status }}
-      </cd-info-card>
-    </div>
-  </cd-info-group>
-
   <cd-info-group groupTitle="Capacity"
                  i18n-groupTitle
                  class="row info-group"
@@ -183,16 +125,6 @@
                  || healthData.pg_info">
 
     <div class="cd-container-flex">
-      <cd-info-card cardTitle="Pools"
-                    i18n-cardTitle
-                    link="/pool"
-                    class="cd-col-5"
-                    cardClass="card-medium"
-                    contentClass="content-medium content-highlight"
-                    *ngIf="healthData.pools">
-        {{ healthData.pools.length }}
-      </cd-info-card>
-
       <cd-info-card cardTitle="Raw Capacity"
                     i18n-cardTitle
                     class="cd-col-5"
@@ -216,15 +148,6 @@
                        [config]="objectsChartConfig"
                        (prepareFn)="prepareObjects($event[0], $event[1])">
         </cd-health-pie>
-      </cd-info-card>
-
-      <cd-info-card cardTitle="PGs per OSD"
-                    i18n-cardTitle
-                    class="cd-col-5"
-                    cardClass="card-medium"
-                    contentClass="content-medium content-highlight"
-                    *ngIf="healthData.pg_info">
-        {{ healthData.pg_info.pgs_per_osd | dimless }}
       </cd-info-card>
 
       <cd-info-card cardTitle="PG Status"
@@ -253,6 +176,75 @@
             </cd-health-pie>
           </div>
         </div>
+      </cd-info-card>
+
+      <cd-info-card cardTitle="Pools"
+                    i18n-cardTitle
+                    link="/pool"
+                    class="cd-col-5"
+                    cardClass="card-medium"
+                    contentClass="content-medium content-highlight"
+                    *ngIf="healthData.pools">
+        {{ healthData.pools.length }}
+      </cd-info-card>
+
+      <cd-info-card cardTitle="PGs per OSD"
+                    i18n-cardTitle
+                    class="cd-col-5"
+                    cardClass="card-medium"
+                    contentClass="content-medium content-highlight"
+                    *ngIf="healthData.pg_info">
+        {{ healthData.pg_info.pgs_per_osd | dimless }}
+      </cd-info-card>
+    </div>
+  </cd-info-group>
+
+  <cd-info-group groupTitle="Performance"
+                 i18n-groupTitle
+                 class="row info-group"
+                 *ngIf="healthData.client_perf || healthData.scrub_status">
+
+    <div class="cd-container-flex">
+      <cd-info-card cardTitle="Client Read/Write"
+                    i18n-cardTitle
+                    class="cd-col-5"
+                    cardClass="card-medium"
+                    contentClass="content-chart"
+                    *ngIf="healthData.client_perf">
+        <cd-health-pie [data]="healthData"
+                       [config]="clientStatsConfig"
+                       (prepareFn)="prepareReadWriteRatio($event[0], $event[1])">
+        </cd-health-pie>
+      </cd-info-card>
+
+      <cd-info-card cardTitle="Client Throughput"
+                    i18n-cardTitle
+                    class="cd-col-5"
+                    cardClass="card-medium"
+                    contentClass="content-chart"
+                    *ngIf="healthData.client_perf">
+        <cd-health-pie [data]="healthData"
+                       [config]="clientStatsConfig"
+                       (prepareFn)="prepareClientThroughput($event[0], $event[1])">
+        </cd-health-pie>
+      </cd-info-card>
+
+      <cd-info-card cardTitle="Recovery Throughput"
+                    i18n-cardTitle
+                    class="cd-col-5"
+                    cardClass="card-medium"
+                    contentClass="content-medium content-highlight"
+                    *ngIf="healthData.client_perf">
+        {{ (healthData.client_perf.recovering_bytes_per_sec | dimlessBinary) + '/s' }}
+      </cd-info-card>
+
+      <cd-info-card cardTitle="Scrubbing"
+                    i18n-cardTitle
+                    class="cd-col-5"
+                    cardClass="card-medium"
+                    contentClass="content-medium content-highlight"
+                    *ngIf="healthData.scrub_status">
+        {{ healthData.scrub_status }}
       </cd-info-card>
     </div>
   </cd-info-group>
