@@ -1,6 +1,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
+import { DocUrls } from '../../../shared/constants/app.constants';
 import { CephReleaseNamePipe } from '../../../shared/pipes/ceph-release-name.pipe';
 import { SummaryService } from '../../../shared/services/summary.service';
 
@@ -26,11 +27,9 @@ export class Rgw501Component implements OnInit, OnDestroy {
         return;
       }
 
+      // @ts-ignore
       const releaseName = this.cephReleaseNamePipe.transform(summary.version);
-      this.docsUrl =
-        `http://docs.ceph.com/docs/${releaseName}/mgr/dashboard/` +
-        `#enabling-the-object-gateway-management-frontend`;
-
+      this.docsUrl = DocUrls.rgw;
       setTimeout(() => {
         subs.unsubscribe();
       }, 0);

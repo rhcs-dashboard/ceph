@@ -11,6 +11,15 @@ export class AppConstants {
   public static readonly licenseNumber = '3.0 (CC-BY-SA-3.0)';
 }
 
+export class DocUrls {
+  public static readonly base =
+    'https://access.redhat.com/documentation/en-us/red_hat_ceph_storage/4/html-single/dashboard_guide/index';
+  public static readonly rgw = `${DocUrls.base}#object-gateway`;
+  public static readonly iscsi = `${DocUrls.base}#iscsi-functions`;
+  public static readonly nfs = `${DocUrls.base}`;
+  public static readonly grafana = `${DocUrls.base}`;
+}
+
 export enum URLVerbs {
   /* Create a new item */
   CREATE = 'create',

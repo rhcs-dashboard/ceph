@@ -3,6 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 
 import { I18n } from '@ngx-translate/i18n-polyfill';
 
+import { DocUrls } from '../../../shared/constants/app.constants';
 import { CephReleaseNamePipe } from '../../../shared/pipes/ceph-release-name.pipe';
 import { SummaryService } from '../../../shared/services/summary.service';
 
@@ -29,10 +30,9 @@ export class Nfs501Component implements OnInit, OnDestroy {
         return;
       }
 
+      // @ts-ignore
       const releaseName = this.cephReleaseNamePipe.transform(summary.version);
-      this.docsUrl =
-        `http://docs.ceph.com/docs/${releaseName}/mgr/dashboard/` +
-        `#configuring-nfs-ganesha-in-the-dashboard`;
+      this.docsUrl = DocUrls.nfs;
 
       setTimeout(() => {
         subs.unsubscribe();
