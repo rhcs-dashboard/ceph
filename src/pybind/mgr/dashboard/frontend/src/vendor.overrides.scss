@@ -187,3 +187,7 @@ cd-info-card {
 .popover-content {
   font-family: var(--pf-global--FontFamily--sans-serif) !important;
 }
+
+.modal-content {
+  border: unset !important;
+}
