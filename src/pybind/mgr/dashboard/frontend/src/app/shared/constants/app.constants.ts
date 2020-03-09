@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { I18n } from '@ngx-translate/i18n-polyfill';
 
 export class AppConstants {
-  public static readonly version = '4.0';
+  public static readonly version = '4.1';
   public static readonly organization = 'Redhat';
   public static readonly projectName = 'Red Hat Ceph Storage Dashboard';
   public static readonly contributors = ' Red Hat Inc. and contributors';
