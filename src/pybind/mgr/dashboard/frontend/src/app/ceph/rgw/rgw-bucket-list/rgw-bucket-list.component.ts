@@ -1,5 +1,4 @@
 import {
-  ChangeDetectorRef,
   Component,
   NgZone,
   OnInit,
@@ -61,7 +60,6 @@ export class RgwBucketListComponent extends ListWithDetails implements OnInit {
     private urlBuilder: URLBuilderService,
     public actionLabels: ActionLabelsI18n,
     private ngZone: NgZone,
-    private changeDetectorRef: ChangeDetectorRef
   ) {
     super();
     this.permission = this.authStorageService.getPermissions().rgw;
@@ -171,7 +169,6 @@ export class RgwBucketListComponent extends ListWithDetails implements OnInit {
       (resp: object[]) => {
         this.buckets = resp;
         this.transformBucketData();
-        this.changeDetectorRef.detectChanges();
       },
       () => {
         context.error();

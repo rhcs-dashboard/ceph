@@ -1,5 +1,13 @@
-import { Component, NgZone, ViewChild } from '@angular/core';
+import {
+  // ChangeDetectorRef,
+  Component,
+  NgZone,
+  OnInit,
+  TemplateRef,
+  ViewChild
+} from '@angular/core';
 
+import * as _ from 'lodash';
 import { forkJoin as observableForkJoin, Observable, Subscriber } from 'rxjs';
 
 import { RgwUserService } from '~/app/shared/api/rgw-user.service';
@@ -27,9 +35,13 @@ const BASE_URL = 'rgw/user';
   styleUrls: ['./rgw-user-list.component.scss'],
   providers: [{ provide: URLBuilderService, useValue: new URLBuilderService(BASE_URL) }]
 })
-export class RgwUserListComponent extends ListWithDetails {
+export class RgwUserListComponent extends ListWithDetails implements OnInit {
   @ViewChild(TableComponent, { static: true })
   table: TableComponent;
+  @ViewChild('userSizeTpl', { static: true })
+  userSizeTpl: TemplateRef<any>;
+  @ViewChild('userObjectTpl', { static: true })
+  userObjectTpl: TemplateRef<any>;
   permission: Permission;
   tableActions: CdTableAction[];
   columns: CdTableColumn[] = [];
@@ -44,10 +56,39 @@ export class RgwUserListComponent extends ListWithDetails {
     private modalService: ModalService,
     private urlBuilder: URLBuilderService,
     public actionLabels: ActionLabelsI18n,
-    private ngZone: NgZone
+    private ngZone: NgZone,
+    // private changeDetectorRef: ChangeDetectorRef
   ) {
     super();
     this.permission = this.authStorageService.getPermissions().rgw;
+    const getUserUri = () =>
+      this.selection.first() && `${encodeURIComponent(this.selection.first().uid)}`;
+    const addAction: CdTableAction = {
+      permission: 'create',
+      icon: Icons.add,
+      routerLink: () => this.urlBuilder.getCreate(),
+      name: this.actionLabels.CREATE,
+      canBePrimary: (selection: CdTableSelection) => !selection.hasSelection
+    };
+    const editAction: CdTableAction = {
+      permission: 'update',
+      icon: Icons.edit,
+      routerLink: () => this.urlBuilder.getEdit(getUserUri()),
+      name: this.actionLabels.EDIT
+    };
+    const deleteAction: CdTableAction = {
+      permission: 'delete',
+      icon: Icons.destroy,
+      click: () => this.deleteAction(),
+      disable: () => !this.selection.hasSelection,
+      name: this.actionLabels.DELETE,
+      canBePrimary: (selection: CdTableSelection) => selection.hasMultiSelection
+    };
+    this.tableActions = [addAction, editAction, deleteAction];
+    this.timeConditionReached();
+  }
+
+  ngOnInit() {
     this.columns = [
       {
         name: $localize`Username`,
@@ -85,33 +126,20 @@ export class RgwUserListComponent extends ListWithDetails {
           '-1': $localize`Disabled`,
           0: $localize`Unlimited`
         }
+      },
+      {
+        name: $localize`Capacity Limit %`,
+        prop: 'size_usage',
+        cellTemplate: this.userSizeTpl,
+        flexGrow: 0.8
+      },
+      {
+        name: $localize`Object Limit %`,
+        prop: 'object_usage',
+        cellTemplate: this.userObjectTpl,
+        flexGrow: 0.8
       }
     ];
-    const getUserUri = () =>
-      this.selection.first() && `${encodeURIComponent(this.selection.first().uid)}`;
-    const addAction: CdTableAction = {
-      permission: 'create',
-      icon: Icons.add,
-      routerLink: () => this.urlBuilder.getCreate(),
-      name: this.actionLabels.CREATE,
-      canBePrimary: (selection: CdTableSelection) => !selection.hasSelection
-    };
-    const editAction: CdTableAction = {
-      permission: 'update',
-      icon: Icons.edit,
-      routerLink: () => this.urlBuilder.getEdit(getUserUri()),
-      name: this.actionLabels.EDIT
-    };
-    const deleteAction: CdTableAction = {
-      permission: 'delete',
-      icon: Icons.destroy,
-      click: () => this.deleteAction(),
-      disable: () => !this.selection.hasSelection,
-      name: this.actionLabels.DELETE,
-      canBePrimary: (selection: CdTableSelection) => selection.hasMultiSelection
-    };
-    this.tableActions = [addAction, editAction, deleteAction];
-    this.timeConditionReached();
   }
 
   timeConditionReached() {
@@ -134,6 +162,7 @@ export class RgwUserListComponent extends ListWithDetails {
     this.rgwUserService.list().subscribe(
       (resp: object[]) => {
         this.users = resp;
+        // this.changeDetectorRef.detectChanges();
       },
       () => {
         context.error();

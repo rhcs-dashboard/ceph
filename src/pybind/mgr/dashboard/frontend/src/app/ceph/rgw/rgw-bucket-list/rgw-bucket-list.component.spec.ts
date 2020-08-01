@@ -1,5 +1,5 @@
 import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
 
@@ -8,6 +8,7 @@ import { of } from 'rxjs';
 
 import { RgwBucketService } from '~/app/shared/api/rgw-bucket.service';
 import { TableActionsComponent } from '~/app/shared/datatable/table-actions/table-actions.component';
+import { CdTableFetchDataContext } from '~/app/shared/models/cd-table-fetch-data-context';
 import { SharedModule } from '~/app/shared/shared.module';
 import { configureTestBed, PermissionHelper } from '~/testing/unit-test-helper';
 import { RgwBucketDetailsComponent } from '../rgw-bucket-details/rgw-bucket-details.component';
@@ -39,7 +40,6 @@ describe('RgwBucketListComponent', () => {
   });
 
   it('should create', () => {
-    fixture.detectChanges();
     expect(component).toBeTruthy();
   });
 
@@ -85,7 +85,7 @@ describe('RgwBucketListComponent', () => {
     });
   });
 
-  it('should test if bucket data is tranformed correctly', () => {
+  it('should test if bucket data is tranformed correctly', fakeAsync(() => {
     rgwBucketServiceListSpy.and.returnValue(
       of([
         {
@@ -109,7 +109,9 @@ describe('RgwBucketListComponent', () => {
         }
       ])
     );
-    fixture.detectChanges();
+    const context: CdTableFetchDataContext = null;
+    component.getBucketList(context);
+    tick(10000);
     expect(component.buckets).toEqual([
       {
         bucket: 'bucket',
@@ -129,8 +131,8 @@ describe('RgwBucketListComponent', () => {
         object_usage: 0.8
       }
     ]);
-  });
-  it('should usage bars only if quota enabled', () => {
+  }));
+  it('should usage bars only if quota enabled', fakeAsync(() => {
     rgwBucketServiceListSpy.and.returnValue(
       of([
         {
@@ -144,10 +146,15 @@ describe('RgwBucketListComponent', () => {
         }
       ])
     );
-    fixture.detectChanges();
+    const context: CdTableFetchDataContext = null;
+    component.getBucketList(context);
+    tick(10000);
+    component.ngOnInit();
+    // fixture.detectChanges();
+    // tick(500000);
     const usageBars = fixture.debugElement.nativeElement.querySelectorAll('cd-usage-bar');
     expect(usageBars.length).toBe(2);
-  });
+  }));
   it('should not show any usage bars if quota disabled', () => {
     rgwBucketServiceListSpy.and.returnValue(
       of([
@@ -162,7 +169,6 @@ describe('RgwBucketListComponent', () => {
         }
       ])
     );
-    fixture.detectChanges();
     const usageBars = fixture.debugElement.nativeElement.querySelectorAll('cd-usage-bar');
     expect(usageBars.length).toBe(0);
   });

@@ -62,8 +62,8 @@ class RgwTestCase(DashboardTestCase):
             cls._radosgw_admin_cmd(['user', 'rm', '--uid=teuth-test-user', '--purge-data'])
         super(RgwTestCase, cls).tearDownClass()
 
-    def get_rgw_user(self, uid):
-        return self._get('/api/rgw/user/{}'.format(uid))
+    def get_rgw_user(self, uid, stats=True):
+        return self._get('/api/rgw/user/{}?stats={}'.format(uid, stats))
 
 
 class RgwApiCredentialsTest(RgwTestCase):
@@ -510,6 +510,14 @@ class RgwUserTest(RgwTestCase):
         self.assertStatus(200)
         self._assert_user_data(data)
         self.assertEqual(data['user_id'], 'admin')
+        self.assertTrue(data['stats'])
+        self.assertIsInstance(data['stats'], dict)
+        # Test without stats.
+        data = self.get_rgw_user('admin1', False)
+        self.assertStatus(200)
+        self._assert_user_data(data)
+        self.assertEqual(data['user_id'], 'admin')
+        self.assertFalse(data['stats'])
 
     def test_list(self):
         data = self._get('/api/rgw/user')
