@@ -23,28 +23,27 @@ export class DocService {
     });
   }
 
-  urlGenerator(section: string, release = 'main'): string {
-    const docVersion = release === 'main' ? 'latest' : release;
-    const domain = `https://docs.ceph.com/en/${docVersion}/`;
-    const domainCeph = `https://ceph.io`;
-    const domainCephOld = `https://old.ceph.com`;
+  urlGenerator(section: string, release = 'reef'): string {
+    const docVersion = release === 'reef' ? '7' : release;
+    const domain = `https://access.redhat.com/documentation/en-us/red_hat_ceph_storage/${docVersion}/html/`;
+    const domainRedHat = `https://www.redhat.com/en/about/`;
 
     const sections = {
-      iscsi: `${domain}mgr/dashboard/#enabling-iscsi-management`,
-      prometheus: `${domain}mgr/dashboard/#enabling-prometheus-alerting`,
-      'nfs-ganesha': `${domain}mgr/dashboard/#configuring-nfs-ganesha-in-the-dashboard`,
-      'rgw-nfs': `${domain}radosgw/nfs`,
-      rgw: `${domain}mgr/dashboard/#enabling-the-object-gateway-management-frontend`,
-      dashboard: `${domain}mgr/dashboard`,
-      grafana: `${domain}mgr/dashboard/#enabling-the-embedding-of-grafana-dashboards`,
-      orch: `${domain}mgr/orchestrator`,
-      pgs: `${domainCephOld}/pgcalc`,
-      help: `${domainCeph}/en/users/`,
-      security: `${domainCeph}/en/security/`,
-      trademarks: `${domainCeph}/en/trademarks/`,
-      'dashboard-landing-page-status': `${domain}mgr/dashboard/#dashboard-landing-page-status`,
-      'dashboard-landing-page-performance': `${domain}mgr/dashboard/#dashboard-landing-page-performance`,
-      'dashboard-landing-page-capacity': `${domain}mgr/dashboard/#dashboard-landing-page-capacity`
+      iscsi: `${domain}dashboard_guide/management-of-block-devices-using-the-ceph-dashboard#management-of-iscsi-functions-on-the-ceph-dashboard`,
+      prometheus: `${domain}dashboard_guide/management-of-alerts-on-the-ceph-dashboard`,
+      'nfs-ganesha': `${domain}dashboard_guide/management-of-nfs-ganesha-exports-on-the-ceph-dashboard#configuring-nfs-ganesha-daemons-on-the-ceph-dashboard_dash`,
+      'rgw-nfs': `${domain}dashboard_guide/management-of-nfs-ganesha-exports-on-the-ceph-dashboard`,
+      rgw: `${domain}dashboard_guide/management-of-ceph-object-gateway-using-the-dashboard`,
+      dashboard: `${domain}dashboard_guide/`,
+      grafana: `${domain}dashboard_guide/management-of-alerts-on-the-ceph-dashboard#enabling-monitoring-stack_dash`,
+      orch: `${domain}operations_guide/introduction-to-the-ceph-orchestrator`,
+      pgs: `https://access.redhat.com/labs/cephpgc/`,
+      help: `https://access.redhat.com/documentation/en-us/red_hat_ceph_storage/`,
+      terms: `${domainRedHat}all-policies-guidelines/`,
+      privacy: `${domainRedHat}privacy-policy/`,
+      'dashboard-landing-page-status': `${domain}dashboard_guide/index#understanding-the-landing-page_dash`,
+      'dashboard-landing-page-performance': `${domain}dashboard_guide/index#understanding-the-landing-page_dash`,
+      'dashboard-landing-page-capacity': `${domain}dashboard_guide/index#understanding-the-landing-page_dash`
     };
 
     return sections[section];

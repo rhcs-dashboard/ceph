@@ -155,9 +155,9 @@ $pf-global--image-path: '~@patternfly/patternfly/assets/images';
 
     .login-text {
       margin-left: 44%;
-      text-align:justify;
+      padding-right: 0;
+      text-align: justify;
       text-justify: inter-word;
-      padding-right: 0px;
     }
   }
 }
@@ -470,8 +470,8 @@ cd-dashboard {
     margin-bottom: 0.4rem !important;
 
     strong {
-      margin-right: 16.7rem !important;
       font-size: medium !important;
+      margin-right: 16.7rem !important;
     }
   }
 
@@ -822,7 +822,7 @@ ngb-datepicker {
 }
 
 .popover-body,
-.select-menu-item{
+.select-menu-item {
   font-size: 0.8rem !important;
 }
 
@@ -958,14 +958,18 @@ cd-modal {
     border-radius: 0 !important;
     color: vv.$black !important;
 
-    &:hover, &:focus {
+    &:hover,
+    &:focus {
+      /* stylelint-disable */
       background-color: none !important;
       color: vv.$primary !important;
       text-decoration: none;
+      /* stylelint-enable */
     }
+
     &[aria-expanded='true'] {
-      border-left: 3px solid vv.$primary !important;
       background-color: var(--pf-c-accordion__toggle--active--BackgroundColor) !important;
+      border-left: 3px solid vv.$primary !important;
       color: vv.$primary !important;
       font-weight: bold !important;
       text-decoration: none;
@@ -974,11 +978,12 @@ cd-modal {
 
   button.dropdown-toggle {
     position: relative;
+
     &::after {
-      font-size: 0.7rem !important;
       display: inline-table !important;
-      margin-top: 0.5rem !important;
+      font-size: 0.7rem !important;
       margin-left: 98% !important;
+      margin-top: 0.5rem !important;
     }
   }
 
