@@ -59,6 +59,7 @@
     "@ngx-formly/core": "6.1.1",
     "@popperjs/core": "2.10.2",
     "@swimlane/ngx-datatable": "18.0.0",
+    "@patternfly/patternfly": "4.23.3",
     "@types/file-saver": "2.0.1",
     "async-mutex": "0.2.4",
     "bootstrap": "5.0.0",

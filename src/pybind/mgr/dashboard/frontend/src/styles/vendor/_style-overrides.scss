@@ -2,3 +2,137 @@
 
 Custom styles, third-party libraries, frameworks, design systems, ...
 */
+
+@use './src/styles/vendor/variables' as vv;
+
+/* stylelint-disable */
+$pf-global--font-path: '~@patternfly/patternfly/assets/fonts';
+$fa-font-path: '~@patternfly/patternfly/assets/fonts/webfonts';
+$pf-global--fonticon-path: '~@patternfly/patternfly/assets/pficon';
+$pf-global--image-path: '~@patternfly/patternfly/assets/images';
+/* stylelint-enable */
+
+@import '~@patternfly/patternfly/patternfly';
+
+.login {
+  background-image: url('../../assets/redhat_new_background.svg') !important;
+  background-position: center;
+  background-size: cover;
+
+  nav {
+    display: none;
+  }
+
+  .container {
+    margin-left: 100px;
+
+    img {
+      content: url('../../assets/Logo-Red_Hat-Ceph_Storage-A-Reverse-RGB.png');
+    }
+
+    .img-fluid {
+      margin-left: 20%;
+    }
+
+    .list-inline {
+      font-size: 13px;
+      margin-bottom: 0;
+      margin-left: 44%;
+      margin-top: 10%;
+    }
+
+    cd-login {
+      background-color: var(--pf-global--BackgroundColor--light-100);
+
+      .placeholder {
+        color: vv.$black;
+      }
+
+      .input-group {
+        padding-top: 20px;
+      }
+
+      .container {
+        background-color: vv.$white;
+
+        form {
+          padding: 50px 20px 60px;
+        }
+
+        .pl-4,
+        .px-4 {
+          font-size: 14px;
+          padding-left: 0.3rem !important;
+        }
+
+        form:first-child::before {
+          @extend .pf-c-title, .pf-m-3xl;
+          color: vv.$black;
+          content: 'Login to your account \A \A';
+          white-space: pre-wrap;
+        }
+
+        .form-group-append {
+          display: none;
+        }
+
+        .btn-accent {
+          @extend .pf-c-button, .pf-m-primary, .pf-m-block;
+          margin-top: 20px;
+        }
+      }
+
+      .form-control {
+        // stylelint-disable
+        background-color: vv.$white !important;
+        border: 1px solid $pf-color-black-200 !important;
+        border-bottom: 2px solid $pf-color-red-100 !important;
+        color: vv.$black !important;
+        height: initial !important;
+        @extend .pf-c-form-control;
+        &:focus {
+          border-bottom: 2px solid vv.$primary !important;
+          box-shadow: none !important;
+          outline: 0;
+        }
+        &:valid {
+          border-bottom: 1px solid vv.$black !important;
+        }
+      }
+
+      @keyframes autofill {
+        to {
+          background-color: vv.$white;
+          color: vv.$black;
+        }
+      }
+
+      input:-webkit-autofill {
+        box-shadow: 0 0 0 1000px vv.$white inset;
+        -webkit-text-fill-color: vv.$black;
+      }
+    }
+  }
+}
+
+.btn {
+  @extend .pf-c-button;
+}
+
+.btn-submit {
+  @extend .pf-c-button, .pf-m-primary, .pf-m-block;
+  padding-top: 30px;
+}
+
+.form-group {
+  @extend .pf-c-form__group;
+  all: unset !important;
+}
+
+.placeholder {
+  @extend .pf-c-form__label;
+}
+
+.input-group {
+  @extend .pf-c-input-group;
+}
