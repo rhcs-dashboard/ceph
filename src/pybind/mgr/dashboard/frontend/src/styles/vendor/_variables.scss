@@ -5,6 +5,10 @@ $my-accent-color: #a18fff
 */
 @use '~@patternfly/patternfly/sass-utilities/colors';
 
+$navbar-bg: colors.$pf-color-black-900 !default;
+$sidebar-bg: colors.$pf-color-black-850 !default;
+$navbar-hover: colors.$pf-color-black-800 !default;
+
 /* Bootstrap variables that are already defined can be overridden using configuration:
 https://sass-lang.com/documentation/at-rules/forward#configuring-modules
 
@@ -16,5 +20,11 @@ Example:
 );
 */
 @forward '../defaults/bootstrap-defaults' with (
-  $primary: colors.$pf-color-blue-400
+  $primary: colors.$pf-color-blue-400,
+  $secondary: colors.$pf-color-blue-500,
+  $success: colors.$pf-color-green-500,
+  $info: colors.$pf-color-blue-300,
+  $warning: colors.$pf-color-gold-500,
+  $danger: colors.$pf-color-red-100,
+  $navbar-height: 50px
 );

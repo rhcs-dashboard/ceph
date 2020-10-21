@@ -14,24 +14,36 @@ $pf-global--image-path: '~@patternfly/patternfly/assets/images';
 
 @import '~@patternfly/patternfly/patternfly';
 
+/*Icon Overrides*/
+.fa-question-circle-o::before {
+  content: '\f059' !important;
+}
+
+.fa-bell::before {
+  content: '\f086' !important;
+}
+
+.fa-cog::before {
+  content: '\f0ad' !important;
+}
+
+/* Login Page */
 .login {
   background-image: url('../../assets/redhat_new_background.svg') !important;
   background-position: center;
   background-size: cover;
 
-  nav {
-    display: none;
-  }
-
   .container {
     margin-left: 100px;
 
-    img {
-      content: url('../../assets/Logo-Red_Hat-Ceph_Storage-A-Reverse-RGB.png');
-    }
-
-    .img-fluid {
+    img.img-fluid {
+      background: url('../../assets/Logo-Red_Hat-Ceph_Storage-A-Reverse-RGB.png') no-repeat;
+      background-size: 550px;
+      display: inline-block;
       margin-left: 20%;
+      padding-right: 550px;
+      padding-top: 160px;
+      width: 0;
     }
 
     .list-inline {
@@ -135,4 +147,175 @@ $pf-global--image-path: '~@patternfly/patternfly/assets/images';
 
 .input-group {
   @extend .pf-c-input-group;
+}
+
+/* Navigation Bar */
+.cd-navbar-top {
+  .cd-navbar-brand {
+    background: vv.$navbar-bg !important;
+    border-top: unset !important;
+    padding-left: 1.5rem !important;
+  }
+  .py-0 {
+    color: vv.$white !important;
+    font-size: 0.7em !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  a img {
+    background: url('../../assets/Logo-Red_Hat-Ceph_Storage-A-Reverse-RGB.png') no-repeat;
+    background-size: 130px;
+    display: inline-block;
+    width: 0;
+    padding-right: 130px;
+    padding-top: 36px;
+  }
+
+  .navbar-nav > li > .cd-navbar > [ngbDropdown] > a:hover,
+  .navbar-nav > li > .cd-navbar > [ngbDropdown].open > a,
+  .navbar-nav > li > .cd-navbar > a:hover,
+  .navbar-nav > li > a:hover,
+  .navbar-nav > li:hover {
+    background-color: vv.$navbar-hover !important;
+  }
+
+  ul .nav-item {
+    font-size: 0.95rem !important;
+  }
+}
+
+/* Navigation Sidebar */
+.wrapper {
+  #sidebar {
+    background: vv.$sidebar-bg !important;
+    .cd-navbar-primary .active > a,
+    .cd-navbar-primary > .active > a:focus,
+    .cd-navbar-primary > .active > a:hover {
+      background-color: vv.$navbar-hover !important;
+      border-left: 4px solid vv.$primary !important;
+    }
+
+    ul li {
+      a:hover {
+        background-color: vv.$navbar-hover !important;
+      }
+    }
+  }
+
+  a.dropdown-toggle {
+    &::after {
+      font-size: 0.7rem !important;
+    }
+  }
+
+  ul ul a {
+    background: lighten(vv.$sidebar-bg, 5) !important;
+  }
+}
+
+.list-unstyled {
+  @extend .pf-c-nav__list;
+}
+
+.nav-item {
+  @extend .pf-c-nav__item, .pf-m-expandable;
+}
+
+.nav-tabs {
+  @extend .pf-c-tabs;
+}
+.ngbDropdown {
+  @extend .pf-c-dropdown;
+}
+
+/* Notification Dot */
+a {
+  .dot {
+    border: unset !important;
+  }
+
+  &:hover .dot {
+    border-color: unset !important;
+  }
+}
+
+/* Notification Sidebar */
+cd-notifications-sidebar {
+  .card-body {
+    font-size: x-small !important;
+    padding: 0.5rem !important;
+    padding-left: 0 !important;
+
+    .row {
+      padding-top: 0.5rem !important;
+    }
+
+    h6 {
+      font-size: 15px !important;
+    }
+
+    .card-text {
+      font-size: 13px !important;
+    }
+
+    small {
+      font-size: 10px !important;
+    }
+
+    hr {
+      margin: 0 !important;
+    }
+
+    .btn-block {
+      width: 99% !important;
+    }
+
+    .btn-light:hover {
+      border-color: unset !important;
+    }
+  }
+}
+
+.ceph-icon {
+  display: none !important;
+}
+
+.fa-times {
+  margin-right: unset !important;
+}
+
+.btn-light {
+  @extend .pf-c-button, .pf-m-control;
+  border-radius: unset !important;
+}
+
+.dropdown-menu {
+  font-size: 0.9rem !important;
+}
+
+/* Disabling Internationalization */
+cd-language-selector {
+  display: none !important;
+}
+
+/* General */
+.text-primary {
+  color: vv.$primary !important;
+}
+
+.text-success {
+  color: vv.$success !important;
+}
+
+.text-info {
+  color: vv.$info !important;
+}
+
+.text-warning {
+  color: vv.$warning !important;
+}
+
+.text-danger {
+  color: vv.$danger !important;
 }
