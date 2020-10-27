@@ -1,30 +1,28 @@
-import { Directive, ElementRef, HostListener, Input, OnInit, Renderer2 } from '@angular/core';
+import { Component, Input , ElementRef, HostListener, Renderer2 } from '@angular/core';
+
+import { ActionLabelsI18n } from '../../constants/app.constants';
+import { Icons } from '../../enum/icons.enum';
 
 import { ToastrService } from 'ngx-toastr';
 
-@Directive({
-  selector: '[cdCopy2ClipboardButton]'
+@Component({
+  selector: 'cdCopy2ClipboardButton',
+  templateUrl: './copy2clipboard-button.component.html',
+  styleUrls: ['./copy2clipboard-button.component.scss']
 })
-export class Copy2ClipboardButtonDirective implements OnInit {
+export class Copy2ClipboardButtonComponent {
   @Input()
-  private cdCopy2ClipboardButton: string;
+  private source: string;
+
+  icons = Icons;
 
   constructor(
-    private elementRef: ElementRef,
-    private renderer: Renderer2,
-    private toastr: ToastrService
+    private toastr: ToastrService,
+    private actionLabels: ActionLabelsI18n
   ) {}
 
-  ngOnInit() {
-    const iElement = this.renderer.createElement('i');
-    this.renderer.addClass(iElement, 'icon-prepend');
-    this.renderer.addClass(iElement, 'fa');
-    this.renderer.addClass(iElement, 'fa-clipboard');
-    this.renderer.appendChild(this.elementRef.nativeElement, iElement);
-  }
-
   private getInputElement() {
-    return document.getElementById(this.cdCopy2ClipboardButton) as HTMLInputElement;
+    return document.getElementById(this.source) as HTMLInputElement;
   }
 
   @HostListener('click')
