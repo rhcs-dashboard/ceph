@@ -3,7 +3,6 @@ import { Injectable } from '@angular/core';
 import { environment } from '~/environments/environment';
 
 export class AppConstants {
-  public static readonly cephLogo = 'assets/Ceph_Logo.svg';
   public static readonly version = '6';
   public static readonly organization = 'Redhat';
   public static readonly projectName = 'Red Hat Ceph Storage Dashboard';
@@ -11,6 +10,7 @@ export class AppConstants {
     'Licensed under Creative Commons Attribution Share Alike 3.0 (CC-BY-SA-3.0)';
   public static readonly copyright =
     'Copyright(c) ' + environment.year + ' Red Hat Inc. and contributors.';
+  public static readonly cephLogo = 'assets/Logo-RedHat-Hat-Color-RGB.png';
 }
 
 export enum URLVerbs {

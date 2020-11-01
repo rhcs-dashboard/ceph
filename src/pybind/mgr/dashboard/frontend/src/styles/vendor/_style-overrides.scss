@@ -27,8 +27,18 @@ $pf-global--image-path: '~@patternfly/patternfly/assets/images';
   content: '\f0ad' !important;
 }
 
+.fa-lg::before {
+  font-size: 1rem !important;
+  vertical-align: 10% !important;
+}
+
+.fa-pencil::before {
+  font-size: 0.9rem !important;
+}
+
 /* Login Page */
 .login {
+  background-color: vv.$white !important;
   background-image: url('../../assets/redhat_new_background.svg') !important;
   background-position: center;
   background-size: cover;
@@ -50,12 +60,9 @@ $pf-global--image-path: '~@patternfly/patternfly/assets/images';
       font-size: 13px;
       margin-bottom: 0;
       margin-left: 44%;
-      margin-top: 10%;
     }
 
     cd-login {
-      background-color: var(--pf-global--BackgroundColor--light-100);
-
       .placeholder {
         color: vv.$black;
       }
@@ -90,23 +97,44 @@ $pf-global--image-path: '~@patternfly/patternfly/assets/images';
 
         .btn-accent {
           @extend .pf-c-button, .pf-m-primary, .pf-m-block;
+          color: vv.$white !important;
+          font-size: 0.9rem !important;
           margin-top: 20px;
+
+          &:disabled {
+            background-color: vv.$light !important;
+            color: vv.$disable-color !important;
+          }
+        }
+      }
+
+      .form-group {
+        all: unset !important;
+
+        label {
+          font-weight: bold;
+
+          &::after {
+            color: vv.$danger;
+            content: '*';
+          }
         }
       }
 
       .form-control {
-        // stylelint-disable
+        @extend .pf-c-form-control;
         background-color: vv.$white !important;
         border: 1px solid $pf-color-black-200 !important;
         border-bottom: 2px solid $pf-color-red-100 !important;
         color: vv.$black !important;
         height: initial !important;
-        @extend .pf-c-form-control;
+
         &:focus {
           border-bottom: 2px solid vv.$primary !important;
           box-shadow: none !important;
           outline: 0;
         }
+
         &:valid {
           border-bottom: 1px solid vv.$black !important;
         }
@@ -124,29 +152,44 @@ $pf-global--image-path: '~@patternfly/patternfly/assets/images';
         -webkit-text-fill-color: vv.$black;
       }
     }
+
+    .login-text {
+      margin-left: 44%;
+      text-align:justify;
+      text-justify: inter-word;
+      padding-right: 0px;
+    }
   }
 }
 
-.btn {
-  @extend .pf-c-button;
-}
+/* Password Change form on login */
+cd-login-password-form {
+  .form-control {
+    @extend .pf-c-form-control;
+    background-color: vv.$white !important;
+    border-radius: unset !important;
+    color: vv.$black !important;
+    font-size: 0.8rem !important;
 
-.btn-submit {
-  @extend .pf-c-button, .pf-m-primary, .pf-m-block;
-  padding-top: 30px;
-}
+    &:hover {
+      border-bottom: 1px solid vv.$primary !important;
+    }
 
-.form-group {
-  @extend .pf-c-form__group;
-  all: unset !important;
-}
+    &:focus {
+      box-shadow: 0 0 1px 1px rgba(vv.$primary, 0.5) !important;
+    }
+  }
 
-.placeholder {
-  @extend .pf-c-form__label;
-}
+  .btn-password {
+    background-color: vv.$white !important;
+    border-radius: unset !important;
+    color: vv.$black !important;
+    height: 30.5px !important;
 
-.input-group {
-  @extend .pf-c-input-group;
+    &:hover {
+      border-bottom: 1.5px solid vv.$primary !important;
+    }
+  }
 }
 
 /* Navigation Bar */
@@ -156,6 +199,7 @@ $pf-global--image-path: '~@patternfly/patternfly/assets/images';
     border-top: unset !important;
     padding-left: 1.5rem !important;
   }
+
   .py-0 {
     color: vv.$white !important;
     font-size: 0.7em !important;
@@ -167,9 +211,9 @@ $pf-global--image-path: '~@patternfly/patternfly/assets/images';
     background: url('../../assets/Logo-Red_Hat-Ceph_Storage-A-Reverse-RGB.png') no-repeat;
     background-size: 130px;
     display: inline-block;
-    width: 0;
     padding-right: 130px;
     padding-top: 36px;
+    width: 0;
   }
 
   .navbar-nav > li > .cd-navbar > [ngbDropdown] > a:hover,
@@ -189,6 +233,7 @@ $pf-global--image-path: '~@patternfly/patternfly/assets/images';
 .wrapper {
   #sidebar {
     background: vv.$sidebar-bg !important;
+
     .cd-navbar-primary .active > a,
     .cd-navbar-primary > .active > a:focus,
     .cd-navbar-primary > .active > a:hover {
@@ -197,8 +242,16 @@ $pf-global--image-path: '~@patternfly/patternfly/assets/images';
     }
 
     ul li {
-      a:hover {
-        background-color: vv.$navbar-hover !important;
+      a {
+        font-size: 0.9rem !important;
+
+        &:hover {
+          background-color: vv.$navbar-hover !important;
+        }
+      }
+
+      ul li a {
+        font-size: 0.8rem !important;
       }
     }
   }
@@ -224,7 +277,28 @@ $pf-global--image-path: '~@patternfly/patternfly/assets/images';
 
 .nav-tabs {
   @extend .pf-c-tabs;
+  border-bottom: 0 !important;
 }
+
+/* stylelint-disable */
+.nav-tabs .nav-link {
+  border-bottom: 4px solid transparent !important;
+  color: vv.$disable-color !important;
+
+  &:hover {
+    border-color: vv.$white !important;
+    border-bottom: 4px solid vv.$nav-tab-hover !important;
+  }
+
+  &.active,
+  &:focus {
+    border-color: vv.$white !important;
+    border-bottom: 4px solid vv.$primary !important;
+    color: vv.$navbar-bg !important;
+  }
+}
+/* stylelint-enable */
+
 .ngbDropdown {
   @extend .pf-c-dropdown;
 }
@@ -235,9 +309,11 @@ a {
     border: unset !important;
   }
 
+  /* stylelint-disable */
   &:hover .dot {
     border-color: unset !important;
   }
+  /* stylelint-enable */
 }
 
 /* Notification Sidebar */
@@ -263,17 +339,20 @@ cd-notifications-sidebar {
       font-size: 10px !important;
     }
 
-    hr {
-      margin: 0 !important;
-    }
-
     .btn-block {
       width: 99% !important;
     }
 
+    /* stylelint-disable */
     .btn-light:hover {
       border-color: unset !important;
     }
+    /* stylelint-enable */
+  }
+
+  .close {
+    font-size: 1rem !important;
+    padding-top: 2px !important;
   }
 }
 
@@ -285,18 +364,61 @@ cd-notifications-sidebar {
   margin-right: unset !important;
 }
 
-.btn-light {
-  @extend .pf-c-button, .pf-m-control;
-  border-radius: unset !important;
-}
-
-.dropdown-menu {
-  font-size: 0.9rem !important;
+.dropdown {
+  .btn-light {
+    @extend .pf-c-button, .pf-m-control;
+    border-radius: unset !important;
+  }
 }
 
 /* Disabling Internationalization */
 cd-language-selector {
   display: none !important;
+}
+
+cd-dashboard {
+  cd-refresh-selector {
+    display: none !important;
+  }
+}
+
+/* Forms, Tables, Buttons and all minor UI Elements*/
+.btn {
+  @extend .pf-c-button;
+  box-sizing: border-box !important;
+  font-size: 0.8rem !important;
+}
+
+.btn-submit {
+  @extend .pf-c-button, .pf-m-primary, .pf-m-block;
+  padding-top: 30px;
+}
+
+.form-group {
+  @extend .pf-c-form__group;
+}
+
+.placeholder {
+  @extend .pf-c-form__label;
+}
+
+.input-group {
+  @extend .pf-c-input-group;
+  background-color: transparent !important;
+}
+
+.btn-light {
+  @extend .pf-c-button, .pf-m-control;
+  border: 0 !important;
+  border-radius: unset !important;
+
+  &:focus {
+    box-shadow: 0 0 1px 1px rgba(vv.$primary, 0.5) !important;
+  }
+}
+
+.dropdown-menu {
+  font-size: 0.8rem !important;
 }
 
 .about-container {
@@ -330,13 +452,9 @@ cd-language-selector {
       background: url('../../assets/Logo-RedHat-A-Reverse-RGB.svg') no-repeat;
       background-size: 150px;
       display: inline-block;
-      width: 0;
       padding-right: 150px;
       padding-top: 36px;
-    }
-
-    .modal-footer {
-      background-color: transparent !important;
+      width: 0;
     }
 
     strong {
@@ -358,6 +476,7 @@ cd-language-selector {
   }
 
   .modal-footer {
+    background-color: transparent !important;
     font-size: 0.8rem !important;
     margin-top: 5rem !important;
   }
@@ -382,4 +501,488 @@ cd-language-selector {
 
 .text-danger {
   color: vv.$danger !important;
+}
+
+.btn-accent,
+.btn-accent.dropdown-toggle {
+  @extend .pf-c-button, .pf-m-primary;
+  background-color: vv.$primary !important;
+  border: 1px transparent !important;
+  border-bottom: 2px solid transparent !important;
+
+  &:hover,
+  &:focus,
+  &.focus,
+  &:not(:disabled):not(.disabled):active,
+  &:not(:disabled):not(.disabled).active {
+    background-color: vv.$secondary !important;
+  }
+
+  &.disabled {
+    background-color: vv.$light !important;
+    border: 0 !important;
+  }
+}
+
+.btn-accent.dropdown-toggle,
+.btn-light.dropdown-toggle,
+.dropdown-toggle-split {
+  &::after {
+    border: 0;
+    content: '\f0d7';
+    display: contents;
+    font-family: 'ForkAwesome';
+    font-size: 0.8rem;
+    right: 0;
+  }
+}
+
+// Mozilla's positioning is different.
+// Also font size is making the button larger in firefox.
+/* stylelint-disable-next-line */
+@-moz-document url-prefix() {
+  .btn-accent.dropdown-toggle,
+  .btn-light.dropdown-toggle,
+  .dropdown-toggle-split {
+    &::after {
+      border: 0;
+      content: '\f0d7';
+      display: contents;
+      font-family: 'ForkAwesome';
+      font-size: 0.6rem;
+      position: inherit;
+      right: 0;
+    }
+  }
+}
+
+.btn-light.dropdown-toggle {
+  border: 1px solid vv.$btn-light-border !important;
+  border-bottom: 1px solid vv.$btn-border-bottom !important;
+  padding-bottom: 4px !important;
+
+  &:hover {
+    border: 1px solid vv.$hover-border !important;
+    border-bottom: 1px solid vv.$primary !important;
+    margin: 0 !important;
+  }
+
+  &:focus {
+    box-shadow: 0 0 1px 1px rgba(vv.$primary, 0.5) !important;
+  }
+}
+
+.form-control {
+  @extend .pf-c-form-control;
+  border-bottom: 1px solid vv.$btn-border-bottom !important;
+  border-radius: unset !important;
+  font-size: 0.8rem !important;
+  height: 31px !important;
+
+  &:hover {
+    border-bottom: 2px solid vv.$primary !important;
+  }
+
+  &:disabled {
+    border-bottom: 1px solid vv.$btn-border-bottom !important;
+  }
+
+  &:focus {
+    box-shadow: 0 0 1px 1px rgba(vv.$primary, 0.5) !important;
+  }
+
+  &.is-valid {
+    border-color: vv.$success !important;
+    box-shadow: 0 0 0 0.5px rgba(vv.$success, 0.5) !important;
+  }
+
+  &.is-invalid {
+    border-color: vv.$danger !important;
+    box-shadow: 0 0 0 0.5px rgba(vv.$danger, 0.5) !important;
+  }
+}
+
+.dataTables_header {
+  background-color: vv.$white !important;
+  border: 0 !important;
+}
+
+.dataTables_paginate {
+  .form-control {
+    @extend .pf-c-form-control;
+    padding-bottom: 5px !important;
+
+    &:hover {
+      margin: 0 !important;
+    }
+  }
+}
+
+cd-table .cd-datatable {
+  border: 0 !important;
+
+  .datatable-header {
+    background-color: vv.$white !important;
+    background-image: none !important;
+
+    .datatable-header-cell {
+      border-left: 0 !important;
+    }
+  }
+
+  .datatable-body-row {
+    background-color: vv.$white !important;
+
+    &.active {
+      background-color: vv.$table-active-row !important;
+    }
+
+    .datatable-body-cell {
+      border-left: 0 !important;
+      text-align: left !important;
+
+      .chart-container {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+      }
+
+      .progress {
+        margin-right: 5px !important;
+      }
+    }
+  }
+}
+
+// Tables
+.table-bordered {
+  border: 0 !important;
+}
+
+.table-bordered th,
+.table-bordered td {
+  border-left: 0 !important;
+  border-right: 0 !important;
+}
+
+.table th,
+.table td {
+  padding: 0.4rem !important;
+}
+
+.table {
+  tr {
+    background-color: vv.$white !important;
+  }
+}
+
+.datatable-row-detail {
+  border-left: 3px solid vv.$primary;
+}
+
+.widget-toolbar {
+  .btn-light.dropdown-toggle {
+    border: 1px solid vv.$btn-light-border !important;
+    border-bottom: 1px solid vv.$btn-border-bottom !important;
+    padding-bottom: 3px !important;
+
+    &:hover {
+      border: 1px solid vv.$hover-border !important;
+      border-bottom: 2px solid vv.$primary !important;
+      margin: 0 !important;
+    }
+
+    &:focus {
+      box-shadow: 0 0 1px 1px rgba(vv.$primary, 0.5) !important;
+    }
+  }
+}
+
+.cd-col-form {
+  .form-control {
+    margin-top: 0.2rem !important;
+
+    &:hover {
+      border-bottom: 1px solid vv.$primary !important;
+    }
+
+    &:focus {
+      box-shadow: 0 0 1px 1px rgba(vv.$primary, 0.5) !important;
+    }
+  }
+
+  .cd-col-form-input .btn-light {
+    height: 31px !important;
+    margin-top: 3px !important;
+  }
+}
+
+.custom-select {
+  border: 1px solid vv.$btn-light-border !important;
+  border-bottom: 1px solid vv.$btn-border-bottom !important;
+  border-radius: 0 !important;
+  font-size: 0.8rem !important;
+  height: 31px !important;
+  padding-bottom: 4px !important;
+
+  &:hover {
+    border: 1px solid vv.$hover-border !important;
+    border-bottom: 1px solid vv.$primary !important;
+  }
+
+  &:focus {
+    box-shadow: 0 0 1px 1px rgba(vv.$primary, 0.5) !important;
+  }
+
+  &:disabled {
+    border: 0 !important;
+    border-bottom: 1px solid vv.$btn-border-bottom !important;
+
+    &:hover {
+      border-bottom: 1px solid vv.$btn-border-bottom !important;
+    }
+  }
+
+  &.is-valid {
+    border-color: vv.$success !important;
+    box-shadow: 0 0 0 0.5px rgba(vv.$success, 0.5) !important;
+  }
+
+  &.is-invalid {
+    border-color: vv.$danger !important;
+    box-shadow: 0 0 0 0.5px rgba(vv.$danger, 0.5) !important;
+  }
+}
+
+textarea.form-control {
+  height: unset !important;
+}
+
+.input-group-prepend .input-group-text {
+  background-color: vv.$white !important;
+  border-bottom: 1px solid vv.$btn-border-bottom !important;
+  border-radius: unset !important;
+  font-size: 0.8rem !important;
+  height: 31px !important;
+}
+
+/*Badge and Labels. */
+.badge {
+  @extend .pf-c-label, .pf-m-compact;
+  border-radius: 30em !important;
+  font-size: 0.8rem !important;
+  font-weight: 1 !important;
+}
+
+.badge-success {
+  background-color: vv.$badge-success !important;
+  color: $pf-color-green-600 !important;
+}
+
+.badge-danger {
+  background-color: $pf-color-red-50 !important;
+  color: $pf-color-red-300 !important;
+}
+
+.badge-warning {
+  background-color: $pf-color-gold-50 !important;
+  color: $pf-color-gold-700 !important;
+}
+
+.badge-remove {
+  color: $pf-color-black-500 !important;
+}
+
+.badge-hdd,
+.badge-tab,
+.badge-dark {
+  background-color: $pf-color-black-200 !important;
+  color: $pf-color-black-900 !important;
+}
+
+.badge-ssd,
+.badge-info {
+  background-color: $pf-color-blue-50 !important;
+  color: $pf-color-blue-600 !important;
+}
+
+.btn-warning {
+  border-radius: unset !important;
+  font-size: 0.8rem !important;
+  padding-bottom: 4px !important;
+}
+
+ngb-datepicker {
+  .btn-light {
+    font-size: 0.8rem !important;
+  }
+}
+
+.progress-bar {
+  font-size: 0.8rem !important;
+}
+
+.popover-body,
+.select-menu-item{
+  font-size: 0.8rem !important;
+}
+
+.card-body {
+  legend {
+    font-size: 1.3rem !important;
+  }
+}
+
+cd-info-group {
+  .info-group-title {
+    font-size: 1.25rem !important;
+  }
+
+  h4.card-title {
+    font-size: 1.2rem !important;
+    margin: 1.1rem !important;
+  }
+
+  .card-text {
+    font-size: 1.1rem !important;
+    font-weight: normal !important;
+  }
+}
+
+cd-info-card {
+  .card-body {
+    padding-bottom: 5px !important;
+  }
+}
+
+.datatable-pager {
+  font-size: 0.8rem !important;
+}
+
+cd-logs {
+  .btn-group {
+    margin-top: -55px !important;
+  }
+
+  .card-body {
+    background-color: vv.$log-bg-color !important;
+  }
+}
+
+h4.cd-header {
+  font-size: 1.2rem !important;
+}
+
+cd-rbd-configuration-form {
+  .btn-light {
+    height: 31px !important;
+    margin-top: 3px !important;
+  }
+}
+
+cd-rgw-user-form,
+cd-prometheus-form {
+  .input-group-prepend {
+    padding-top: 3px !important;
+  }
+}
+
+.cd-col-form-label {
+  @extend .pf-c-form__label;
+  font-weight: bold !important;
+  text-align: left !important;
+}
+
+.modal-header,
+.card-header,
+.modal-footer,
+.card-footer {
+  background-color: vv.$white !important;
+}
+
+.custom-control-input {
+  @extend .pf-c-check__input;
+}
+
+h3 {
+  font-size: 1.4rem !important;
+}
+
+.dashboard,
+.row {
+  h4 {
+    font-size: 1rem !important;
+  }
+}
+
+// cluster expansion wizard
+cd-create-cluster {
+  .blank-page {
+    margin-top: -10rem;
+  }
+
+  .img-fluid {
+    max-width: 30%;
+    padding-bottom: 1rem;
+  }
+
+  h3 {
+    @extend .pf-c-title, .pf-m-lg;
+  }
+
+  .offset-md-2 {
+    margin-left: 25%;
+    padding-top: 0.8rem;
+  }
+}
+
+cd-modal {
+  .modal-title {
+    font-size: 1.2rem;
+  }
+}
+
+// Accordion
+.accordion {
+  @extend .pf-c-accordion;
+
+  .btn-link {
+    @extend .pf-c-accordion__toggle;
+  }
+
+  .card-header {
+    border: 0;
+    margin-bottom: -0.91rem !important;
+  }
+
+  button {
+    border-radius: 0 !important;
+    color: vv.$black !important;
+
+    &:hover, &:focus {
+      background-color: none !important;
+      color: vv.$primary !important;
+      text-decoration: none;
+    }
+    &[aria-expanded='true'] {
+      border-left: 3px solid vv.$primary !important;
+      background-color: var(--pf-c-accordion__toggle--active--BackgroundColor) !important;
+      color: vv.$primary !important;
+      font-weight: bold !important;
+      text-decoration: none;
+    }
+  }
+
+  button.dropdown-toggle {
+    position: relative;
+    &::after {
+      font-size: 0.7rem !important;
+      display: inline-table !important;
+      margin-top: 0.5rem !important;
+      margin-left: 98% !important;
+    }
+  }
+
+  .collapse {
+    border-left: 3px solid vv.$primary;
+  }
 }
