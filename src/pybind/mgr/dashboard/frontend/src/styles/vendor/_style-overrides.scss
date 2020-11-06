@@ -299,6 +299,70 @@ cd-language-selector {
   display: none !important;
 }
 
+.about-container {
+  background: url('/assets/redhat_new_background.svg') no-repeat !important;
+  background-position: left bottom !important;
+  font-size: 1rem;
+  height: 70vh;
+  margin-left: -10rem;
+  text-shadow: none !important;
+  width: 70rem;
+
+  .modal-header {
+    background-color: transparent !important;
+
+    span {
+      display: none !important;
+    }
+
+    button::after {
+      border: 0;
+      content: '\f057';
+      font-family: 'ForkAwesome';
+      font-size: 2rem;
+      position: inherit;
+      right: 0;
+    }
+  }
+
+  .modal-body {
+    img {
+      background: url('../../assets/Logo-RedHat-A-Reverse-RGB.svg') no-repeat;
+      background-size: 150px;
+      display: inline-block;
+      width: 0;
+      padding-right: 150px;
+      padding-top: 36px;
+    }
+
+    .modal-footer {
+      background-color: transparent !important;
+    }
+
+    strong {
+      font-size: larger !important;
+    }
+  }
+
+  br {
+    display: none !important;
+  }
+
+  .product-versions {
+    margin-bottom: 0.4rem !important;
+
+    strong {
+      margin-right: 16.7rem !important;
+      font-size: medium !important;
+    }
+  }
+
+  .modal-footer {
+    font-size: 0.8rem !important;
+    margin-top: 5rem !important;
+  }
+}
+
 /* General */
 .text-primary {
   color: vv.$primary !important;
