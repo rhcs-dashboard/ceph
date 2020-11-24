@@ -33,15 +33,14 @@ describe('AuthService', () => {
 
   it('should login and save the user', fakeAsync(() => {
     const fakeCredentials = { username: 'foo', password: 'bar' };
-    const fakeResponse = { username: 'foo', token: 'tokenbytes' };
-    service.login(<any>fakeCredentials);
+    const fakeResponse = { username: 'foo' };
+    service.login(fakeCredentials).subscribe();
     const req = httpTesting.expectOne('api/auth');
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual(fakeCredentials);
     req.flush(fakeResponse);
     tick();
     expect(localStorage.getItem('dashboard_username')).toBe('foo');
-    expect(localStorage.getItem('access_token')).toBe('tokenbytes');
   }));
 
   it('should logout and remove the user', fakeAsync(() => {
