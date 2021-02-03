@@ -278,6 +278,9 @@ else
     case "$ID" in
     debian|ubuntu|devuan)
         echo "Using apt-get to install dependencies"
+        $SUDO apt install -y docker.io
+        $SUDO systemctl start docker
+        $SUDO systemctl enable docker
         $SUDO apt-get install -y devscripts equivs
         $SUDO apt-get install -y dpkg-dev
         case "$VERSION" in
@@ -333,6 +336,9 @@ else
         case "$ID" in
             fedora)
                 $SUDO $yumdnf install -y $yumdnf-utils
+                $SUDO $yumdnf install -y docker-ce docker-ce-cli containerd.io
+                $SUDO systemctl start docker
+                $SUDO systemctl enable docker
                 ;;
             centos|rhel|ol|virtuozzo)
                 MAJOR_VERSION="$(echo $VERSION_ID | cut -d. -f1)"
@@ -445,6 +451,32 @@ function activate_virtualenv() {
         fi
     fi
     . $env_dir/bin/activate
+}
+
+function preload_wheels_for_tox() {
+    local ini=$1
+    shift
+    pushd . > /dev/null
+    cd $(dirname $ini)
+    local require_files=$(ls *requirements*.txt 2>/dev/null) || true
+    local constraint_files=$(ls *constraints*.txt 2>/dev/null) || true
+    local require=$(echo -n "$require_files" | sed -e 's/^/-r /')
+    local constraint=$(echo -n "$constraint_files" | sed -e 's/^/-c /')
+    local md5=wheelhouse/md5
+    if test "$require"; then
+        if ! test -f $md5 || ! md5sum -c $md5 > /dev/null; then
+            rm -rf wheelhouse
+        fi
+    fi
+    if test "$require" && ! test -d wheelhouse ; then
+        type python3 > /dev/null 2>&1 || continue
+        activate_virtualenv $top_srcdir || exit 1
+        populate_wheelhouse "wheel -w $wip_wheelhouse" $require $constraint || exit 1
+        mv $wip_wheelhouse wheelhouse
+        md5sum $require_files $constraint_files > $md5
+    fi
+
+    popd > /dev/null
 }
 
 # use pip cache if possible but do not store it outside of the source
