@@ -13,6 +13,7 @@ from orchestrator import OrchestratorError
 from ..exceptions import DashboardException, ViewCacheNoDataException
 from ..services.ceph_service import SendCommandError
 
+
 logger = logging.getLogger('exception')
 
 
@@ -50,6 +51,9 @@ def dashboard_exception_handler(handler, *args, **kwargs):
         cherrypy.response.headers['Content-Type'] = 'application/json'
         cherrypy.response.status = getattr(error, 'status', 400)
         return json.dumps(serialize_dashboard_exception(error)).encode('utf-8')
+    except TypeError as error:
+        logger.exception("Validation error")
+        raise cherrypy.HTTPError(400, str(error))
     except Exception as error:
         logger.exception('Internal Server Error')
         raise error

@@ -8,3 +8,5 @@ Routes
 -e ../../../python-common
 prettytable
 pyyaml
+typing-extensions; python_version < '3.8'
+typeguard
