@@ -19,6 +19,8 @@ export class MgrModuleDetailsComponent implements OnChanges {
     if (this.selection) {
       this.mgrModuleService.getConfig(this.selection.name).subscribe((resp: any) => {
         this.module_config = resp;
+        delete this.module_config.username;
+        delete this.module_config.password;
       });
     }
   }
