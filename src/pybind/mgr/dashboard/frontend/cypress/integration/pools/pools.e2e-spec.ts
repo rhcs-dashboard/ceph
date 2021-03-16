@@ -38,7 +38,7 @@ describe('Pools page', () => {
 
     it('should edit a pools placement group', () => {
       pools.exist(poolName, true);
-      pools.edit_pool_pg(poolName, 32);
+      pools.edit_pool_pg(poolName, 32, false);
     });
 
     it('should show updated configuration field values', () => {
