@@ -22,6 +22,11 @@ except ImportError:
 logger = logging.getLogger('rgw_client')
 
 
+class NoRgwDaemonsException(Exception):
+    def __init__(self):
+        super().__init__('No RGW service is running.')
+
+
 class NoCredentialsException(RequestException):
     def __init__(self):
         super(NoCredentialsException, self).__init__(
@@ -42,49 +47,11 @@ class RgwDaemon:
 def _get_daemons() -> Dict[str, RgwDaemon]:
     """
     Retrieve RGW daemon info from MGR.
-    Note, the service id of the RGW daemons may differ depending on the setup.
-    Example 1:
-    {
-        ...
-        'services': {
-            'rgw': {
-                'daemons': {
-                    'summary': '',
-                    '0': {
-                        ...
-                        'addr': '[2001:db8:85a3::8a2e:370:7334]:49774/1534999298',
-                        'metadata': {
-                            'frontend_config#0': 'civetweb port=7280',
-                        }
-                        ...
-                    }
-                }
-            }
-        }
-    }
-    Example 2:
-    {
-        ...
-        'services': {
-            'rgw': {
-                'daemons': {
-                    'summary': '',
-                    'rgw': {
-                        ...
-                        'addr': '192.168.178.3:49774/1534999298',
-                        'metadata': {
-                            'frontend_config#0': 'civetweb port=8000',
-                        }
-                        ...
-                    }
-                }
-            }
-        }
-    }
     """
     service_map = mgr.get('service_map')
     if not dict_contains_path(service_map, ['services', 'rgw', 'daemons']):
-        raise LookupError('No RGW found')
+        raise NoRgwDaemonsException
+
     daemons = {}
     daemon_map = service_map['services']['rgw']['daemons']
     for key in daemon_map.keys():
@@ -96,7 +63,7 @@ def _get_daemons() -> Dict[str, RgwDaemon]:
             logger.info('Found RGW daemon with configuration: host=%s, port=%d, ssl=%s',
                         daemon.host, daemon.port, str(daemon.ssl))
     if not daemons:
-        raise LookupError('No RGW daemon found')
+        raise NoRgwDaemonsException
 
     return daemons
 
@@ -261,15 +228,15 @@ class RgwClient(RestClient):
     def instance(userid: Optional[str] = None,
                  daemon_name: Optional[str] = None) -> 'RgwClient':
         # pylint: disable=too-many-branches
+
+        RgwClient._daemons = _get_daemons()
+
         # The API access key and secret key are mandatory for a minimal configuration.
         if not (Settings.RGW_API_ACCESS_KEY and Settings.RGW_API_SECRET_KEY):
             logger.warning('No credentials found, please consult the '
                            'documentation about how to enable RGW for the '
                            'dashboard.')
             raise NoCredentialsException()
-
-        if not RgwClient._daemons:
-            RgwClient._daemons = _get_daemons()
 
         if not daemon_name:
             # Select default daemon if configured in settings:
@@ -349,7 +316,12 @@ class RgwClient(RestClient):
                  secret_key,
                  daemon_name,
                  user_id=None):
-        daemon = RgwClient._daemons[daemon_name]
+        try:
+            daemon = RgwClient._daemons[daemon_name]
+        except KeyError as error:
+            raise DashboardException(msg='RGW Daemon not found: {}'.format(error),
+                                     http_status_code=404,
+                                     component='rgw')
         ssl_verify = Settings.RGW_API_SSL_VERIFY
         self.admin_path = Settings.RGW_API_ADMIN_RESOURCE
         self.service_url = build_url(host=daemon.host, port=daemon.port)
@@ -366,9 +338,13 @@ class RgwClient(RestClient):
             self.userid = self._get_user_id(self.admin_path) if self.got_keys_from_config \
                 else user_id
         except RequestException as error:
-            # Avoid dashboard GUI redirections caused by status code (403, ...):
-            http_status_code = 400 if 400 <= error.status_code < 500 else error.status_code
-            raise DashboardException(msg='Error connecting to Object Gateway.',
+            msg = 'Error connecting to Object Gateway'
+            http_status_code = error.status_code
+            # Avoid dashboard GUI redirections caused by status code (403, ...).
+            if 400 <= error.status_code < 500:
+                msg = '{}: {}'.format(msg, str(error))
+                http_status_code = 400
+            raise DashboardException(msg=msg,
                                      http_status_code=http_status_code,
                                      component='rgw')
         self.daemon = daemon
@@ -377,7 +353,7 @@ class RgwClient(RestClient):
                     daemon.name, daemon.host, daemon.port, daemon.ssl, ssl_verify)
 
     @RestClient.api_get('/', resp_structure='[0] > (ID & DisplayName)')
-    def is_service_online(self, request=None):
+    def is_service_online(self, request=None) -> bool:
         """
         Consider the service as online if the response contains the
         specified keys. Nothing more is checked here.
@@ -412,12 +388,12 @@ class RgwClient(RestClient):
 
     @RestClient.api_get('/{admin_path}/metadata/user?key={userid}',
                         resp_structure='data > system')
-    def _is_system_user(self, admin_path, userid, request=None):
+    def _is_system_user(self, admin_path, userid, request=None) -> bool:
         # pylint: disable=unused-argument
         response = request()
         return strtobool(response['data']['system'])
 
-    def is_system_user(self):
+    def is_system_user(self) -> bool:
         return self._is_system_user(self.admin_path, self.userid)
 
     @RestClient.api_get(

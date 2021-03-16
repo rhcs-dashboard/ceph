@@ -1,33 +1,19 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=too-many-public-methods
-import unittest
+from unittest import TestCase
+from unittest.mock import Mock, patch
 
-try:
-    from unittest.mock import MagicMock, patch
-except ImportError:
-    from mock import MagicMock, patch  # type: ignore
-
-from ..services.rgw_client import NoCredentialsException, RgwClient, \
-    RgwDaemon, _parse_frontend_config
+from ..services.rgw_client import NoCredentialsException, \
+    NoRgwDaemonsException, RgwClient, _parse_frontend_config
 from ..settings import Settings
-from . import KVStoreMockMixin  # pylint: disable=no-name-in-module
+from . import KVStoreMockMixin, RgwStub  # pylint: disable=no-name-in-module
 
 
-def _get_daemons_stub():
-    daemon = RgwDaemon()
-    daemon.host = 'rgw.1.myorg.com'
-    daemon.port = 8000
-    daemon.ssl = True
-    daemon.name = 'rgw.1.myorg.com'
-    daemon.zonegroup_name = 'zonegroup2-realm1'
-    return {daemon.name: daemon}
-
-
-@patch('dashboard.services.rgw_client._get_daemons', _get_daemons_stub)
-@patch('dashboard.services.rgw_client.RgwClient._get_user_id', MagicMock(
+@patch('dashboard.services.rgw_client.RgwClient._get_user_id', Mock(
     return_value='dummy_admin'))
-class RgwClientTest(unittest.TestCase, KVStoreMockMixin):
+class RgwClientTest(TestCase, KVStoreMockMixin):
     def setUp(self):
+        RgwStub.get_daemons()
         self.mock_kv_store()
         self.CONFIG_KEY_DICT.update({
             'RGW_API_ACCESS_KEY': 'klausmustermann',
@@ -43,6 +29,12 @@ class RgwClientTest(unittest.TestCase, KVStoreMockMixin):
         Settings.RGW_API_SSL_VERIFY = False
         instance = RgwClient.admin_instance()
         self.assertFalse(instance.session.verify)
+
+    def test_no_daemons(self):
+        RgwStub.get_mgr_no_services()
+        with self.assertRaises(NoRgwDaemonsException) as cm:
+            RgwClient.admin_instance()
+        self.assertIn('No RGW service is running.', str(cm.exception))
 
     def test_no_credentials(self):
         self.CONFIG_KEY_DICT.update({
@@ -83,7 +75,7 @@ class RgwClientTest(unittest.TestCase, KVStoreMockMixin):
 
         instance = RgwClient.admin_instance()
         expected_result = {
-            'zonegroup': 'zonegroup2-realm1',
+            'zonegroup': 'zonegroup1',
             'placement_targets': [
                 {
                     'name': 'default-placement',
@@ -111,7 +103,7 @@ class RgwClientTest(unittest.TestCase, KVStoreMockMixin):
         self.assertEqual([], instance.get_realms())
 
 
-class RgwClientHelperTest(unittest.TestCase):
+class RgwClientHelperTest(TestCase):
     def test_parse_frontend_config_1(self):
         self.assertEqual(_parse_frontend_config('beast port=8000'), (8000, False))
 
