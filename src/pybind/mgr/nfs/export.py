@@ -420,9 +420,9 @@ class ExportMgr:
                 ret, out, err = (0, '', '')
                 for export in j:
                     try:
-                        r, o, e = self._apply_export(cluster_id, export)
+                        r, o, e, ex = self._apply_export(cluster_id, export)
                     except Exception as ex:
-                        r, o, e = exception_handler(ex, f'Failed to apply export: {ex}')
+                        r, o, e, ex = exception_handler(ex, f'Failed to apply export: {ex}')
                         if r:
                             ret = r
                     if o:
@@ -431,7 +431,8 @@ class ExportMgr:
                         err += e + '\n'
                 return ret, out, err
             else:
-                return self._apply_export(cluster_id, j)
+                r, o, e, ex = self._apply_export(cluster_id, j)
+                return r, o, e
         except NotImplementedError:
             return 0, " Manual Restart of NFS PODS required for successful update of exports", ""
         except Exception as e:
@@ -623,7 +624,7 @@ class ExportMgr:
             self,
             cluster_id: str,
             new_export_dict: Dict,
-    ) -> Tuple[int, str, str]:
+    ) -> Tuple[int, str, str, Export]:
         for k in ['path', 'pseudo']:
             if k not in new_export_dict:
                 raise NFSInvalidOperation(f'Export missing required field {k}')
@@ -661,7 +662,7 @@ class ExportMgr:
         if not old_export:
             self._create_export_user(new_export)
             self._save_export(cluster_id, new_export)
-            return 0, f'Added export {new_export.pseudo}', ''
+            return 0, f'Added export {new_export.pseudo}', '', new_export
 
         if old_export.fsal.name != new_export.fsal.name:
             raise NFSInvalidOperation('FSAL change not allowed')
@@ -706,4 +707,4 @@ class ExportMgr:
         # TODO: detect whether the update is such that a reload is sufficient
         restart_nfs_service(self.mgr, new_export.cluster_id)
 
-        return 0, f"Updated export {new_export.pseudo}", ""
+        return 0, f"Updated export {new_export.pseudo}", "", new_export
