@@ -2,6 +2,7 @@
 
 import logging
 import os
+import json
 from functools import partial
 
 import cephfs
@@ -150,8 +151,11 @@ class NFSGaneshaExports(RESTController):
             'fsal': fsal,
             'clients': clients
         }
-        export = mgr.remote('nfs', 'export_apply', cluster_id, raw_ex)
-        return export
+        export_mgr = mgr.remote('nfs', 'fetch_nfs_export_obj')
+        ret, out, err = export_mgr.apply_export(cluster_id, json.dumps(raw_ex))
+        if ret == 0:
+            return export_mgr._get_export_dict(cluster_id, pseudo)
+        raise NFSException(f"Export creation failed {err}")
 
     @EndpointDoc("Get an NFS-Ganesha export",
                  parameters={
@@ -160,6 +164,9 @@ class NFSGaneshaExports(RESTController):
                  },
                  responses={200: EXPORT_SCHEMA})
     def get(self, cluster_id, export_id):
+        # Get export by pseudo path?
+        #export_mgr = mgr.remote('nfs', 'fetch_nfs_export_obj')
+        #return export_mgr._get_export_dict(cluster_id, pseudo)
         return mgr.remote('nfs', 'export_get', cluster_id, export_id)
 
     @NfsTask('edit', {'cluster_id': '{cluster_id}', 'export_id': '{export_id}'},
@@ -171,15 +178,6 @@ class NFSGaneshaExports(RESTController):
     def set(self, cluster_id, export_id, path, daemons, pseudo, tag, access_type,
             squash, security_label, protocols, transports, fsal, clients,
             reload_daemons=True):
-        export_id = int(export_id)
-
-        if not mgr.remote('nfs', 'export_get', export_id):
-            raise cherrypy.HTTPError(404)  # pragma: no cover - the handling is too obvious
-
-        if fsal['name'] not in mgr.remote('nfs', 'cluster_fsals'):
-            raise NFSException("Cannot make modifications to this export. "
-                               "FSAL '{}' cannot be managed by the dashboard."
-                               .format(fsal['name']))
 
         fsal.pop('user_id')  # mgr/nfs does not let you customize user_id
         # FIXME: what was this? 'tag': tag,
@@ -196,8 +194,12 @@ class NFSGaneshaExports(RESTController):
             'fsal': fsal,
             'clients': clients
         }
-        export = mgr.remote('nfs', 'export_apply', cluster_id, raw_ex)
-        return export
+
+        export_mgr = mgr.remote('nfs', 'fetch_nfs_export_obj')
+        ret, out, err = export_mgr.apply_export(cluster_id, json.dumps(raw_ex))
+        if ret == 0:
+            return export_mgr._get_export_dict(cluster_id, pseudo)
+        raise NFSException(f"Failed to update export: {err}")
 
     @NfsTask('delete', {'cluster_id': '{cluster_id}',
                         'export_id': '{export_id}'}, 2.0)
@@ -211,6 +213,9 @@ class NFSGaneshaExports(RESTController):
                                         True)
                  })
     def delete(self, cluster_id, export_id, reload_daemons=True):
+        # Delete by pseudo path
+        # export_mgr = mgr.remote('nfs', 'fetch_nfs_export_obj')
+        # export_mgr.delete_export(cluster_id, pseudo)
         export_id = int(export_id)
 
         export = mgr.remote('nfs', 'export_get', cluster_id, export_id)

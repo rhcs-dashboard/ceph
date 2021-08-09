@@ -131,6 +131,12 @@ class Module(orchestrator.OrchestratorClientMixin, MgrModule):
         """Reset NFS-Ganesha Config to default"""
         return self.nfs.reset_nfs_cluster_config(cluster_id=cluster_id)
 
+    def fetch_nfs_export_obj(self):
+        return self.export_mgr
+
+    def fetch_cluster_obj(self):
+        return self.nfs
+
     def is_active(self) -> bool:
         return True
 
@@ -158,9 +164,3 @@ class Module(orchestrator.OrchestratorClientMixin, MgrModule):
 
     def cluster_fsals(self) -> List[str]:
         return ['CEPH', 'RGW']
-
-    def export_apply(self, cluster_id: str, export: Dict[Any, Any]) -> Dict[Any, Any]:
-        ret, out, err, export = self.export_mgr._apply_export(cluster_id, export)
-        if ret:
-            return None
-        return export.to_dict()

@@ -402,6 +402,12 @@ class ExportMgr:
         except Exception as e:
             return exception_handler(e, f"Failed to list exports for {cluster_id}")
 
+    def _get_export_dict(self, cluster_id: str, pseudo_path: str) -> Optional[Dict[str, Any]]:
+        export = self._fetch_export(cluster_id, pseudo_path)
+        if export:
+            return export.to_dict()
+        log.warning(f"No {pseudo_path} export to show for {cluster_id}")
+
     @export_cluster_checker
     def get_export(
             self,
@@ -409,9 +415,9 @@ class ExportMgr:
             pseudo_path: str,
     ) -> Tuple[int, str, str]:
         try:
-            export = self._fetch_export(cluster_id, pseudo_path)
-            if export:
-                return 0, json.dumps(export.to_dict(), indent=2), ''
+            export_dict = self._get_export_dict(cluster_id, pseudo_path)
+            if export_dict:
+                return 0, json.dumps(export_dict, indent=2), ''
             log.warning("No %s export to show for %s", pseudo_path, cluster_id)
             return 0, '', ''
         except Exception as e:
@@ -448,9 +454,9 @@ class ExportMgr:
                 ret, out, err = (0, '', '')
                 for export in j:
                     try:
-                        r, o, e, ex = self._apply_export(cluster_id, export)
+                        r, o, e = self._apply_export(cluster_id, export)
                     except Exception as ex:
-                        r, o, e, ex = exception_handler(ex, f'Failed to apply export: {ex}')
+                        r, o, e = exception_handler(ex, f'Failed to apply export: {ex}')
                         if r:
                             ret = r
                     if o:
@@ -459,7 +465,7 @@ class ExportMgr:
                         err += e + '\n'
                 return ret, out, err
             else:
-                r, o, e, ex = self._apply_export(cluster_id, j)
+                r, o, e = self._apply_export(cluster_id, j)
                 return r, o, e
         except NotImplementedError:
             return 0, " Manual Restart of NFS PODS required for successful update of exports", ""
@@ -652,7 +658,7 @@ class ExportMgr:
             self,
             cluster_id: str,
             new_export_dict: Dict,
-    ) -> Tuple[int, str, str, Export]:
+    ) -> Tuple[int, str, str]:
         for k in ['path', 'pseudo']:
             if k not in new_export_dict:
                 raise NFSInvalidOperation(f'Export missing required field {k}')
@@ -690,7 +696,7 @@ class ExportMgr:
         if not old_export:
             self._create_export_user(new_export)
             self._save_export(cluster_id, new_export)
-            return 0, f'Added export {new_export.pseudo}', '', new_export
+            return 0, f'Added export {new_export.pseudo}', ''
 
         if old_export.fsal.name != new_export.fsal.name:
             raise NFSInvalidOperation('FSAL change not allowed')
@@ -735,4 +741,4 @@ class ExportMgr:
         # TODO: detect whether the update is such that a reload is sufficient
         restart_nfs_service(self.mgr, new_export.cluster_id)
 
-        return 0, f"Updated export {new_export.pseudo}", "", new_export
+        return 0, f"Updated export {new_export.pseudo}", ""
