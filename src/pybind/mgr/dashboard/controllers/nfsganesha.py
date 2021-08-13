@@ -32,7 +32,6 @@ EXPORT_SCHEMA = {
     'cluster_id': (str, 'Cluster identifier'),
     'daemons': ([str], 'List of NFS Ganesha daemons identifiers'),
     'pseudo': (str, 'Pseudo FS path'),
-    'tag': (str, 'NFSv3 export tag'),
     'access_type': (str, 'Export access type'),
     'squash': (str, 'Export squash policy'),
     'security_label': (str, 'Security label'),
@@ -58,7 +57,6 @@ CREATE_EXPORT_SCHEMA = {
     'cluster_id': (str, 'Cluster identifier'),
     'daemons': ([str], 'List of NFS Ganesha daemons identifiers'),
     'pseudo': (str, 'Pseudo FS path'),
-    'tag': (str, 'NFSv3 export tag'),
     'access_type': (str, 'Export access type'),
     'squash': (str, 'Export squash policy'),
     'security_label': (str, 'Security label'),
@@ -128,7 +126,7 @@ class NFSGaneshaExports(RESTController):
     @EndpointDoc("Creates a new NFS-Ganesha export",
                  parameters=CREATE_EXPORT_SCHEMA,
                  responses={201: EXPORT_SCHEMA})
-    def create(self, path, cluster_id, daemons, pseudo, tag, access_type,
+    def create(self, path, cluster_id, daemons, pseudo, access_type,
                squash, security_label, protocols, transports, fsal, clients,
                reload_daemons=True):
         if fsal['name'] not in mgr.remote('nfs', 'cluster_fsals'):
@@ -137,7 +135,6 @@ class NFSGaneshaExports(RESTController):
                                .format(fsal['name']))
 
         fsal.pop('user_id')  # mgr/nfs does not let you customize user_id
-        # FIXME: what was this?     'tag': tag,
         raw_ex = {
             'path': path,
             'pseudo': pseudo,
@@ -175,12 +172,11 @@ class NFSGaneshaExports(RESTController):
                  parameters=dict(export_id=(int, "Export ID"),
                                  **CREATE_EXPORT_SCHEMA),
                  responses={200: EXPORT_SCHEMA})
-    def set(self, cluster_id, export_id, path, daemons, pseudo, tag, access_type,
+    def set(self, cluster_id, export_id, path, daemons, pseudo, access_type,
             squash, security_label, protocols, transports, fsal, clients,
             reload_daemons=True):
 
         fsal.pop('user_id')  # mgr/nfs does not let you customize user_id
-        # FIXME: what was this? 'tag': tag,
         raw_ex = {
             'path': path,
             'pseudo': pseudo,
