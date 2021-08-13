@@ -7,6 +7,9 @@ from functools import partial
 
 import cephfs
 import cherrypy
+# Importing from nfs module throws Attribute Error
+# https://gist.github.com/varshar16/61ac26426bbe5f5f562ebb14bcd0f548
+#from nfs.export_utils import NFS_GANESHA_SUPPORTED_FSALS
 
 from .. import mgr
 from ..security import Scope
@@ -24,6 +27,8 @@ class NFSException(DashboardException):
     def __init__(self, msg):
         super(NFSException, self).__init__(component="nfs", msg=msg)
 
+# Remove this once attribute error is fixed
+NFS_GANESHA_SUPPORTED_FSALS = ['CEPH', 'RGW']
 
 # documentation helpers
 EXPORT_SCHEMA = {
@@ -129,11 +134,6 @@ class NFSGaneshaExports(RESTController):
     def create(self, path, cluster_id, daemons, pseudo, access_type,
                squash, security_label, protocols, transports, fsal, clients,
                reload_daemons=True):
-        if fsal['name'] not in mgr.remote('nfs', 'cluster_fsals'):
-            raise NFSException("Cannot create this export. "
-                               "FSAL '{}' cannot be managed by the dashboard."
-                               .format(fsal['name']))
-
         fsal.pop('user_id')  # mgr/nfs does not let you customize user_id
         raw_ex = {
             'path': path,
@@ -248,7 +248,7 @@ class NFSGaneshaUi(BaseController):
     @Endpoint('GET', '/fsals')
     @ReadPermission
     def fsals(self):
-        return mgr.remote('nfs', 'cluster_fsals')
+        return NFS_GANESHA_SUPPORTED_FSALS
 
     @Endpoint('GET', '/lsdir')
     @ReadPermission

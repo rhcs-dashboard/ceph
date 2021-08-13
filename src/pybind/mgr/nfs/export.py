@@ -9,7 +9,8 @@ from rados import TimedOut, ObjectNotFound
 
 from mgr_module import NFS_POOL_NAME as POOL_NAME
 
-from .export_utils import GaneshaConfParser, Export, RawBlock, CephFSFSAL, RGWFSAL
+from .export_utils import GaneshaConfParser, Export, RawBlock, CephFSFSAL, RGWFSAL, \
+    NFS_GANESHA_SUPPORTED_FSALS
 from .exception import NFSException, NFSInvalidOperation, FSNotFound, \
     ClusterNotFound
 from .utils import available_clusters, check_fs, restart_nfs_service
@@ -552,13 +553,13 @@ class ExportMgr:
 
         fsal = ex_dict.get("fsal", {})
         fsal_type = fsal.get("name")
-        if fsal_type == 'RGW':
+        if fsal_type == NFS_GANESHA_SUPPORTED_FSALS[1]:
             if '/' in path:
                 raise NFSInvalidOperation('"/" is not allowed in path (bucket name)')
             uid = f'nfs.{cluster_id}.{path}'
             if "user_id" in fsal and fsal["user_id"] != uid:
                 raise NFSInvalidOperation(f"export FSAL user_id must be '{uid}'")
-        elif fsal_type == 'CEPH':
+        elif fsal_type == NFS_GANESHA_SUPPORTED_FSALS[0]:
             fs_name = fsal.get("fs_name")
             if not fs_name:
                 raise NFSInvalidOperation("export FSAL must specify fs_name")
@@ -569,7 +570,8 @@ class ExportMgr:
             if "user_id" in fsal and fsal["user_id"] != user_id:
                 raise NFSInvalidOperation(f"export FSAL user_id must be '{user_id}'")
         else:
-            raise NFSInvalidOperation("export must specify FSAL name of 'CEPH' or 'RGW'")
+            raise NFSInvalidOperation(f"NFS Ganesha supported FSALs are {NFS_GANESHA_SUPPORTED_FSALS}."
+                                       "Export must specify any one of it.")
 
         ex_dict["fsal"] = fsal
         ex_dict["cluster_id"] = cluster_id
@@ -599,7 +601,7 @@ class ExportMgr:
                     "access_type": access_type,
                     "squash": squash,
                     "fsal": {
-                        "name": "CEPH",
+                        "name": NFS_GANESHA_SUPPORTED_FSALS[0],
                         "fs_name": fs_name,
                     },
                     "clients": clients,
@@ -637,7 +639,7 @@ class ExportMgr:
                     "path": bucket,
                     "access_type": access_type,
                     "squash": squash,
-                    "fsal": {"name": "RGW"},
+                    "fsal": {"name": NFS_GANESHA_SUPPORTED_FSALS[1]},
                     "clients": clients,
                 }
             )
@@ -704,7 +706,7 @@ class ExportMgr:
             log.debug('export %s pseudo %s -> %s',
                       new_export.export_id, old_export.pseudo, new_export.pseudo)
 
-        if old_export.fsal.name == 'CEPH':
+        if old_export.fsal.name == NFS_GANESHA_SUPPORTED_FSALS[0]:
             old_fsal = cast(CephFSFSAL, old_export.fsal)
             new_fsal = cast(CephFSFSAL, new_export.fsal)
             if old_fsal.user_id != new_fsal.user_id:
@@ -724,7 +726,7 @@ class ExportMgr:
                 new_fsal.cephx_key = old_fsal.cephx_key
             else:
                 new_fsal.cephx_key = old_fsal.cephx_key
-        if old_export.fsal.name == 'RGW':
+        if old_export.fsal.name == NFS_GANESHA_SUPPORTED_FSALS[1]:
             old_rgw_fsal = cast(RGWFSAL, old_export.fsal)
             new_rgw_fsal = cast(RGWFSAL, new_export.fsal)
             if old_rgw_fsal.user_id != new_rgw_fsal.user_id:

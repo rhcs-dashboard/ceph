@@ -161,6 +161,3 @@ class Module(orchestrator.OrchestratorClientMixin, MgrModule):
                 'daemon_conf': None,
             } for cluster_id in available_clusters()
         ]
-
-    def cluster_fsals(self) -> List[str]:
-        return ['CEPH', 'RGW']
