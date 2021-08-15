@@ -130,6 +130,14 @@ class NFSGaneshaExports(RESTController):
     @EndpointDoc("List all NFS-Ganesha exports",
                  responses={200: [EXPORT_SCHEMA]})
     def list(self):
+        '''
+        list exports based on cluster_id ?
+        export_mgr = mgr.remote('nfs', 'fetch_nfs_export_obj')
+        ret, out, err = export_mgr.list_exports(cluster_id=cluster_id, detailed=True)
+        if ret == 0:
+            return json.loads(out)
+        raise NFSException(f"Failed to list exports: {err}")
+        '''
         return mgr.remote('nfs', 'export_ls')
 
     @NfsTask('create', {'path': '{path}', 'fsal': '{fsal.name}',
