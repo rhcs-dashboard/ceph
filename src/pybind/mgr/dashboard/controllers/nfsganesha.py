@@ -107,14 +107,19 @@ class NFSGanesha(RESTController):
     @Endpoint()
     @ReadPermission
     def status(self):
-        status = {'available': True, 'message': None}
+        '''
+        FIXME: update this to check if any nfs cluster is available. Otherwise this endpoint can be safely removed too.
+        As it was introduced to check dashboard pool and namespace configuration.
         try:
-            mgr.remote('nfs', 'is_active')
+            cluster_ls = available_clusters(mgr)
+            if not cluster_ls:
+                raise NFSException('Please deploy a cluster using `nfs cluster create ... or orch apply nfs ..')
         except (NameError, ImportError) as e:
             status['message'] = str(e)  # type: ignore
             status['available'] = False
-
         return status
+        '''
+        return {'available': True, 'message': None}
 
 
 @APIRouter('/nfs-ganesha/export', Scope.NFS_GANESHA)

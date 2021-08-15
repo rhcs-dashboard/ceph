@@ -137,9 +137,6 @@ class Module(orchestrator.OrchestratorClientMixin, MgrModule):
     def fetch_cluster_obj(self):
         return self.nfs
 
-    def is_active(self) -> bool:
-        return True
-
     def export_ls(self) -> List[Dict[Any, Any]]:
         return self.export_mgr.list_all_exports()
 
