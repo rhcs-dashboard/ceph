@@ -175,9 +175,15 @@ class NFSGaneshaExports(RESTController):
                  },
                  responses={200: EXPORT_SCHEMA})
     def get(self, cluster_id, export_id):
-        # Get export by pseudo path?
-        #export_mgr = mgr.remote('nfs', 'fetch_nfs_export_obj')
-        #return export_mgr._get_export_dict(cluster_id, pseudo)
+        '''
+         Get export by pseudo path?
+         export_mgr = mgr.remote('nfs', 'fetch_nfs_export_obj')
+        return export_mgr._get_export_dict(cluster_id, pseudo)
+
+         Get export by id
+         export_mgr = mgr.remote('nfs', 'fetch_nfs_export_obj')
+         return export_mgr.get_export_by_id(cluster_id, export_id)
+        '''
         return mgr.remote('nfs', 'export_get', cluster_id, export_id)
 
     @NfsTask('edit', {'cluster_id': '{cluster_id}', 'export_id': '{export_id}'},
@@ -223,9 +229,18 @@ class NFSGaneshaExports(RESTController):
                                         True)
                  })
     def delete(self, cluster_id, export_id, reload_daemons=True):
-        # Delete by pseudo path
-        # export_mgr = mgr.remote('nfs', 'fetch_nfs_export_obj')
-        # export_mgr.delete_export(cluster_id, pseudo)
+        '''
+         Delete by pseudo path
+         export_mgr = mgr.remote('nfs', 'fetch_nfs_export_obj')
+         export_mgr.delete_export(cluster_id, pseudo)
+
+         if deleting by export id
+         export_mgr = mgr.remote('nfs', 'fetch_nfs_export_obj')
+         export = export_mgr.get_export_by_id(cluster_id, export_id)
+         ret, out, err = export_mgr.delete_export(cluster_id=cluster_id, pseudo_path=export['pseudo'])
+         if ret != 0:
+            raise NFSException(err)
+        '''
         export_id = int(export_id)
 
         export = mgr.remote('nfs', 'export_get', cluster_id, export_id)
