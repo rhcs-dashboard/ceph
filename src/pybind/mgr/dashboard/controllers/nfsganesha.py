@@ -10,6 +10,7 @@ import cherrypy
 # Importing from nfs module throws Attribute Error
 # https://gist.github.com/varshar16/61ac26426bbe5f5f562ebb14bcd0f548
 #from nfs.export_utils import NFS_GANESHA_SUPPORTED_FSALS
+#from nfs.utils import available_clusters
 
 from .. import mgr
 from ..security import Scope
@@ -302,4 +303,18 @@ class NFSGaneshaUi(BaseController):
     @Endpoint('GET', '/clusters')
     @ReadPermission
     def clusters(self):
+        '''
+        Remove this remote call instead directly use available_cluster() method. It returns list of cluster names: ['vstart']
+        The current dashboard api needs to changed from following to simply list of strings
+              [
+                {
+                     'pool': 'nfs-ganesha',
+                     'namespace': cluster_id,
+                     'type': 'orchestrator',
+                     'daemon_conf': None
+                 } for cluster_id in available_clusters()
+               ]
+        As pool, namespace, cluster type and daemon_conf are not required for listing cluster by mgr/nfs module
+        return available_cluster(mgr)
+        '''
         return mgr.remote('nfs', 'cluster_ls')
