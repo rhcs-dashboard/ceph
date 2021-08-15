@@ -221,6 +221,7 @@ class NFSGaneshaExports(RESTController):
         mgr.remote('nfs', 'export_rm', cluster_id, export['pseudo'])
 
 
+# FIXME: remove this; dashboard should only care about clusters.
 @APIRouter('/nfs-ganesha/daemon', Scope.NFS_GANESHA)
 @APIDoc(group="NFS-Ganesha")
 class NFSGaneshaService(RESTController):
@@ -234,7 +235,6 @@ class NFSGaneshaService(RESTController):
                      'desc': (str, 'Status description', True)
                  }]})
     def list(self):
-        # FIXME: remove this; dashboard should only care about clusters.
         return mgr.remote('nfs', 'daemon_ls')
 
 
