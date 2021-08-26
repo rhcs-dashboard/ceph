@@ -7,10 +7,9 @@ from os.path import normpath
 
 from rados import TimedOut, ObjectNotFound
 
-from mgr_module import NFS_POOL_NAME as POOL_NAME
+from mgr_module import NFS_POOL_NAME as POOL_NAME, NFS_GANESHA_SUPPORTED_FSALS
 
-from .export_utils import GaneshaConfParser, Export, RawBlock, CephFSFSAL, RGWFSAL, \
-    NFS_GANESHA_SUPPORTED_FSALS
+from .export_utils import GaneshaConfParser, Export, RawBlock, CephFSFSAL, RGWFSAL
 from .exception import NFSException, NFSInvalidOperation, FSNotFound, \
     ClusterNotFound
 from .utils import available_clusters, check_fs, restart_nfs_service

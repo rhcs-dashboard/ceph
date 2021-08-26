@@ -7,10 +7,7 @@ from functools import partial
 
 import cephfs
 import cherrypy
-# Importing from nfs module throws Attribute Error
-# https://gist.github.com/varshar16/61ac26426bbe5f5f562ebb14bcd0f548
-#from nfs.export_utils import NFS_GANESHA_SUPPORTED_FSALS
-#from nfs.utils import available_clusters
+from mgr_module import NFS_GANESHA_SUPPORTED_FSALS
 
 from .. import mgr
 from ..security import Scope
@@ -28,8 +25,6 @@ class NFSException(DashboardException):
     def __init__(self, msg):
         super(NFSException, self).__init__(component="nfs", msg=msg)
 
-# Remove this once attribute error is fixed
-NFS_GANESHA_SUPPORTED_FSALS = ['CEPH', 'RGW']
 
 # documentation helpers
 EXPORT_SCHEMA = {
