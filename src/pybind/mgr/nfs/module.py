@@ -146,13 +146,5 @@ class Module(orchestrator.OrchestratorClientMixin, MgrModule):
     def daemon_ls(self) -> List[Dict[Any, Any]]:
         return self.nfs.list_daemons()
 
-    # Remove this method after fixing attribute error
     def cluster_ls(self) -> List[str]:
-        return [
-            {
-                'pool': NFS_POOL_NAME,
-                'namespace': cluster_id,
-                'type': 'orchestrator',
-                'daemon_conf': None,
-            } for cluster_id in available_clusters()
-        ]
+        return available_clusters(self)

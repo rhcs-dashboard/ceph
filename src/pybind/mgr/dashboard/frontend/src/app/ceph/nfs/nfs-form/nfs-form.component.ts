@@ -46,7 +46,7 @@ export class NfsFormComponent extends CdForm implements OnInit {
   isNewBucket = false;
   isDefaultCluster = false;
 
-  allClusters: { cluster_id: string; cluster_type: string }[] = null;
+  allClusters: { cluster_id: string }[] = null;
   allDaemons = {};
   icons = Icons;
 
@@ -101,7 +101,7 @@ export class NfsFormComponent extends CdForm implements OnInit {
 
   ngOnInit() {
     const promises: Observable<any>[] = [
-      this.nfsService.daemon(),
+      this.nfsService.listClusters(),
       this.nfsService.fsals(),
       this.nfsService.clients(),
       this.nfsService.filesystems()
@@ -129,7 +129,7 @@ export class NfsFormComponent extends CdForm implements OnInit {
 
   getData(promises: Observable<any>[]) {
     forkJoin(promises).subscribe((data: any[]) => {
-      this.resolveDaemons(data[0]);
+      this.resolveClusters(data[0]);
       this.resolveFsals(data[1]);
       this.resolveClients(data[2]);
       this.resolveFilesystems(data[3]);
@@ -261,31 +261,10 @@ export class NfsFormComponent extends CdForm implements OnInit {
     this.clients = res.clients;
   }
 
-  resolveDaemons(daemons: Record<string, any>) {
-    daemons = _.sortBy(daemons, ['daemon_id']);
-    const clusters = _.groupBy(daemons, 'cluster_id');
-
+  resolveClusters(clusters: string[]) {
     this.allClusters = [];
-    _.forIn(clusters, (cluster, cluster_id) => {
-      this.allClusters.push({ cluster_id: cluster_id, cluster_type: cluster[0].cluster_type });
-      this.allDaemons[cluster_id] = [];
-    });
-
-    _.forEach(daemons, (daemon) => {
-      this.allDaemons[daemon.cluster_id].push(daemon.daemon_id);
-    });
-
-    if (this.isEdit) {
-      this.clusterType = _.find(this.allClusters, { cluster_id: this.cluster_id })?.cluster_type;
-    }
-
-    const hasOneCluster = _.isArray(this.allClusters) && this.allClusters.length === 1;
-    this.isDefaultCluster = hasOneCluster && this.allClusters[0].cluster_id === '_default_';
-    if (hasOneCluster) {
-      this.nfsForm.patchValue({
-        cluster_id: this.allClusters[0].cluster_id
-      });
-      this.onClusterChange();
+    for (let cluster of clusters) {
+      this.allClusters.push({ cluster_id: cluster });
     }
   }
 
@@ -470,21 +449,6 @@ export class NfsFormComponent extends CdForm implements OnInit {
     }
 
     return accessType;
-  }
-
-  onClusterChange() {
-    const cluster_id = this.nfsForm.getValue('cluster_id');
-    this.clusterType = _.find(this.allClusters, { cluster_id: cluster_id })?.cluster_type;
-    if (this.clusterType === NFSClusterType.user) {
-      this.daemonsSelections = _.map(
-        this.allDaemons[cluster_id],
-        (daemon) => new SelectOption(false, daemon, '')
-      );
-      this.daemonsSelections = [...this.daemonsSelections];
-    } else {
-      this.daemonsSelections = [];
-    }
-    this.nfsForm.patchValue({ daemons: [] });
   }
 
   removeDaemon(index: number, daemon: string) {

@@ -102,20 +102,24 @@ class NFSGanesha(RESTController):
     @Endpoint()
     @ReadPermission
     def status(self):
-        '''
-        FIXME: update this to check if any nfs cluster is available. Otherwise this endpoint can be safely removed too.
-        As it was introduced to check dashboard pool and namespace configuration.
+        status = {'available': True, 'message': None}
         try:
-            cluster_ls = available_clusters(mgr)
-            if not cluster_ls:
-                raise NFSException('Please deploy a cluster using `nfs cluster create ... or orch apply nfs ..')
-        except (NameError, ImportError) as e:
-            status['message'] = str(e)  # type: ignore
+            mgr.remote('nfs', 'cluster_ls')
+        except ImportError as error:
+            logger.exception(error)
             status['available'] = False
-        return status
-        '''
-        return {'available': True, 'message': None}
+            status['message'] = str(error)
 
+        return status
+
+
+@APIRouter('/nfs-ganesha/cluster', Scope.NFS_GANESHA)
+@APIDoc("NFS-Ganesha Cluster Management API", "NFS-Ganesha")
+class NFSGaneshaCluster(RESTController):
+    @RESTController.MethodMap(version='1.1')
+    @ReadPermission
+    def list(self):
+        return mgr.remote('nfs', 'cluster_ls')
 
 @APIRouter('/nfs-ganesha/export', Scope.NFS_GANESHA)
 @APIDoc(group="NFS-Ganesha")
@@ -323,21 +327,3 @@ class NFSGaneshaUi(BaseController):
                 NoRgwDaemonsException):
             return []
 
-    @Endpoint('GET', '/clusters')
-    @ReadPermission
-    def clusters(self):
-        '''
-        Remove this remote call instead directly use available_cluster() method. It returns list of cluster names: ['vstart']
-        The current dashboard api needs to changed from following to simply list of strings
-              [
-                {
-                     'pool': 'nfs-ganesha',
-                     'namespace': cluster_id,
-                     'type': 'orchestrator',
-                     'daemon_conf': None
-                 } for cluster_id in available_clusters()
-               ]
-        As pool, namespace, cluster type and daemon_conf are not required for listing cluster by mgr/nfs module
-        return available_cluster(mgr)
-        '''
-        return mgr.remote('nfs', 'cluster_ls')

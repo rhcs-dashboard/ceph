@@ -68,6 +68,12 @@ export class NfsService {
     });
   }
 
+  listClusters() {
+    return this.http.get(`${this.apiPath}/cluster`, {
+      headers: { Accept: 'application/vnd.ceph.api.v1.1+json' }
+    });
+  }
+
   lsDir(fs_name: string, root_dir: string) {
     return this.http.get(`${this.uiApiPath}/lsdir/${fs_name}?root_dir=${root_dir}`);
   }
