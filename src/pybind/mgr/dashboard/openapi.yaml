@@ -5039,37 +5039,14 @@ paths:
       summary: Get Monitor Details
       tags:
       - Monitor
-  /api/nfs-ganesha/daemon:
+  /api/nfs-ganesha/cluster:
     get:
       parameters: []
       responses:
         '200':
           content:
             application/vnd.ceph.api.v1.0+json:
-              schema:
-                items:
-                  properties:
-                    cluster_id:
-                      description: Cluster identifier
-                      type: string
-                    cluster_type:
-                      description: Cluster type
-                      type: string
-                    daemon_id:
-                      description: Daemon identifier
-                      type: string
-                    desc:
-                      description: Status description
-                      type: string
-                    status:
-                      description: Status of daemon
-                      type: integer
-                  type: object
-                required:
-                - daemon_id
-                - cluster_id
-                - cluster_type
-                type: array
+              type: object
           description: OK
         '400':
           description: Operation exception. Please check the response body for details.
@@ -5082,7 +5059,6 @@ paths:
             trace.
       security:
       - jwt: []
-      summary: List NFS-Ganesha daemons information
       tags:
       - NFS-Ganesha
   /api/nfs-ganesha/export:
@@ -5122,19 +5098,14 @@ paths:
                     cluster_id:
                       description: Cluster identifier
                       type: string
-                    daemons:
-                      description: List of NFS Ganesha daemons identifiers
-                      items:
-                        type: string
-                      type: array
                     export_id:
                       description: Export ID
                       type: integer
                     fsal:
                       description: FSAL configuration
                       properties:
-                        filesystem:
-                          description: CephFS filesystem ID
+                        fs_name:
+                          description: CephFS filesystem name
                           type: string
                         name:
                           description: name of FSAL
@@ -5144,9 +5115,6 @@ paths:
                           type: string
                         sec_label_xattr:
                           description: Name of xattr for security label
-                          type: string
-                        user_id:
-                          description: CephX user id
                           type: string
                       required:
                       - name
@@ -5168,9 +5136,6 @@ paths:
                     squash:
                       description: Export squash policy
                       type: string
-                    tag:
-                      description: NFSv3 export tag
-                      type: string
                     transports:
                       description: List of transport types
                       items:
@@ -5181,9 +5146,7 @@ paths:
                 - export_id
                 - path
                 - cluster_id
-                - daemons
                 - pseudo
-                - tag
                 - access_type
                 - squash
                 - security_label
@@ -5241,16 +5204,11 @@ paths:
                 cluster_id:
                   description: Cluster identifier
                   type: string
-                daemons:
-                  description: List of NFS Ganesha daemons identifiers
-                  items:
-                    type: string
-                  type: array
                 fsal:
                   description: FSAL configuration
                   properties:
-                    filesystem:
-                      description: CephFS filesystem ID
+                    fs_name:
+                      description: CephFS filesystem name
                       type: string
                     name:
                       description: name of FSAL
@@ -5260,9 +5218,6 @@ paths:
                       type: string
                     sec_label_xattr:
                       description: Name of xattr for security label
-                      type: string
-                    user_id:
-                      description: CephX user id
                       type: string
                   required:
                   - name
@@ -5278,18 +5233,11 @@ paths:
                 pseudo:
                   description: Pseudo FS path
                   type: string
-                reload_daemons:
-                  default: true
-                  description: Trigger reload of NFS-Ganesha daemons configuration
-                  type: boolean
                 security_label:
                   description: Security label
                   type: string
                 squash:
                   description: Export squash policy
-                  type: string
-                tag:
-                  description: NFSv3 export tag
                   type: string
                 transports:
                   description: List of transport types
@@ -5299,9 +5247,7 @@ paths:
               required:
               - path
               - cluster_id
-              - daemons
               - pseudo
-              - tag
               - access_type
               - squash
               - security_label
@@ -5343,19 +5289,14 @@ paths:
                   cluster_id:
                     description: Cluster identifier
                     type: string
-                  daemons:
-                    description: List of NFS Ganesha daemons identifiers
-                    items:
-                      type: string
-                    type: array
                   export_id:
                     description: Export ID
                     type: integer
                   fsal:
                     description: FSAL configuration
                     properties:
-                      filesystem:
-                        description: CephFS filesystem ID
+                      fs_name:
+                        description: CephFS filesystem name
                         type: string
                       name:
                         description: name of FSAL
@@ -5365,9 +5306,6 @@ paths:
                         type: string
                       sec_label_xattr:
                         description: Name of xattr for security label
-                        type: string
-                      user_id:
-                        description: CephX user id
                         type: string
                     required:
                     - name
@@ -5389,9 +5327,6 @@ paths:
                   squash:
                     description: Export squash policy
                     type: string
-                  tag:
-                    description: NFSv3 export tag
-                    type: string
                   transports:
                     description: List of transport types
                     items:
@@ -5401,9 +5336,7 @@ paths:
                 - export_id
                 - path
                 - cluster_id
-                - daemons
                 - pseudo
-                - tag
                 - access_type
                 - squash
                 - security_label
@@ -5447,12 +5380,6 @@ paths:
         required: true
         schema:
           type: integer
-      - default: true
-        description: Trigger reload of NFS-Ganesha daemons configuration
-        in: query
-        name: reload_daemons
-        schema:
-          type: boolean
       responses:
         '202':
           content:
@@ -5491,7 +5418,7 @@ paths:
         name: export_id
         required: true
         schema:
-          type: integer
+          type: string
       responses:
         '200':
           content:
@@ -5525,19 +5452,14 @@ paths:
                   cluster_id:
                     description: Cluster identifier
                     type: string
-                  daemons:
-                    description: List of NFS Ganesha daemons identifiers
-                    items:
-                      type: string
-                    type: array
                   export_id:
                     description: Export ID
                     type: integer
                   fsal:
                     description: FSAL configuration
                     properties:
-                      filesystem:
-                        description: CephFS filesystem ID
+                      fs_name:
+                        description: CephFS filesystem name
                         type: string
                       name:
                         description: name of FSAL
@@ -5547,9 +5469,6 @@ paths:
                         type: string
                       sec_label_xattr:
                         description: Name of xattr for security label
-                        type: string
-                      user_id:
-                        description: CephX user id
                         type: string
                     required:
                     - name
@@ -5571,9 +5490,6 @@ paths:
                   squash:
                     description: Export squash policy
                     type: string
-                  tag:
-                    description: NFSv3 export tag
-                    type: string
                   transports:
                     description: List of transport types
                     items:
@@ -5583,9 +5499,7 @@ paths:
                 - export_id
                 - path
                 - cluster_id
-                - daemons
                 - pseudo
-                - tag
                 - access_type
                 - squash
                 - security_label
@@ -5652,16 +5566,11 @@ paths:
                     - squash
                     type: object
                   type: array
-                daemons:
-                  description: List of NFS Ganesha daemons identifiers
-                  items:
-                    type: string
-                  type: array
                 fsal:
                   description: FSAL configuration
                   properties:
-                    filesystem:
-                      description: CephFS filesystem ID
+                    fs_name:
+                      description: CephFS filesystem name
                       type: string
                     name:
                       description: name of FSAL
@@ -5671,9 +5580,6 @@ paths:
                       type: string
                     sec_label_xattr:
                       description: Name of xattr for security label
-                      type: string
-                    user_id:
-                      description: CephX user id
                       type: string
                   required:
                   - name
@@ -5689,18 +5595,11 @@ paths:
                 pseudo:
                   description: Pseudo FS path
                   type: string
-                reload_daemons:
-                  default: true
-                  description: Trigger reload of NFS-Ganesha daemons configuration
-                  type: boolean
                 security_label:
                   description: Security label
                   type: string
                 squash:
                   description: Export squash policy
-                  type: string
-                tag:
-                  description: NFSv3 export tag
                   type: string
                 transports:
                   description: List of transport types
@@ -5709,9 +5608,7 @@ paths:
                   type: array
               required:
               - path
-              - daemons
               - pseudo
-              - tag
               - access_type
               - squash
               - security_label
@@ -5753,19 +5650,14 @@ paths:
                   cluster_id:
                     description: Cluster identifier
                     type: string
-                  daemons:
-                    description: List of NFS Ganesha daemons identifiers
-                    items:
-                      type: string
-                    type: array
                   export_id:
                     description: Export ID
                     type: integer
                   fsal:
                     description: FSAL configuration
                     properties:
-                      filesystem:
-                        description: CephFS filesystem ID
+                      fs_name:
+                        description: CephFS filesystem name
                         type: string
                       name:
                         description: name of FSAL
@@ -5775,9 +5667,6 @@ paths:
                         type: string
                       sec_label_xattr:
                         description: Name of xattr for security label
-                        type: string
-                      user_id:
-                        description: CephX user id
                         type: string
                     required:
                     - name
@@ -5799,9 +5688,6 @@ paths:
                   squash:
                     description: Export squash policy
                     type: string
-                  tag:
-                    description: NFSv3 export tag
-                    type: string
                   transports:
                     description: List of transport types
                     items:
@@ -5811,9 +5697,7 @@ paths:
                 - export_id
                 - path
                 - cluster_id
-                - daemons
                 - pseudo
-                - tag
                 - access_type
                 - squash
                 - security_label
@@ -10487,7 +10371,7 @@ tags:
   name: MonPerfCounter
 - description: Get Monitor Details
   name: Monitor
-- description: NFS-Ganesha Management API
+- description: NFS-Ganesha Cluster Management API
   name: NFS-Ganesha
 - description: OSD management API
   name: OSD

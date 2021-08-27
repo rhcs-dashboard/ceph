@@ -18,14 +18,6 @@ export class NfsService {
       help: $localize`Allows only operations that do not modify the server`
     },
     {
-      value: 'MDONLY',
-      help: $localize`Does not allow read or write operations, but allows any other operation`
-    },
-    {
-      value: 'MDONLY_RO',
-      help: $localize`Does not allow read, write, or any operation that modifies file attributes or directory content`
-    },
-    {
       value: 'NONE',
       help: $localize`Allows no access at all`
     }
@@ -58,7 +50,7 @@ export class NfsService {
     return this.http.post(`${this.apiPath}/export`, nfs, { observe: 'response' });
   }
 
-  update(clusterId: string, id: string, nfs: any) {
+  update(clusterId: string, id: number, nfs: any) {
     return this.http.put(`${this.apiPath}/export/${clusterId}/${id}`, nfs, { observe: 'response' });
   }
 
@@ -69,9 +61,7 @@ export class NfsService {
   }
 
   listClusters() {
-    return this.http.get(`${this.apiPath}/cluster`, {
-      headers: { Accept: 'application/vnd.ceph.api.v1.1+json' }
-    });
+    return this.http.get(`${this.apiPath}/cluster`);
   }
 
   lsDir(fs_name: string, root_dir: string) {
@@ -82,31 +72,11 @@ export class NfsService {
     return this.http.get(`${this.uiApiPath}/rgw/buckets?user_id=${user_id}`);
   }
 
-  clients() {
-    return this.http.get(`${this.uiApiPath}/cephx/clients`);
-  }
-
   fsals() {
     return this.http.get(`${this.uiApiPath}/fsals`);
   }
 
   filesystems() {
     return this.http.get(`${this.uiApiPath}/cephfs/filesystems`);
-  }
-
-  daemon() {
-    return this.http.get(`${this.apiPath}/daemon`);
-  }
-
-  start(host_name: string) {
-    return this.http.put(`${this.apiPath}/service/${host_name}/start`, null, {
-      observe: 'response'
-    });
-  }
-
-  stop(host_name: string) {
-    return this.http.put(`${this.apiPath}/service/${host_name}/stop`, null, {
-      observe: 'response'
-    });
   }
 }

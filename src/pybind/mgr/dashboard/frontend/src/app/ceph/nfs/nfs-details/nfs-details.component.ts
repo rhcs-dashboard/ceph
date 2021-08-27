@@ -45,7 +45,6 @@ export class NfsDetailsComponent implements OnChanges {
 
       this.data = {};
       this.data[$localize`Cluster`] = this.selectedItem.cluster_id;
-      this.data[$localize`Daemons`] = this.selectedItem.daemons;
       this.data[$localize`NFS Protocol`] = this.selectedItem.protocols.map(
         (protocol: string) => 'NFSv' + protocol
       );
