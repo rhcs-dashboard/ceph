@@ -2137,6 +2137,11 @@ Binding libraries
  
  - `twonote/radosgw-admin4j`_
 
+``PHP``
+
+ - `lbausch/php-ceph-radosgw-admin`_
+ - `myENA/php-rgw-api`_
+
 ``Python``
 
  - `UMIACS/rgwadmin`_
@@ -2151,6 +2156,8 @@ Binding libraries
 .. _QuentinPerez/go-radosgw: https://github.com/QuentinPerez/go-radosgw
 .. _ceph/go-ceph: https://github.com/ceph/go-ceph/
 .. _twonote/radosgw-admin4j: https://github.com/twonote/radosgw-admin4j
+.. _lbausch/php-ceph-radosgw-admin: https://github.com/lbausch/php-ceph-radosgw-admin
+.. _myENA/php-rgw-api: https://github.com/myENA/php-rgw-api
 .. _UMIACS/rgwadmin: https://github.com/UMIACS/rgwadmin
 .. _valerytschopp/python-radosgw-admin: https://github.com/valerytschopp/python-radosgw-admin
 
