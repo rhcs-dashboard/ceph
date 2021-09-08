@@ -2134,7 +2134,7 @@ Binding libraries
  - `ceph/go-ceph`_
 
 ``Java``
- 
+
  - `twonote/radosgw-admin4j`_
 
 ``PHP``
@@ -2160,4 +2160,3 @@ Binding libraries
 .. _myENA/php-rgw-api: https://github.com/myENA/php-rgw-api
 .. _UMIACS/rgwadmin: https://github.com/UMIACS/rgwadmin
 .. _valerytschopp/python-radosgw-admin: https://github.com/valerytschopp/python-radosgw-admin
-
