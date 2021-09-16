@@ -13,8 +13,6 @@ from .. import mgr
 from ..security import Scope
 from ..services.cephfs import CephFS
 from ..services.exception import DashboardException, serialize_dashboard_exception
-from ..services.rgw_client import NoCredentialsException, \
-    NoRgwDaemonsException, RequestException, RgwClient
 from . import APIDoc, APIRouter, BaseController, Endpoint, EndpointDoc, \
     ReadPermission, RESTController, Task, UIRouter
 
@@ -114,8 +112,6 @@ class NFSGaneshaCluster(RESTController):
         return mgr.remote('nfs', 'cluster_ls')
 
 
-@APIRouter('/nfs-ganesha/export', Scope.NFS_GANESHA)
-@APIDoc(group="NFS-Ganesha")
 @APIRouter('/nfs-ganesha/export', Scope.NFS_GANESHA)
 @APIDoc(group="NFS-Ganesha")
 class NFSGaneshaExports(RESTController):
@@ -257,12 +253,3 @@ class NFSGaneshaUi(BaseController):
     @ReadPermission
     def filesystems(self):
         return CephFS.list_filesystems()
-
-    @Endpoint('GET', '/rgw/buckets')
-    @ReadPermission
-    def buckets(self, user_id=None):
-        try:
-            return RgwClient.instance(user_id).get_buckets()
-        except (DashboardException, NoCredentialsException, RequestException,
-                NoRgwDaemonsException):
-            return []

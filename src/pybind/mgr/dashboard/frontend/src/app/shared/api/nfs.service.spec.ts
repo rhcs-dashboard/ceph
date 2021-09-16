@@ -63,10 +63,4 @@ describe('NfsService', () => {
     const req = httpTesting.expectOne('ui-api/nfs-ganesha/lsdir/a?root_dir=foo_dir');
     expect(req.request.method).toBe('GET');
   });
-
-  it('should call buckets', () => {
-    service.buckets('user_foo').subscribe();
-    const req = httpTesting.expectOne('ui-api/nfs-ganesha/rgw/buckets?user_id=user_foo');
-    expect(req.request.method).toBe('GET');
-  });
 });

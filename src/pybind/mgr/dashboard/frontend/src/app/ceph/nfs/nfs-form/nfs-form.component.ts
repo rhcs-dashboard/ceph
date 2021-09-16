@@ -7,6 +7,7 @@ import { forkJoin, Observable, of } from 'rxjs';
 import { debounceTime, distinctUntilChanged, map, mergeMap } from 'rxjs/operators';
 
 import { NfsService } from '~/app/shared/api/nfs.service';
+import { RgwBucketService } from '~/app/shared/api/rgw-bucket.service';
 import { RgwUserService } from '~/app/shared/api/rgw-user.service';
 import { ActionLabelsI18n } from '~/app/shared/constants/app.constants';
 import { Icons } from '~/app/shared/enum/icons.enum';
@@ -39,7 +40,6 @@ export class NfsFormComponent extends CdForm implements OnInit {
   export_id: string = null;
 
   isNewDirectory = false;
-  isNewBucket = false;
 
   allClusters: { cluster_id: string }[] = null;
   icons = Icons;
@@ -77,6 +77,7 @@ export class NfsFormComponent extends CdForm implements OnInit {
     private nfsService: NfsService,
     private route: ActivatedRoute,
     private router: Router,
+    private rgwBucketService: RgwBucketService,
     private rgwUserService: RgwUserService,
     private formBuilder: CdFormBuilder,
     private taskWrapper: TaskWrapperService,
@@ -193,6 +194,8 @@ export class NfsFormComponent extends CdForm implements OnInit {
   resolveModel(res: any) {
     if (res.fsal.name === 'CEPH') {
       res.sec_label_xattr = res.fsal.sec_label_xattr;
+    } else {
+      res.fsal.rgw_user_id = res.fsal.user_id;
     }
 
     res.protocolNfsv4 = res.protocols.indexOf(4) !== -1;
@@ -266,8 +269,8 @@ export class NfsFormComponent extends CdForm implements OnInit {
 
   fsalChangeHandler() {
     this.nfsForm.patchValue({
-      pseudo: this._generatePseudo(),
-      access_type: this._updateAccessType()
+      pseudo: this.generatePseudo(),
+      access_type: this.updateAccessType()
     });
 
     this.setPathValidation();
@@ -295,7 +298,7 @@ export class NfsFormComponent extends CdForm implements OnInit {
 
   rgwUserIdChangeHandler() {
     this.nfsForm.patchValue({
-      pseudo: this._generatePseudo()
+      pseudo: this.generatePseudo()
     });
   }
 
@@ -329,7 +332,7 @@ export class NfsFormComponent extends CdForm implements OnInit {
 
   pathChangeHandler() {
     this.nfsForm.patchValue({
-      pseudo: this._generatePseudo()
+      pseudo: this.generatePseudo()
     });
 
     const path = this.nfsForm.getValue('path');
@@ -340,12 +343,7 @@ export class NfsFormComponent extends CdForm implements OnInit {
 
   bucketChangeHandler() {
     this.nfsForm.patchValue({
-      pseudo: this._generatePseudo()
-    });
-
-    const bucket = this.nfsForm.getValue('path');
-    this.getBucketTypeahead(bucket).subscribe((res: any) => {
-      this.isNewBucket = bucket !== '' && res.indexOf(bucket) === -1;
+      pseudo: this.generatePseudo()
     });
   }
 
@@ -353,13 +351,13 @@ export class NfsFormComponent extends CdForm implements OnInit {
     const rgwUserId = this.nfsForm.getValue('rgw_user_id');
 
     if (_.isString(rgwUserId) && _.isString(path) && path !== '/' && path !== '') {
-      return this.nfsService.buckets(rgwUserId);
+      return this.rgwBucketService.list(false, rgwUserId);
     } else {
       return of([]);
     }
   }
 
-  _generatePseudo() {
+  private generatePseudo() {
     let newPseudo = this.nfsForm.getValue('pseudo');
     if (this.nfsForm.get('pseudo') && !this.nfsForm.get('pseudo').dirty) {
       newPseudo = undefined;
@@ -380,7 +378,7 @@ export class NfsFormComponent extends CdForm implements OnInit {
     return newPseudo;
   }
 
-  _updateAccessType() {
+  private updateAccessType() {
     const name = this.nfsForm.getValue('name');
     let accessType = this.defaultAccessType[name];
 
@@ -393,7 +391,7 @@ export class NfsFormComponent extends CdForm implements OnInit {
 
   submitAction() {
     let action: Observable<any>;
-    const requestModel = this._buildRequest();
+    const requestModel = this.buildRequest();
 
     if (this.isEdit) {
       action = this.taskWrapper.wrapTaskAroundCall({
@@ -421,7 +419,7 @@ export class NfsFormComponent extends CdForm implements OnInit {
     });
   }
 
-  _buildRequest() {
+  private buildRequest() {
     const requestModel: any = _.cloneDeep(this.nfsForm.value);
 
     if (this.isEdit) {

@@ -19,7 +19,6 @@ describe('NfsFormComponent', () => {
   let fixture: ComponentFixture<NfsFormComponent>;
   let httpTesting: HttpTestingController;
   let activatedRoute: ActivatedRouteStub;
-  // const daemonList = RgwHelper.getDaemonList();
 
   configureTestBed(
     {

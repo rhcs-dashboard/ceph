@@ -16,7 +16,7 @@ from . import APIDoc, APIRouter, BaseController, Endpoint, EndpointDoc, \
     ReadPermission, RESTController, allow_empty_body
 
 try:
-    from typing import Any, List, Optional
+    from typing import Any, Dict, List, Optional, Union
 except ImportError:  # pragma: no cover
     pass  # Just for type checking
 
@@ -231,9 +231,11 @@ class RgwBucket(RgwRESTController):
             bucket_name = '{}:{}'.format(tenant, bucket_name)
         return bucket_name
 
-    def list(self, stats=False, daemon_name=None):
-        # type: (bool, Optional[str]) -> List[Any]
-        query_params = '?stats' if str_to_bool(stats) else ''
+    def list(self, stats: bool = False, daemon_name: Optional[str] = None,
+             uid: Optional[str] = None) -> List[Union[str, Dict[str, Any]]]:
+        query_params = f'?stats={str_to_bool(stats)}'
+        if uid and uid.strip():
+            query_params = f'{query_params}&uid={uid.strip()}'
         result = self.proxy(daemon_name, 'GET', 'bucket{}'.format(query_params))
 
         if stats:

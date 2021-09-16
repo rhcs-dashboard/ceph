@@ -214,11 +214,7 @@
 
             <span class="invalid-feedback"
                   *ngIf="nfsForm.showError('path', formDir, 'pattern')"
-                  i18n>Path can only be a single '/' or a word</span>
-
-            <span class="form-text text-muted"
-                  *ngIf="isNewBucket && !nfsForm.showError('path', formDir)"
-                  i18n>New bucket will be created</span>
+                  i18n>Path can only be a bucket name. '/' is not allowed.</span>
           </div>
         </div>
 

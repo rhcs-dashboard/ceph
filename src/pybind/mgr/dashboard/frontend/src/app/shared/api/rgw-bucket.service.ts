@@ -21,9 +21,12 @@ export class RgwBucketService {
    * Get the list of buckets.
    * @return Observable<Object[]>
    */
-  list() {
+  list(stats: boolean = false, uid: string = '') {
     return this.rgwDaemonService.request((params: HttpParams) => {
-      params = params.append('stats', 'true');
+      params = params.append('stats', stats.toString());
+      if (uid) {
+        params = params.append('uid', uid);
+      }
       return this.http.get(this.url, { params: params });
     });
   }

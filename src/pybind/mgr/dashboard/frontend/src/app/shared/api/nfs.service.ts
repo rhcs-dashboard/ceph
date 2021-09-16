@@ -68,10 +68,6 @@ export class NfsService {
     return this.http.get(`${this.uiApiPath}/lsdir/${fs_name}?root_dir=${root_dir}`);
   }
 
-  buckets(user_id: string) {
-    return this.http.get(`${this.uiApiPath}/rgw/buckets?user_id=${user_id}`);
-  }
-
   fsals() {
     return this.http.get(`${this.uiApiPath}/fsals`);
   }
