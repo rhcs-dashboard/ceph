@@ -52,30 +52,6 @@ describe('NfsFormComponent', () => {
     httpTesting.expectOne('ui-api/nfs-ganesha/fsals').flush(['CEPH', 'RGW']);
     httpTesting.expectOne('ui-api/nfs-ganesha/cephfs/filesystems').flush([{ id: 1, name: 'a' }]);
     httpTesting.expectOne('api/nfs-ganesha/cluster').flush(['mynfs']);
-    httpTesting
-      .expectOne(`api/rgw/user?${RgwHelper.DAEMON_QUERY_PARAM}`)
-      .flush(['test', 'dev', 'tenant$user']);
-    const user_dev = {
-      suspended: 0,
-      user_id: 'dev',
-      keys: ['a']
-    };
-    httpTesting.expectOne(`api/rgw/user/dev?${RgwHelper.DAEMON_QUERY_PARAM}`).flush(user_dev);
-    const user_test = {
-      suspended: 1,
-      user_id: 'test',
-      keys: ['a']
-    };
-    httpTesting.expectOne(`api/rgw/user/test?${RgwHelper.DAEMON_QUERY_PARAM}`).flush(user_test);
-    const tenantUser = {
-      suspended: 0,
-      tenant: 'tenant',
-      user_id: 'user',
-      keys: ['a']
-    };
-    httpTesting
-      .expectOne(`api/rgw/user/tenant%24user?${RgwHelper.DAEMON_QUERY_PARAM}`)
-      .flush(tenantUser);
     httpTesting.verify();
   });
 
@@ -85,12 +61,11 @@ describe('NfsFormComponent', () => {
 
   it('should process all data', () => {
     expect(component.allFsals).toEqual([
-      { descr: 'CephFS', value: 'CEPH' },
-      { descr: 'Object Gateway', value: 'RGW' }
+      { descr: 'CephFS', value: 'CEPH', disabled: false },
+      { descr: 'Object Gateway', value: 'RGW', disabled: false }
     ]);
     expect(component.allFsNames).toEqual([{ id: 1, name: 'a' }]);
     expect(component.allClusters).toEqual([{ cluster_id: 'mynfs' }]);
-    expect(component.allRgwUsers).toEqual(['dev', 'tenant$user']);
   });
 
   it('should create the form', () => {
@@ -98,7 +73,7 @@ describe('NfsFormComponent', () => {
       access_type: 'RW',
       clients: [],
       cluster_id: '',
-      fsal: { fs_name: 'a', name: '', rgw_user_id: '' },
+      fsal: { fs_name: 'a', name: '' },
       path: '/',
       protocolNfsv4: true,
       pseudo: '',
@@ -133,7 +108,7 @@ describe('NfsFormComponent', () => {
         access_type: 'RW',
         clients: [],
         cluster_id: 'cluster1',
-        fsal: { name: 'CEPH', fs_name: 1, rgw_user_id: '' },
+        fsal: { name: 'CEPH', fs_name: 1 },
         path: '/foo',
         protocolNfsv4: true,
         pseudo: '/baz',

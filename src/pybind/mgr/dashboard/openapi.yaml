@@ -7477,7 +7477,7 @@ paths:
       responses:
         '200':
           content:
-            application/vnd.ceph.api.v1.0+json:
+            application/vnd.ceph.api.v1.1+json:
               type: object
           description: OK
         '400':

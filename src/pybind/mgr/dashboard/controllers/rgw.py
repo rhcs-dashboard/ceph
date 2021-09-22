@@ -231,6 +231,7 @@ class RgwBucket(RgwRESTController):
             bucket_name = '{}:{}'.format(tenant, bucket_name)
         return bucket_name
 
+    @RESTController.MethodMap(version='1.1')
     def list(self, stats: bool = False, daemon_name: Optional[str] = None,
              uid: Optional[str] = None) -> List[Union[str, Dict[str, Any]]]:
         query_params = f'?stats={str_to_bool(stats)}'

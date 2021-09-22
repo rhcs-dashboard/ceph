@@ -1,6 +1,8 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 
+import { NfsFSAbstractionLayer } from '~/app/ceph/nfs/models/nfs.fsal';
+
 @Injectable({
   providedIn: 'root'
 })
@@ -23,14 +25,16 @@ export class NfsService {
     }
   ];
 
-  nfsFsal = [
+  nfsFsal: NfsFSAbstractionLayer[] = [
     {
       value: 'CEPH',
-      descr: $localize`CephFS`
+      descr: $localize`CephFS`,
+      disabled: false
     },
     {
       value: 'RGW',
-      descr: $localize`Object Gateway`
+      descr: $localize`Object Gateway`,
+      disabled: false
     }
   ];
 

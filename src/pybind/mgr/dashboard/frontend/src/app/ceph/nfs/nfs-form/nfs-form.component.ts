@@ -4,11 +4,11 @@ import { ActivatedRoute, Router } from '@angular/router';
 
 import _ from 'lodash';
 import { forkJoin, Observable, of } from 'rxjs';
-import { debounceTime, distinctUntilChanged, map, mergeMap } from 'rxjs/operators';
+import { catchError, debounceTime, distinctUntilChanged, map, mergeMap } from 'rxjs/operators';
 
+import { NfsFSAbstractionLayer } from '~/app/ceph/nfs/models/nfs.fsal';
 import { NfsService } from '~/app/shared/api/nfs.service';
 import { RgwBucketService } from '~/app/shared/api/rgw-bucket.service';
-import { RgwUserService } from '~/app/shared/api/rgw-user.service';
 import { ActionLabelsI18n } from '~/app/shared/constants/app.constants';
 import { Icons } from '~/app/shared/enum/icons.enum';
 import { CdForm } from '~/app/shared/forms/cd-form';
@@ -45,8 +45,8 @@ export class NfsFormComponent extends CdForm implements OnInit {
   icons = Icons;
 
   allFsals: any[] = [];
-  allRgwUsers: any[] = [];
   allFsNames: any[] = null;
+  fsalAvailabilityError: string = null;
 
   defaultAccessType = { RGW: 'RO' };
   nfsAccessType: any[] = this.nfsService.nfsAccessType;
@@ -78,7 +78,6 @@ export class NfsFormComponent extends CdForm implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private rgwBucketService: RgwBucketService,
-    private rgwUserService: RgwUserService,
     private formBuilder: CdFormBuilder,
     private taskWrapper: TaskWrapperService,
     private cdRef: ChangeDetectorRef,
@@ -145,13 +144,6 @@ export class NfsFormComponent extends CdForm implements OnInit {
               name: 'CEPH'
             })
           ]
-        }),
-        rgw_user_id: new FormControl('', {
-          validators: [
-            CdValidators.requiredIf({
-              name: 'RGW'
-            })
-          ]
         })
       }),
       path: new FormControl('/'),
@@ -194,8 +186,6 @@ export class NfsFormComponent extends CdForm implements OnInit {
   resolveModel(res: any) {
     if (res.fsal.name === 'CEPH') {
       res.sec_label_xattr = res.fsal.sec_label_xattr;
-    } else {
-      res.fsal.rgw_user_id = res.fsal.user_id;
     }
 
     res.protocolNfsv4 = res.protocols.indexOf(4) !== -1;
@@ -236,16 +226,6 @@ export class NfsFormComponent extends CdForm implements OnInit {
 
       if (_.isObjectLike(fsalItem)) {
         this.allFsals.push(fsalItem);
-        if (fsalItem.value === 'RGW') {
-          this.rgwUserService.list().subscribe((result: any) => {
-            result.forEach((user: Record<string, any>) => {
-              if (user.suspended === 0 && user.keys.length > 0) {
-                const userId = user.tenant ? `${user.tenant}$${user.user_id}` : user.user_id;
-                this.allRgwUsers.push(userId);
-              }
-            });
-          });
-        }
       }
     });
 
@@ -268,14 +248,43 @@ export class NfsFormComponent extends CdForm implements OnInit {
   }
 
   fsalChangeHandler() {
-    this.nfsForm.patchValue({
-      pseudo: this.generatePseudo(),
-      access_type: this.updateAccessType()
+    const fsalValue = this.nfsForm.getValue('name');
+    const checkAvailability =
+      fsalValue === 'RGW'
+        ? this.rgwBucketService.list(false, 'dashboard')
+        : this.nfsService.filesystems();
+
+    checkAvailability.subscribe({
+      next: () => {
+        this.setFsalAvailability(fsalValue, true);
+        this.nfsForm.patchValue({
+          path: fsalValue === 'RGW' ? '' : '/',
+          pseudo: this.generatePseudo(),
+          access_type: this.updateAccessType()
+        });
+
+        this.setPathValidation();
+
+        this.cdRef.detectChanges();
+      },
+      error: () => {
+        this.setFsalAvailability(fsalValue, false);
+        this.nfsForm.get('name').setValue('');
+      }
     });
+  }
 
-    this.setPathValidation();
+  private setFsalAvailability(fsalValue: string, available: boolean) {
+    this.allFsals = this.allFsals.map((fsalItem: NfsFSAbstractionLayer) => {
+      if (fsalItem.value === fsalValue) {
+        fsalItem.disabled = !available;
 
-    this.cdRef.detectChanges();
+        this.fsalAvailabilityError = fsalItem.disabled
+          ? `${fsalItem.descr} backend is not available.`
+          : null;
+      }
+      return fsalItem;
+    });
   }
 
   accessTypeChangeHandler() {
@@ -288,18 +297,12 @@ export class NfsFormComponent extends CdForm implements OnInit {
     if (this.nfsForm.getValue('name') === 'RGW') {
       this.nfsForm
         .get('path')
-        .setValidators([Validators.required, Validators.pattern('^(/|[^/><|&()#?]+)$')]);
+        .setValidators([Validators.required, Validators.pattern('^[a-z0-9.-]{3,63}$')]);
     } else {
       this.nfsForm
         .get('path')
         .setValidators([Validators.required, Validators.pattern('^/[^><|&()?]*$')]);
     }
-  }
-
-  rgwUserIdChangeHandler() {
-    this.nfsForm.patchValue({
-      pseudo: this.generatePseudo()
-    });
   }
 
   getAccessTypeHelp(accessType: string) {
@@ -348,10 +351,15 @@ export class NfsFormComponent extends CdForm implements OnInit {
   }
 
   getBucketTypeahead(path: string): Observable<any> {
-    const rgwUserId = this.nfsForm.getValue('rgw_user_id');
-
-    if (_.isString(rgwUserId) && _.isString(path) && path !== '/' && path !== '') {
-      return this.rgwBucketService.list(false, rgwUserId);
+    if (_.isString(path) && path !== '/' && path !== '') {
+      return this.rgwBucketService.list().pipe(
+        map((bucketList) =>
+          bucketList
+            .filter((bucketName: string) => bucketName.toLowerCase().includes(path))
+            .slice(0, 15)
+        ),
+        catchError((error) => of([`Error: ${error}`]))
+      );
     } else {
       return of([]);
     }
@@ -365,13 +373,6 @@ export class NfsFormComponent extends CdForm implements OnInit {
         newPseudo = '/cephfs';
         if (_.isString(this.nfsForm.getValue('path'))) {
           newPseudo += this.nfsForm.getValue('path');
-        }
-      } else if (this.nfsForm.getValue('fsal') === 'RGW') {
-        if (_.isString(this.nfsForm.getValue('rgw_user_id'))) {
-          newPseudo = '/' + this.nfsForm.getValue('rgw_user_id');
-          if (_.isString(this.nfsForm.getValue('path'))) {
-            newPseudo += '/' + this.nfsForm.getValue('path');
-          }
         }
       }
     }
@@ -426,9 +427,7 @@ export class NfsFormComponent extends CdForm implements OnInit {
       requestModel.export_id = _.parseInt(this.export_id);
     }
 
-    if (requestModel.fsal.name === 'CEPH') {
-      delete requestModel.fsal.rgw_user_id;
-    } else {
+    if (requestModel.fsal.name === 'RGW') {
       delete requestModel.fsal.fs_name;
     }
 

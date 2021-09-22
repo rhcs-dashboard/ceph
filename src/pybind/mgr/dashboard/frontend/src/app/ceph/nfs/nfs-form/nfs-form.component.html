@@ -60,41 +60,15 @@
                         value=""
                         i18n>-- Select the storage backend --</option>
                 <option *ngFor="let fsal of allFsals"
-                        [value]="fsal.value">{{ fsal.descr }}</option>
+                        [value]="fsal.value"
+                        [disabled]="fsal.disabled">{{ fsal.descr }}</option>
               </select>
               <span class="invalid-feedback"
                     *ngIf="nfsForm.showError('name', formDir, 'required')"
                     i18n>This field is required.</span>
-            </div>
-          </div>
-
-          <!-- RGW user -->
-          <div class="form-group row"
-               *ngIf="nfsForm.getValue('name') === 'RGW'">
-            <label class="cd-col-form-label required"
-                   for="rgw_user_id"
-                   i18n>Object Gateway User</label>
-            <div class="cd-col-form-input">
-              <select class="form-control custom-select"
-                      formControlName="rgw_user_id"
-                      name="rgw_user_id"
-                      id="rgw_user_id"
-                      (change)="rgwUserIdChangeHandler()">
-                <option *ngIf="allRgwUsers === null"
-                        value=""
-                        i18n>Loading...</option>
-                <option *ngIf="allRgwUsers !== null && allRgwUsers.length === 0"
-                        value=""
-                        i18n>-- No users available --</option>
-                <option *ngIf="allRgwUsers !== null && allRgwUsers.length > 0"
-                        value=""
-                        i18n>-- Select the object gateway user --</option>
-                <option *ngFor="let rgwUserId of allRgwUsers"
-                        [value]="rgwUserId">{{ rgwUserId }}</option>
-              </select>
               <span class="invalid-feedback"
-                    *ngIf="nfsForm.showError('rgw_user_id', formDir, 'required')"
-                    i18n>This field is required.</span>
+                    *ngIf="fsalAvailabilityError"
+                    i18n>{{ fsalAvailabilityError }}</span>
             </div>
           </div>
 
@@ -109,7 +83,7 @@
                       formControlName="fs_name"
                       name="fs_name"
                       id="fs_name"
-                      (change)="rgwUserIdChangeHandler()">
+                      (change)="pathChangeHandler()">
                 <option *ngIf="allFsNames === null"
                         value=""
                         i18n>Loading...</option>
