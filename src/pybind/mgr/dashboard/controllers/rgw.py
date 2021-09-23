@@ -100,6 +100,7 @@ class RgwDaemon(RESTController):
                     'service_map_id': service['id'],
                     'version': metadata['ceph_version'],
                     'server_hostname': hostname,
+                    'realm_name': metadata['realm_name'],
                     'zonegroup_name': metadata['zonegroup_name'],
                     'zone_name': metadata['zone_name'],
                     'default': instance.daemon.name == metadata['id']
@@ -157,6 +158,8 @@ class RgwSite(RgwRESTController):
             return RgwClient.admin_instance(daemon_name=daemon_name).get_placement_targets()
         if query == 'realms':
             return RgwClient.admin_instance(daemon_name=daemon_name).get_realms()
+        if query == 'default-realm':
+            return RgwClient.admin_instance(daemon_name=daemon_name).get_default_realm()
 
         # @TODO: for multisite: by default, retrieve cluster topology/map.
         raise DashboardException(http_status_code=501, component='rgw', msg='Not Implemented')

@@ -9,6 +9,7 @@ import { catchError, debounceTime, distinctUntilChanged, map, mergeMap } from 'r
 import { NfsFSAbstractionLayer } from '~/app/ceph/nfs/models/nfs.fsal';
 import { NfsService } from '~/app/shared/api/nfs.service';
 import { RgwBucketService } from '~/app/shared/api/rgw-bucket.service';
+import { RgwSiteService } from '~/app/shared/api/rgw-site.service';
 import { ActionLabelsI18n } from '~/app/shared/constants/app.constants';
 import { Icons } from '~/app/shared/enum/icons.enum';
 import { CdForm } from '~/app/shared/forms/cd-form';
@@ -78,6 +79,7 @@ export class NfsFormComponent extends CdForm implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private rgwBucketService: RgwBucketService,
+    private rgwSiteService: RgwSiteService,
     private formBuilder: CdFormBuilder,
     private taskWrapper: TaskWrapperService,
     private cdRef: ChangeDetectorRef,
@@ -251,7 +253,20 @@ export class NfsFormComponent extends CdForm implements OnInit {
     const fsalValue = this.nfsForm.getValue('name');
     const checkAvailability =
       fsalValue === 'RGW'
-        ? this.rgwBucketService.list(false, 'dashboard')
+        ? this.rgwSiteService.get('realms').pipe(
+            mergeMap((realms: string[]) =>
+              realms.length === 0
+                ? of(true)
+                : this.rgwSiteService.isDefaultRealm().pipe(
+                    mergeMap((isDefaultRealm) => {
+                      if (!isDefaultRealm) {
+                        throw new Error('Selected realm is not the default.');
+                      }
+                      return of(true);
+                    })
+                  )
+            )
+          )
         : this.nfsService.filesystems();
 
     checkAvailability.subscribe({
@@ -267,20 +282,20 @@ export class NfsFormComponent extends CdForm implements OnInit {
 
         this.cdRef.detectChanges();
       },
-      error: () => {
-        this.setFsalAvailability(fsalValue, false);
+      error: (error) => {
+        this.setFsalAvailability(fsalValue, false, error);
         this.nfsForm.get('name').setValue('');
       }
     });
   }
 
-  private setFsalAvailability(fsalValue: string, available: boolean) {
+  private setFsalAvailability(fsalValue: string, available: boolean, errorMessage: string = '') {
     this.allFsals = this.allFsals.map((fsalItem: NfsFSAbstractionLayer) => {
       if (fsalItem.value === fsalValue) {
         fsalItem.disabled = !available;
 
         this.fsalAvailabilityError = fsalItem.disabled
-          ? `${fsalItem.descr} backend is not available.`
+          ? $localize`${fsalItem.descr} backend is not available. ${errorMessage}`
           : null;
       }
       return fsalItem;
@@ -358,7 +373,7 @@ export class NfsFormComponent extends CdForm implements OnInit {
             .filter((bucketName: string) => bucketName.toLowerCase().includes(path))
             .slice(0, 15)
         ),
-        catchError((error) => of([`Error: ${error}`]))
+        catchError(() => of([$localize`Error while retrieving bucket names.`]))
       );
     } else {
       return of([]);
