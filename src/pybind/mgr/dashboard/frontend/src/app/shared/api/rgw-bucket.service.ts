@@ -27,7 +27,10 @@ export class RgwBucketService {
       if (uid) {
         params = params.append('uid', uid);
       }
-      return this.http.get(this.url, { params: params });
+      return this.http.get(this.url, {
+        headers: { Accept: 'application/vnd.ceph.api.v1.1+json' },
+        params: params
+      });
     });
   }
 
