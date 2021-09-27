@@ -23,24 +23,8 @@ ceph_cmd="cephadm shell --fsid ${fsid} -c /etc/ceph/ceph.conf -k /etc/ceph/ceph.
 
 {% if expanded_cluster is defined %}
   ${ceph_cmd} ceph orch apply osd --all-available-devices
-{% endif %}
-
-{% if nfs is defined %}
   sleep 30 # waiting for OSDs to get in/up
 
-  # add metadata pool
-  ${ceph_cmd} ceph osd pool create mp
-  # add data pool
-  ${ceph_cmd} ceph osd pool create dp
-
-  # apply mds service
-  ${ceph_cmd} ceph orch apply mds mymds ceph-node-00.cephlab.com
-  # add mds daemon
-  ${ceph_cmd} ceph orch daemon add mds mymds ceph-node-00.cephlab.com
-
   # create filesystem
-  ${ceph_cmd} ceph fs new myfs mp dp
-
-  # create NFS cluster
-  ${ceph_cmd} ceph nfs cluster create mynfs
+  ${ceph_cmd} ceph fs volume create myfs
 {% endif %}

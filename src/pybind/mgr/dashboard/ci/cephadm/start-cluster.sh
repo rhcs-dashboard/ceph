@@ -46,7 +46,6 @@ for arg in "$@"; do
   case "$arg" in
     "--dev-mode") DEV_MODE='true'; EXTRA_PARAMS+=" -P dev_mode=${DEV_MODE}" ;;
     "--expanded") EXTRA_PARAMS+=" -P expanded_cluster=true" ;;
-    "NFS=1") EXTRA_PARAMS+=" -P nfs=true" ;;
   esac
 done
 
