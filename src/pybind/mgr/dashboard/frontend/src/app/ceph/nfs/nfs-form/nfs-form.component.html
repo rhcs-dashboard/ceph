@@ -187,10 +187,9 @@
             <span class="invalid-feedback"
                   *ngIf="nfsForm.showError('path', formDir, 'required')"
                   i18n>This field is required.</span>
-
             <span class="invalid-feedback"
-                  *ngIf="nfsForm.showError('path', formDir, 'pattern')"
-                  i18n>Path can only be a bucket name. '/' is not allowed.</span>
+                  *ngIf="nfsForm.showError('path', formDir, 'bucketNameNotAllowed')"
+                  i18n>The bucket does not exist.</span>
           </div>
         </div>
 

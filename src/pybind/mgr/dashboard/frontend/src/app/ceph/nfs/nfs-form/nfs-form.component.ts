@@ -310,9 +310,10 @@ export class NfsFormComponent extends CdForm implements OnInit {
 
   setPathValidation() {
     if (this.nfsForm.getValue('name') === 'RGW') {
+      this.nfsForm.get('path').setValidators([Validators.required]);
       this.nfsForm
         .get('path')
-        .setValidators([Validators.required, Validators.pattern('^[a-z0-9.-]{3,63}$')]);
+        .setAsyncValidators([CdValidators.bucketExistence(true, this.rgwBucketService)]);
     } else {
       this.nfsForm
         .get('path')
