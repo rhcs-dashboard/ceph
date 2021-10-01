@@ -56,7 +56,7 @@ export class ServicesPageHelper extends PageHelper {
 
         case 'nfs':
           cy.get('#service_id').type('testnfs');
-          cy.get('#count').type('1');
+          cy.get('#count').type(count);
           break;
       }
 

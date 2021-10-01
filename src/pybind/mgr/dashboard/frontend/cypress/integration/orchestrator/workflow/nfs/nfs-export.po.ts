@@ -18,7 +18,7 @@ export class NFSPageHelper extends PageHelper {
 
       cy.get('#security_label').click({ force: true });
     } else {
-      cy.get('input[aria-label=rgw_path]').type(rgwPath);
+      cy.get('input[data-testid=rgw_path]').type(rgwPath);
     }
 
     cy.get('input[name=pseudo]').type(pseudo);

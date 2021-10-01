@@ -32,7 +32,10 @@ describe('nfsExport page', () => {
       services.navigateTo('create');
 
       services.addService('nfs');
-      cy.wait(15000);
+
+      services.checkExist('nfs.testnfs', true);
+      services.getExpandCollapseElement().click();
+      services.checkServiceStatus('nfs');
     });
 
     it('should create a nfs-export with CephFS backend', () => {
@@ -60,7 +63,10 @@ describe('nfsExport page', () => {
       services.navigateTo('create');
 
       services.addService('rgw');
-      cy.wait(20000);
+
+      services.checkExist('rgw.foo', true);
+      services.getExpandCollapseElement().click();
+      services.checkServiceStatus('rgw');
 
       buckets.navigateTo('create');
       buckets.create(bucket_name, 'dashboard', 'default-placement');
@@ -80,8 +86,8 @@ describe('nfsExport page', () => {
       buckets.delete(bucket_name);
 
       services.navigateTo();
-      services.deleteService('rgw.foo', 5000);
-      services.deleteService('nfs.testnfs', 5000);
+      services.deleteService('rgw.foo');
+      services.deleteService('nfs.testnfs');
     });
   });
 });
