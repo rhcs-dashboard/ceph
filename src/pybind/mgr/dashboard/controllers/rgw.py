@@ -12,6 +12,7 @@ from ..services.auth import AuthManager, JwtManager
 from ..services.ceph_service import CephService
 from ..services.rgw_client import NoRgwDaemonsException, RgwClient
 from ..tools import json_str_to_object, str_to_bool
+from ._version import APIVersion
 from . import APIDoc, APIRouter, BaseController, Endpoint, EndpointDoc, \
     ReadPermission, RESTController, allow_empty_body
 
@@ -234,7 +235,7 @@ class RgwBucket(RgwRESTController):
             bucket_name = '{}:{}'.format(tenant, bucket_name)
         return bucket_name
 
-    @RESTController.MethodMap(version='1.1')
+    @RESTController.MethodMap(version=APIVersion(1, 1))
     def list(self, stats: bool = False, daemon_name: Optional[str] = None,
              uid: Optional[str] = None) -> List[Union[str, Dict[str, Any]]]:
         query_params = f'?stats={str_to_bool(stats)}'
