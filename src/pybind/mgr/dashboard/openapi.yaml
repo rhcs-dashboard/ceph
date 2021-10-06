@@ -5110,11 +5110,11 @@ paths:
                         name:
                           description: name of FSAL
                           type: string
-                        rgw_user_id:
-                          description: RGW user id
-                          type: string
                         sec_label_xattr:
                           description: Name of xattr for security label
+                          type: string
+                        user_id:
+                          description: User id
                           type: string
                       required:
                       - name
@@ -5213,9 +5213,6 @@ paths:
                     name:
                       description: name of FSAL
                       type: string
-                    rgw_user_id:
-                      description: RGW user id
-                      type: string
                     sec_label_xattr:
                       description: Name of xattr for security label
                       type: string
@@ -5301,11 +5298,11 @@ paths:
                       name:
                         description: name of FSAL
                         type: string
-                      rgw_user_id:
-                        description: RGW user id
-                        type: string
                       sec_label_xattr:
                         description: Name of xattr for security label
+                        type: string
+                      user_id:
+                        description: User id
                         type: string
                     required:
                     - name
@@ -5464,11 +5461,11 @@ paths:
                       name:
                         description: name of FSAL
                         type: string
-                      rgw_user_id:
-                        description: RGW user id
-                        type: string
                       sec_label_xattr:
                         description: Name of xattr for security label
+                        type: string
+                      user_id:
+                        description: User id
                         type: string
                     required:
                     - name
@@ -5575,9 +5572,6 @@ paths:
                     name:
                       description: name of FSAL
                       type: string
-                    rgw_user_id:
-                      description: RGW user id
-                      type: string
                     sec_label_xattr:
                       description: Name of xattr for security label
                       type: string
@@ -5662,11 +5656,11 @@ paths:
                       name:
                         description: name of FSAL
                         type: string
-                      rgw_user_id:
-                        description: RGW user id
-                        type: string
                       sec_label_xattr:
                         description: Name of xattr for security label
+                        type: string
+                      user_id:
+                        description: User id
                         type: string
                     required:
                     - name

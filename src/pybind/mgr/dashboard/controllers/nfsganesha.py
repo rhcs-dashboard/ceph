@@ -4,6 +4,7 @@ import json
 import logging
 import os
 from functools import partial
+from typing import Any, Dict, List, Optional
 
 import cephfs
 import cherrypy
@@ -39,7 +40,7 @@ EXPORT_SCHEMA = {
         'name': (str, 'name of FSAL'),
         'fs_name': (str, 'CephFS filesystem name', True),
         'sec_label_xattr': (str, 'Name of xattr for security label', True),
-        'rgw_user_id': (str, 'RGW user id', True)
+        'user_id': (str, 'User id', True)
     }, 'FSAL configuration'),
     'clients': ([{
         'addresses': ([str], 'list of IP addresses'),
@@ -61,8 +62,7 @@ CREATE_EXPORT_SCHEMA = {
     'fsal': ({
         'name': (str, 'name of FSAL'),
         'fs_name': (str, 'CephFS filesystem name', True),
-        'sec_label_xattr': (str, 'Name of xattr for security label', True),
-        'rgw_user_id': (str, 'RGW user id', True)
+        'sec_label_xattr': (str, 'Name of xattr for security label', True)
     }, 'FSAL configuration'),
     'clients': ([{
         'addresses': ([str], 'list of IP addresses'),
@@ -117,10 +117,27 @@ class NFSGaneshaCluster(RESTController):
 class NFSGaneshaExports(RESTController):
     RESOURCE_ID = "cluster_id/export_id"
 
+    @staticmethod
+    def _get_schema_export(export: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Method that avoids returning export info not exposed in the export schema
+        e.g., rgw user access/secret keys.
+        """
+        schema_fsal_info = {}
+        for key in export['fsal'].keys():
+            if key in EXPORT_SCHEMA['fsal'][0].keys():  # type: ignore
+                schema_fsal_info[key] = export['fsal'][key]
+        export['fsal'] = schema_fsal_info
+        return export
+
     @EndpointDoc("List all NFS-Ganesha exports",
                  responses={200: [EXPORT_SCHEMA]})
-    def list(self):
-        return mgr.remote('nfs', 'export_ls')
+    def list(self) -> List[Dict[str, Any]]:
+        exports = []
+        for export in mgr.remote('nfs', 'export_ls'):
+            exports.append(self._get_schema_export(export))
+
+        return exports
 
     @NfsTask('create', {'path': '{path}', 'fsal': '{fsal.name}',
                         'cluster_id': '{cluster_id}'}, 2.0)
@@ -128,7 +145,8 @@ class NFSGaneshaExports(RESTController):
                  parameters=CREATE_EXPORT_SCHEMA,
                  responses={201: EXPORT_SCHEMA})
     def create(self, path, cluster_id, pseudo, access_type,
-               squash, security_label, protocols, transports, fsal, clients):
+               squash, security_label, protocols, transports, fsal, clients) -> Dict[str, Any]:
+
         if hasattr(fsal, 'user_id'):
             fsal.pop('user_id')  # mgr/nfs does not let you customize user_id
         raw_ex = {
@@ -146,7 +164,8 @@ class NFSGaneshaExports(RESTController):
         export_mgr = mgr.remote('nfs', 'fetch_nfs_export_obj')
         ret, _, err = export_mgr.apply_export(cluster_id, json.dumps(raw_ex))
         if ret == 0:
-            return export_mgr._get_export_dict(cluster_id, pseudo)  # pylint: disable=W0212
+            return self._get_schema_export(
+                export_mgr._get_export_dict(cluster_id, pseudo))  # pylint: disable=W0212
         raise NFSException(f"Export creation failed {err}")
 
     @EndpointDoc("Get an NFS-Ganesha export",
@@ -155,10 +174,13 @@ class NFSGaneshaExports(RESTController):
                      'export_id': (str, "Export ID")
                  },
                  responses={200: EXPORT_SCHEMA})
-    def get(self, cluster_id, export_id):
+    def get(self, cluster_id, export_id) -> Optional[Dict[str, Any]]:
         export_id = int(export_id)
+        export = mgr.remote('nfs', 'export_get', cluster_id, export_id)
+        if export:
+            export = self._get_schema_export(export)
 
-        return mgr.remote('nfs', 'export_get', cluster_id, export_id)
+        return export
 
     @NfsTask('edit', {'cluster_id': '{cluster_id}', 'export_id': '{export_id}'},
              2.0)
@@ -167,7 +189,7 @@ class NFSGaneshaExports(RESTController):
                                  **CREATE_EXPORT_SCHEMA),
                  responses={200: EXPORT_SCHEMA})
     def set(self, cluster_id, export_id, path, pseudo, access_type,
-            squash, security_label, protocols, transports, fsal, clients):
+            squash, security_label, protocols, transports, fsal, clients) -> Dict[str, Any]:
 
         if hasattr(fsal, 'user_id'):
             fsal.pop('user_id')  # mgr/nfs does not let you customize user_id
@@ -188,7 +210,8 @@ class NFSGaneshaExports(RESTController):
         export_mgr = mgr.remote('nfs', 'fetch_nfs_export_obj')
         ret, _, err = export_mgr.apply_export(cluster_id, json.dumps(raw_ex))
         if ret == 0:
-            return export_mgr._get_export_dict(cluster_id, pseudo)  # pylint: disable=W0212
+            return self._get_schema_export(
+                export_mgr._get_export_dict(cluster_id, pseudo))  # pylint: disable=W0212
         raise NFSException(f"Failed to update export: {err}")
 
     @NfsTask('delete', {'cluster_id': '{cluster_id}',

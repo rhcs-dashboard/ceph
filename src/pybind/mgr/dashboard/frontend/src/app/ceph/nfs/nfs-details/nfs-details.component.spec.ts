@@ -71,7 +71,7 @@ describe('NfsDetailsComponent', () => {
     const newData = _.assignIn(component.selection, {
       fsal: {
         name: 'RGW',
-        rgw_user_id: 'rgw_user_id'
+        user_id: 'user-id'
       }
     });
     component.selection = newData;
@@ -80,7 +80,7 @@ describe('NfsDetailsComponent', () => {
       'Access Type': 'RW',
       Cluster: 'cluster1',
       'NFS Protocol': ['NFSv4'],
-      'Object Gateway User': 'rgw_user_id',
+      'Object Gateway User': 'user-id',
       Path: '/qwe',
       Pseudo: '/qwe',
       Squash: 'no_root_squash',
