@@ -11,9 +11,14 @@
       <div class="card-body">
         <!-- cluster_id -->
         <div class="form-group row">
-          <label class="cd-col-form-label required"
-                 for="cluster_id"
-                 i18n>Cluster</label>
+          <label class="cd-col-form-label"
+                 for="cluster_id">
+            <span class="required"
+                  i18n>Cluster</span>
+            <cd-helper>
+              <p i18n>This is the ID of an NFS Service.</p>
+            </cd-helper>
+          </label>
           <div class="cd-col-form-input">
             <select class="form-control custom-select"
                     formControlName="cluster_id"
@@ -32,8 +37,10 @@
                       [value]="cluster.cluster_id">{{ cluster.cluster_id }}</option>
             </select>
             <span class="invalid-feedback"
-                  *ngIf="nfsForm.showError('cluster_id', formDir, 'required')"
-                  i18n>This field is required.</span>
+                  *ngIf="nfsForm.showError('cluster_id', formDir, 'required') || allClusters?.length === 0"
+                  i18n>This field is required.
+                       To create a new NFS cluster, <a routerLink="/services/create"
+                                                       class="btn-link">add a new NFS Service</a>.</span>
           </div>
         </div>
 
@@ -141,9 +148,14 @@
         <!-- Path -->
         <div class="form-group row"
              *ngIf="nfsForm.getValue('name') === 'CEPH'">
-          <label class="cd-col-form-label required"
-                 for="path"
-                 i18n>CephFS Path</label>
+          <label class="cd-col-form-label"
+                 for="path">
+            <span class="required"
+                  i18n>CephFS Path</span>
+            <cd-helper>
+              <p i18n>A path in a CephFS file system.</p>
+            </cd-helper>
+          </label>
           <div class="cd-col-form-input">
             <input type="text"
                    class="form-control"
@@ -170,9 +182,11 @@
         <!-- Bucket -->
         <div class="form-group row"
              *ngIf="nfsForm.getValue('name') === 'RGW'">
-          <label class="cd-col-form-label required"
-                 for="path"
-                 i18n>Path</label>
+          <label class="cd-col-form-label"
+                 for="path">
+            <span class="required"
+                  i18n>Bucket</span>
+          </label>
           <div class="cd-col-form-input">
             <input type="text"
                    class="form-control"
@@ -189,7 +203,9 @@
                   i18n>This field is required.</span>
             <span class="invalid-feedback"
                   *ngIf="nfsForm.showError('path', formDir, 'bucketNameNotAllowed')"
-                  i18n>The bucket does not exist.</span>
+                  i18n>The bucket does not exist or is not in the default realm (if multiple realms are configured).
+                       To continue, <a routerLink="/rgw/bucket/create"
+                                       class="btn-link">create a new bucket</a>.</span>
           </div>
         </div>
 
@@ -285,22 +301,11 @@
 
         <!-- Squash -->
         <div class="form-group row">
-          <label class="cd-col-form-label required"
+          <label class="cd-col-form-label"
                  for="squash">
-            <ng-container i18n>Squash</ng-container>
-            <cd-helper>
-              <span i18n><b>What kind of user id squashing is performed:</b></span>
-              <br>
-              <span i18n><b>no_root_squash:</b> No user id squashing is performed</span>
-              <br>
-              <span i18n><b>root_id_squash:</b> uid 0 and gid 0 are squashed to the Anonymous_Uid and Anonymous_Gid
-                     gid 0 in alt_groups lists is also squashed</span>
-              <br>
-              <span i18n><b>root_squash:</b> uid 0 and gid of any value are squashed to the Anonymous_Uid and Anonymous_Gid
-                     alt_groups lists is discarded</span>
-              <br>
-              <span i18n><b>all_squash:</b> All users are squashed</span>
-            </cd-helper>
+            <span class="required"
+                  i18n>Squash</span>
+            <ng-container *ngTemplateOutlet="squashHelper"></ng-container>
           </label>
           <div class="cd-col-form-input">
             <select class="form-control custom-select"
@@ -364,6 +369,28 @@
         <cd-nfs-form-client [form]="nfsForm"
                             [clients]="clients"
                             #nfsClients>
+          <ng-template #squashHelper>
+            <cd-helper>
+              <ul class="squash-helper">
+                <li>
+                  <span class="squash-helper-item-value">no_root_squash: </span>
+                  <span i18n>No user id squashing is performed.</span>
+                </li>
+                <li>
+                  <span class="squash-helper-item-value">root_id_squash: </span>
+                  <span i18n>uid 0 and gid 0 are squashed to the Anonymous_Uid and Anonymous_Gid gid 0 in alt_groups lists is also squashed.</span>
+                </li>
+                <li>
+                  <span class="squash-helper-item-value">root_squash: </span>
+                  <span i18n>uid 0 and gid of any value are squashed to the Anonymous_Uid and Anonymous_Gid alt_groups lists is discarded.</span>
+                </li>
+                <li>
+                  <span class="squash-helper-item-value">all_squash: </span>
+                  <span i18n>All users are squashed.</span>
+                </li>
+              </ul>
+            </cd-helper>
+          </ng-template>
         </cd-nfs-form-client>
 
       </div>

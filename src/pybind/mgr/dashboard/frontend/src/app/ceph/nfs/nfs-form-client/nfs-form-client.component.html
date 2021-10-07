@@ -73,20 +73,8 @@
             <div class="form-group row">
               <label class="cd-col-form-label"
                      for="squash">
-                <ng-container i18n>Squash</ng-container>
-                <cd-helper>
-                  <span i18n><b>What kind of user id squashing is performed:</b></span>
-                  <br>
-                  <span i18n><b>no_root_squash:</b> No user id squashing is performed</span>
-                  <br>
-                  <span i18n><b>root_id_squash:</b> uid 0 and gid 0 are squashed to the Anonymous_Uid and Anonymous_Gid
-                                        gid 0 in alt_groups lists is also squashed</span>
-                  <br>
-                  <span i18n><b>root_squash:</b> uid 0 and gid of any value are squashed to the Anonymous_Uid and Anonymous_Gid
-                                            alt_groups lists is discarded</span>
-                  <br>
-                  <span i18n><b>all_squash:</b> All users are squashed</span>
-                </cd-helper>
+                <span i18n>Squash</span>
+                <ng-container *ngTemplateOutlet="squashHelperTpl"></ng-container>
               </label>
               <div class="cd-col-form-input">
                 <select class="form-control custom-select"
