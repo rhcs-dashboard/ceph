@@ -2,11 +2,12 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 
 import { NfsFSAbstractionLayer } from '~/app/ceph/nfs/models/nfs.fsal';
+import { ApiClient } from '~/app/shared/api/api-client';
 
 @Injectable({
   providedIn: 'root'
 })
-export class NfsService {
+export class NfsService extends ApiClient {
   apiPath = 'api/nfs-ganesha';
   uiApiPath = 'ui-api/nfs-ganesha';
 
@@ -40,7 +41,9 @@ export class NfsService {
 
   nfsSquash = ['no_root_squash', 'root_id_squash', 'root_squash', 'all_squash'];
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) {
+    super();
+  }
 
   list() {
     return this.http.get(`${this.apiPath}/export`);
@@ -51,21 +54,30 @@ export class NfsService {
   }
 
   create(nfs: any) {
-    return this.http.post(`${this.apiPath}/export`, nfs, { observe: 'response' });
+    return this.http.post(`${this.apiPath}/export`, nfs, {
+      headers: { Accept: this.getVersionHeaderValue(2, 0) },
+      observe: 'response'
+    });
   }
 
   update(clusterId: string, id: number, nfs: any) {
-    return this.http.put(`${this.apiPath}/export/${clusterId}/${id}`, nfs, { observe: 'response' });
+    return this.http.put(`${this.apiPath}/export/${clusterId}/${id}`, nfs, {
+      headers: { Accept: this.getVersionHeaderValue(2, 0) },
+      observe: 'response'
+    });
   }
 
   delete(clusterId: string, exportId: string) {
     return this.http.delete(`${this.apiPath}/export/${clusterId}/${exportId}`, {
+      headers: { Accept: this.getVersionHeaderValue(2, 0) },
       observe: 'response'
     });
   }
 
   listClusters() {
-    return this.http.get(`${this.apiPath}/cluster`);
+    return this.http.get(`${this.apiPath}/cluster`, {
+      headers: { Accept: this.getVersionHeaderValue(0, 1) }
+    });
   }
 
   lsDir(fs_name: string, root_dir: string) {

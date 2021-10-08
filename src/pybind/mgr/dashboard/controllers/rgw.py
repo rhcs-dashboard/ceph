@@ -12,9 +12,9 @@ from ..services.auth import AuthManager, JwtManager
 from ..services.ceph_service import CephService
 from ..services.rgw_client import NoRgwDaemonsException, RgwClient
 from ..tools import json_str_to_object, str_to_bool
-from ._version import APIVersion
 from . import APIDoc, APIRouter, BaseController, Endpoint, EndpointDoc, \
     ReadPermission, RESTController, allow_empty_body
+from ._version import APIVersion
 
 try:
     from typing import Any, Dict, List, Optional, Union

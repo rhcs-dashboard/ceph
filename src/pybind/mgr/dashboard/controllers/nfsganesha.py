@@ -16,6 +16,7 @@ from ..services.cephfs import CephFS
 from ..services.exception import DashboardException, serialize_dashboard_exception
 from . import APIDoc, APIRouter, BaseController, Endpoint, EndpointDoc, \
     ReadPermission, RESTController, Task, UIRouter
+from ._version import APIVersion
 
 logger = logging.getLogger('controllers.nfs')
 
@@ -108,6 +109,7 @@ class NFSGanesha(RESTController):
 @APIDoc(group="NFS-Ganesha")
 class NFSGaneshaCluster(RESTController):
     @ReadPermission
+    @RESTController.MethodMap(version=APIVersion.EXPERIMENTAL)
     def list(self):
         return mgr.remote('nfs', 'cluster_ls')
 
@@ -144,6 +146,7 @@ class NFSGaneshaExports(RESTController):
     @EndpointDoc("Creates a new NFS-Ganesha export",
                  parameters=CREATE_EXPORT_SCHEMA,
                  responses={201: EXPORT_SCHEMA})
+    @RESTController.MethodMap(version=APIVersion(2, 0))  # type: ignore
     def create(self, path, cluster_id, pseudo, access_type,
                squash, security_label, protocols, transports, fsal, clients) -> Dict[str, Any]:
 
@@ -188,6 +191,7 @@ class NFSGaneshaExports(RESTController):
                  parameters=dict(export_id=(int, "Export ID"),
                                  **CREATE_EXPORT_SCHEMA),
                  responses={200: EXPORT_SCHEMA})
+    @RESTController.MethodMap(version=APIVersion(2, 0))  # type: ignore
     def set(self, cluster_id, export_id, path, pseudo, access_type,
             squash, security_label, protocols, transports, fsal, clients) -> Dict[str, Any]:
 
@@ -221,6 +225,7 @@ class NFSGaneshaExports(RESTController):
                      'cluster_id': (str, 'Cluster identifier'),
                      'export_id': (int, "Export ID")
                  })
+    @RESTController.MethodMap(version=APIVersion(2, 0))  # type: ignore
     def delete(self, cluster_id, export_id):
         export_id = int(export_id)
 
