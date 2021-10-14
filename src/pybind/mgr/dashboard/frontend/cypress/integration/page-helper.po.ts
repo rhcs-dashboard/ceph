@@ -85,13 +85,6 @@ export abstract class PageHelper {
     return this.getTabs().its('length');
   }
 
-  clickTab(selector: string, name: string, tabName: string) {
-    this.getExpandCollapseElement(name).click();
-    cy.get(selector).within(() => {
-      this.getTab(tabName).click();
-    });
-  }
-
   /**
    * Helper method to navigate/click a tab inside the expanded table row.
    * @param selector The selector of the expanded table row.

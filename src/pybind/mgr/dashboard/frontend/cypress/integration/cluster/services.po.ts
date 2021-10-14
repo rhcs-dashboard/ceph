@@ -47,8 +47,8 @@ export class ServicesPageHelper extends PageHelper {
           break;
 
         case 'ingress':
-          this.selectOption('backend_service', 'rgw.rgw.foo');
-          cy.get('#service_id').should('have.value', 'rgw.rgw.foo');
+          this.selectOption('backend_service', 'rgw.foo');
+          cy.get('#service_id').should('have.value', 'rgw.foo');
           cy.get('#virtual_ip').type('192.168.20.1/24');
           cy.get('#frontend_port').type('8081');
           cy.get('#monitor_port').type('8082');
