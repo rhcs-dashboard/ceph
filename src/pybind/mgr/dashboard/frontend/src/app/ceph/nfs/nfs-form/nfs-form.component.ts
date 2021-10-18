@@ -1,5 +1,11 @@
 import { ChangeDetectorRef, Component, OnInit, ViewChild } from '@angular/core';
-import { FormControl, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  AsyncValidatorFn,
+  FormControl,
+  ValidationErrors,
+  Validators
+} from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import _ from 'lodash';
@@ -7,7 +13,7 @@ import { forkJoin, Observable, of } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged, map, mergeMap } from 'rxjs/operators';
 
 import { NfsFSAbstractionLayer } from '~/app/ceph/nfs/models/nfs.fsal';
-import { NfsService } from '~/app/shared/api/nfs.service';
+import { Directory, NfsService } from '~/app/shared/api/nfs.service';
 import { RgwBucketService } from '~/app/shared/api/rgw-bucket.service';
 import { RgwSiteService } from '~/app/shared/api/rgw-site.service';
 import { ActionLabelsI18n } from '~/app/shared/constants/app.constants';
@@ -40,8 +46,6 @@ export class NfsFormComponent extends CdForm implements OnInit {
   cluster_id: string = null;
   export_id: string = null;
 
-  isNewDirectory = false;
-
   allClusters: { cluster_id: string }[] = null;
   icons = Icons;
 
@@ -61,7 +65,7 @@ export class NfsFormComponent extends CdForm implements OnInit {
       debounceTime(200),
       distinctUntilChanged(),
       mergeMap((token: string) => this.getPathTypeahead(token)),
-      map((val: any) => val.paths)
+      map((val: string[]) => val)
     );
   };
 
@@ -309,15 +313,16 @@ export class NfsFormComponent extends CdForm implements OnInit {
   }
 
   setPathValidation() {
+    const path = this.nfsForm.get('path');
+    path.setValidators([Validators.required]);
     if (this.nfsForm.getValue('name') === 'RGW') {
-      this.nfsForm.get('path').setValidators([Validators.required]);
-      this.nfsForm
-        .get('path')
-        .setAsyncValidators([CdValidators.bucketExistence(true, this.rgwBucketService)]);
+      path.setAsyncValidators([CdValidators.bucketExistence(true, this.rgwBucketService)]);
     } else {
-      this.nfsForm
-        .get('path')
-        .setValidators([Validators.required, Validators.pattern('^/[^><|&()?]*$')]);
+      path.setAsyncValidators([this.pathExistence(true)]);
+    }
+
+    if (this.isEdit) {
+      path.markAsDirty();
     }
   }
 
@@ -340,33 +345,27 @@ export class NfsFormComponent extends CdForm implements OnInit {
     return '';
   }
 
-  getPathTypeahead(path: any) {
+  private getPathTypeahead(path: any) {
     if (!_.isString(path) || path === '/') {
       return of([]);
     }
 
     const fsName = this.nfsForm.getValue('fsal').fs_name;
-    return this.nfsService.lsDir(fsName, path);
+    return this.nfsService.lsDir(fsName, path).pipe(
+      map((result: Directory) =>
+        result.paths.filter((dirName: string) => dirName.toLowerCase().includes(path)).slice(0, 15)
+      ),
+      catchError(() => of([$localize`Error while retrieving paths.`]))
+    );
   }
 
   pathChangeHandler() {
     this.nfsForm.patchValue({
       pseudo: this.generatePseudo()
     });
-
-    const path = this.nfsForm.getValue('path');
-    this.getPathTypeahead(path).subscribe((res: any) => {
-      this.isNewDirectory = path !== '/' && res.paths.indexOf(path) === -1;
-    });
   }
 
-  bucketChangeHandler() {
-    this.nfsForm.patchValue({
-      pseudo: this.generatePseudo()
-    });
-  }
-
-  getBucketTypeahead(path: string): Observable<any> {
+  private getBucketTypeahead(path: string): Observable<any> {
     if (_.isString(path) && path !== '/' && path !== '') {
       return this.rgwBucketService.list().pipe(
         map((bucketList) =>
@@ -493,5 +492,23 @@ export class NfsFormComponent extends CdForm implements OnInit {
     delete requestModel.sec_label_xattr;
 
     return requestModel;
+  }
+
+  private pathExistence(requiredExistenceResult: boolean): AsyncValidatorFn {
+    return (control: AbstractControl): Observable<ValidationErrors | null> => {
+      if (control.pristine || !control.value) {
+        return of({ required: true });
+      }
+      const fsName = this.nfsForm.getValue('fsal').fs_name;
+      return this.nfsService
+        .lsDir(fsName, control.value)
+        .pipe(
+          map((directory: Directory) =>
+            directory.paths.includes(control.value) === requiredExistenceResult
+              ? null
+              : { pathNameNotAllowed: true }
+          )
+        );
+    };
   }
 }

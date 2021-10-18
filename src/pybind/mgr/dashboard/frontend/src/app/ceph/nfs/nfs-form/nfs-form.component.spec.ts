@@ -6,13 +6,15 @@ import { RouterTestingModule } from '@angular/router/testing';
 
 import { NgbTypeaheadModule } from '@ng-bootstrap/ng-bootstrap';
 import { ToastrModule } from 'ngx-toastr';
+import { Observable, of } from 'rxjs';
 
+import { NfsFormClientComponent } from '~/app/ceph/nfs/nfs-form-client/nfs-form-client.component';
+import { NfsFormComponent } from '~/app/ceph/nfs/nfs-form/nfs-form.component';
+import { Directory } from '~/app/shared/api/nfs.service';
 import { LoadingPanelComponent } from '~/app/shared/components/loading-panel/loading-panel.component';
 import { SharedModule } from '~/app/shared/shared.module';
 import { ActivatedRouteStub } from '~/testing/activated-route-stub';
 import { configureTestBed, RgwHelper } from '~/testing/unit-test-helper';
-import { NfsFormClientComponent } from '../nfs-form-client/nfs-form-client.component';
-import { NfsFormComponent } from './nfs-form.component';
 
 describe('NfsFormComponent', () => {
   let component: NfsFormComponent;
@@ -165,6 +167,43 @@ describe('NfsFormComponent', () => {
         squash: 'no_root_squash',
         transports: ['TCP', 'UDP']
       });
+    });
+  });
+
+  describe('pathExistence', () => {
+    beforeEach(() => {
+      component['nfsService']['lsDir'] = jest.fn(
+        (): Observable<Directory> => of({ paths: ['/path1'] })
+      );
+      component.nfsForm.get('name').setValue('CEPH');
+      component.setPathValidation();
+    });
+
+    const testValidator = (pathName: string, valid: boolean, expectedError?: string) => {
+      const path = component.nfsForm.get('path');
+      path.setValue(pathName);
+      path.markAsDirty();
+      path.updateValueAndValidity();
+
+      if (valid) {
+        expect(path.errors).toBe(null);
+      } else {
+        expect(path.hasError(expectedError)).toBeTruthy();
+      }
+    };
+
+    it('path cannot be empty', () => {
+      testValidator('', false, 'required');
+    });
+
+    it('path that does not exist should be invalid', () => {
+      testValidator('/path2', false, 'pathNameNotAllowed');
+      expect(component['nfsService']['lsDir']).toHaveBeenCalledTimes(1);
+    });
+
+    it('path that exists should be valid', () => {
+      testValidator('/path1', true);
+      expect(component['nfsService']['lsDir']).toHaveBeenCalledTimes(1);
     });
   });
 });

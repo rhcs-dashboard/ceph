@@ -1,8 +1,14 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 
+import { Observable } from 'rxjs';
+
 import { NfsFSAbstractionLayer } from '~/app/ceph/nfs/models/nfs.fsal';
 import { ApiClient } from '~/app/shared/api/api-client';
+
+export interface Directory {
+  paths: string[];
+}
 
 @Injectable({
   providedIn: 'root'
@@ -80,8 +86,8 @@ export class NfsService extends ApiClient {
     });
   }
 
-  lsDir(fs_name: string, root_dir: string) {
-    return this.http.get(`${this.uiApiPath}/lsdir/${fs_name}?root_dir=${root_dir}`);
+  lsDir(fs_name: string, root_dir: string): Observable<Directory> {
+    return this.http.get<Directory>(`${this.uiApiPath}/lsdir/${fs_name}?root_dir=${root_dir}`);
   }
 
   fsals() {

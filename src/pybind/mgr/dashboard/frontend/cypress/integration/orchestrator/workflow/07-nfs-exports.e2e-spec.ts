@@ -72,7 +72,7 @@ describe('nfsExport page', () => {
     });
 
     it('should delete exports and bucket', () => {
-      nfsExport.delete(rgwPseudo);
+      nfsExport.delete(editPseudo);
 
       buckets.navigateTo();
       buckets.delete(bucketName);

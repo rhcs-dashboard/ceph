@@ -174,8 +174,8 @@
                   *ngIf="nfsForm.showError('path', formDir, 'pattern')"
                   i18n>Path need to start with a '/' and can be followed by a word</span>
             <span class="form-text text-muted"
-                  *ngIf="isNewDirectory && !nfsForm.showError('path', formDir)"
-                  i18n>New directory will be created</span>
+                  *ngIf="nfsForm.showError('path', formDir, 'pathNameNotAllowed')"
+                  i18n>The path does not exist.</span>
           </div>
         </div>
 
@@ -194,9 +194,7 @@
                    id="path"
                    data-testid="rgw_path"
                    formControlName="path"
-                   [ngbTypeahead]="bucketDataSource"
-                   (selectItem)="bucketChangeHandler()"
-                   (blur)="bucketChangeHandler()">
+                   [ngbTypeahead]="bucketDataSource">
 
             <span class="invalid-feedback"
                   *ngIf="nfsForm.showError('path', formDir, 'required')"
