@@ -1,0 +1,74 @@
+- project:
+    name: ceph-dashboard-cephadm-e2e-nightly
+    ceph_branch:
+      - master
+      - pacific
+      - octopus
+    test_suite:
+      - e2e:
+          test_suite_script: run-cephadm-e2e-tests.sh
+          test_deps_script: install-cephadm-e2e-deps.sh
+    jobs:
+      - '{name}-{ceph_branch}-{test_suite}'
+
+- job-template:
+    name: '{name}-{ceph_branch}-{test_suite}'
+    display-name: '{name}-{ceph_branch}-{test_suite}'
+    project-type: freestyle
+    defaults: global
+    concurrent: true
+    node: huge && bionic && x86_64
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - build-discarder:
+          days-to-keep: 15
+          num-to-keep: 300
+          artifact-days-to-keep: -1
+          artifact-num-to-keep: -1
+      - github:
+          url: https://github.com/ceph/ceph/
+      - rebuild:
+          auto-rebuild: true
+      - inject:
+          properties-content: |
+            TERM=xterm
+
+    triggers:
+      - timed: '@midnight'
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph.git
+          branches:
+            - '{ceph_branch}'
+          browser: auto
+          timeout: 20
+          skip-tag: true
+          shallow-clone: true
+          wipe-workspace: true
+
+    builders:
+      - shell:
+          !include-raw:
+            - ../../../scripts/dashboard/install-e2e-test-deps.sh
+            -  ../../../scripts/dashboard/{test_deps_script}
+      - shell: |
+          export CYPRESS_ARGS="--record --key $CYPRESS_RECORD_KEY --tag $ghprbTargetBranch" COMMIT_INFO_MESSAGE="$ghprbPullTitle"
+          cd src/pybind/mgr/dashboard/ci/cephadm; timeout 7200 ./{test_suite_script}
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
+      - credentials-binding:
+          - text:
+              credential-id: cd-cypress-record-key
+              variable: CYPRESS_RECORD_KEY
+      - ansicolor
+
+    publishers:
+      - email:
+          recipients: ceph-qa@ceph.io
