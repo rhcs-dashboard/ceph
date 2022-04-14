@@ -42,6 +42,8 @@ from urllib.error import HTTPError, URLError
 from urllib.request import urlopen, Request
 from pathlib import Path
 
+from humanize import deactivate
+
 FuncT = TypeVar('FuncT', bound=Callable)
 
 # Default container images -----------------------------------------------------
@@ -323,6 +325,41 @@ class UnauthorizedRegistryError(Error):
 
 ##################################
 
+class CephadmDaemon:
+    @classmethod
+    def get_registered_types(cls):
+        return [daemon.daemon_type for daemon in cls.__subclasses__()]
+
+    def __init_subclass__(cls, /, daemon_type, default_image, entrypoint=None, required_files=None, **kwargs):
+        super().__init_subclass__(**kwargs)
+        cls.type = daemon_type
+        cls.default_image = default_image
+        cls.entrypoint = entrypoint
+        cls.required_files = required_files
+
+    def __init__(self,
+                 ctx: CephadmContext,
+                 fsid: str,
+                 daemon_id: Union[int, str],
+                 **kwargs
+                 ) -> None:
+        self.ctx = ctx
+        self.fsid = fsid
+        self.daemon_id = daemon_id
+        self._kwargs = kwargs
+        self.post_init()
+        self.validate()
+
+    def post_init(self) -> None:
+        pass
+
+    def validate(self) -> None:
+        pass
+
+
+
+##################################
+
 
 class Ceph(object):
     daemons = ('mon', 'mgr', 'mds', 'osd', 'rgw', 'rbd-mirror',
@@ -344,11 +381,9 @@ class OSD(object):
 ##################################
 
 
-class SNMPGateway:
+class SNMPGateway(CephadmDaemon, 'snmp-gateway', default_image = DEFAULT_SNMP_GATEWAY_IMAGE):
     """Defines an SNMP gateway between Prometheus and SNMP monitoring Frameworks"""
-    daemon_type = 'snmp-gateway'
     SUPPORTED_VERSIONS = ['V2c', 'V3']
-    default_image = DEFAULT_SNMP_GATEWAY_IMAGE
     DEFAULT_PORT = 9464
     env_filename = 'snmp-gateway.conf'
 
@@ -617,41 +652,26 @@ def populate_files(config_dir, config_files, uid, gid):
             f.write(config_content)
 
 
-class NFSGanesha(object):
+class NFSGanesha(CephadmDaemon, 'nfs',
+                 entrypoint = '/usr/bin/ganesha.nfsd',
+                 required_files = ['ganesha.conf']):
     """Defines a NFS-Ganesha container"""
-
-    daemon_type = 'nfs'
-    entrypoint = '/usr/bin/ganesha.nfsd'
     daemon_args = ['-F', '-L', 'STDERR']
-
-    required_files = ['ganesha.conf']
-
     port_map = {
         'nfs': 2049,
     }
 
-    def __init__(self,
-                 ctx,
-                 fsid,
-                 daemon_id,
-                 config_json,
-                 image=DEFAULT_IMAGE):
-        # type: (CephadmContext, str, Union[int, str], Dict, str) -> None
-        self.ctx = ctx
-        self.fsid = fsid
-        self.daemon_id = daemon_id
-        self.image = image
+    def post_init(self):
+        self.image = dict_get(self._kwargs, 'image', DEFAULT_IMAGE)
 
         # config-json options
+        config_json = dict_get(self._kwargs, 'config_json', require=True)
         self.pool = dict_get(config_json, 'pool', require=True)
         self.namespace = dict_get(config_json, 'namespace')
         self.userid = dict_get(config_json, 'userid')
         self.extra_args = dict_get(config_json, 'extra_args', [])
         self.files = dict_get(config_json, 'files', {})
         self.rgw = dict_get(config_json, 'rgw', {})
-
-        # validate the supplied args
-        self.validate()
 
     @classmethod
     def init(cls, ctx, fsid, daemon_id):
@@ -756,31 +776,16 @@ class NFSGanesha(object):
 ##################################
 
 
-class CephIscsi(object):
+class CephIscsi(CephadmDaemon, 'iscsi',
+                entrypoint = '/usr/bin/rbd-target-api',
+                required_files = ['iscsi-gateway.cfg']):
     """Defines a Ceph-Iscsi container"""
-
-    daemon_type = 'iscsi'
-    entrypoint = '/usr/bin/rbd-target-api'
-
-    required_files = ['iscsi-gateway.cfg']
-
-    def __init__(self,
-                 ctx,
-                 fsid,
-                 daemon_id,
-                 config_json,
-                 image=DEFAULT_IMAGE):
-        # type: (CephadmContext, str, Union[int, str], Dict, str) -> None
-        self.ctx = ctx
-        self.fsid = fsid
-        self.daemon_id = daemon_id
-        self.image = image
+    def post_init(self):
+        self.image = dict_get(self._kwargs, 'image', DEFAULT_IMAGE)
 
         # config-json options
+        config_json = dict_get(self._kwargs, 'config_json', require=True)
         self.files = dict_get(config_json, 'files', {})
-
-        # validate the supplied args
-        self.validate()
 
     @classmethod
     def init(cls, ctx, fsid, daemon_id):
@@ -888,7 +893,7 @@ class CephIscsi(object):
 ##################################
 
 
-class HAproxy(object):
+class HAproxy(CephadmDaemon):
     """Defines an HAproxy container"""
     daemon_type = 'haproxy'
     required_files = ['haproxy.cfg']
@@ -975,7 +980,7 @@ class HAproxy(object):
 ##################################
 
 
-class Keepalived(object):
+class Keepalived(CephadmDaemon):
     """Defines an Keepalived container"""
     daemon_type = 'keepalived'
     required_files = ['keepalived.conf']
@@ -1071,7 +1076,7 @@ class Keepalived(object):
 ##################################
 
 
-class CustomContainer(object):
+class CustomContainer(CephadmDaemon):
     """Defines a custom container"""
     daemon_type = 'container'
 
@@ -1235,17 +1240,11 @@ def dict_get_join(d: Dict, key: str) -> Any:
 ##################################
 
 
-def get_supported_daemons():
-    # type: () -> List[str]
+def get_supported_daemons() -> List[str]:
     supported_daemons = list(Ceph.daemons)
     supported_daemons.extend(Monitoring.components)
-    supported_daemons.append(NFSGanesha.daemon_type)
-    supported_daemons.append(CephIscsi.daemon_type)
-    supported_daemons.append(CustomContainer.daemon_type)
-    supported_daemons.append(HAproxy.daemon_type)
-    supported_daemons.append(Keepalived.daemon_type)
-    supported_daemons.append(CephadmAgent.daemon_type)
-    supported_daemons.append(SNMPGateway.daemon_type)
+    supported_daemons.extend(CephadmDaemon.get_registered_types())
+
     assert len(supported_daemons) == len(set(supported_daemons))
     return supported_daemons
 
@@ -3934,7 +3933,7 @@ class MgrListener(Thread):
             self.agent.wakeup()
 
 
-class CephadmAgent():
+class CephadmAgent(CephadmDaemon):
 
     daemon_type = 'agent'
     default_port = 8498
