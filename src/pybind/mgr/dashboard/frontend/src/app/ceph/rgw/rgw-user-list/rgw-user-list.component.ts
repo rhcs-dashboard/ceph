@@ -111,6 +111,7 @@ export class RgwUserListComponent extends ListWithDetails implements OnInit {
       icon: Icons.add,
       routerLink: () => this.urlBuilder.getCreate(),
       name: this.actionLabels.CREATE,
+      disable: () => this.selection.hasSelection,
       canBePrimary: (selection: CdTableSelection) => !selection.hasSelection
     };
     const editAction: CdTableAction = {
