@@ -40,10 +40,31 @@
              Text
     </cd-card>
 
-    <cd-card title="Capacity utilization"
+    <cd-card title="Cluster utilization"
              i18n-title
              class="col-sm-6 px-3">
-             Text
+      <cd-dashboard-time-selector (selectedTime)="getPrometheusData($event)">
+      </cd-dashboard-time-selector>
+      <cd-dashboard-area-chart chartTitle="Used Capacity"
+                               dataUnits="TB"
+                               [data]="usedCapacity$">
+      </cd-dashboard-area-chart>
+      <cd-dashboard-area-chart chartTitle="IOPS"
+                               dataUnits="k"
+                               [data]="iops$">
+      </cd-dashboard-area-chart>
+      <cd-dashboard-area-chart chartTitle="Latency"
+                               dataUnits="ms"
+                               [data]="latency$">
+      </cd-dashboard-area-chart>
+      <cd-dashboard-area-chart chartTitle="Client Throughput"
+                               dataUnits="GB/s"
+                               [data]="clientThroughput$">
+      </cd-dashboard-area-chart>
+      <cd-dashboard-area-chart chartTitle="Recovery Throughput"
+                               dataUnits="GB/s"
+                               [data]="recoveryThroughput$">
+      </cd-dashboard-area-chart>
     </cd-card>
 
     <cd-card title="Events"
