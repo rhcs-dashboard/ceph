@@ -10,7 +10,9 @@ import { SimplebarAngularModule } from 'simplebar-angular';
 import { SharedModule } from '~/app/shared/shared.module';
 import { CephSharedModule } from '../shared/ceph-shared.module';
 import { CardComponent } from './card/card.component';
+import { DashboardAreaChartComponent } from './dashboard-area-chart/dashboard-area-chart.component';
 import { DashboardPieComponent } from './dashboard-pie/dashboard-pie.component';
+import { DashboardTimeSelectorComponent } from './dashboard-time-selector/dashboard-time-selector.component';
 import { DashboardComponent } from './dashboard/dashboard.component';
 
 @NgModule({
@@ -27,6 +29,12 @@ import { DashboardComponent } from './dashboard/dashboard.component';
     SimplebarAngularModule
   ],
 
-  declarations: [DashboardComponent, CardComponent, DashboardPieComponent]
+  declarations: [
+    DashboardComponent,
+    CardComponent,
+    DashboardPieComponent,
+    DashboardAreaChartComponent,
+    DashboardTimeSelectorComponent
+  ]
 })
 export class NewDashboardModule {}
