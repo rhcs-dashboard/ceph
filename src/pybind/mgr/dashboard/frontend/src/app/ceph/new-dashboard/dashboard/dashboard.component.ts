@@ -224,7 +224,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  private timeToDate(secondsAgo: number, step: number = 15): any {
+  private timeToDate(secondsAgo: number, step: number = 30): any {
     const date: number = moment().unix() - secondsAgo;
     const dateNow: number = moment().unix();
     const formattedDate: any = {
@@ -236,7 +236,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private updateTimeStamp(selectedTime: any): any {
-    console.log(selectedTime);
     let formattedDate = {};
     const date: number = selectedTime['start'] + this.timerTime / 1000;
     const dateNow: number = selectedTime['end'] + this.timerTime / 1000;

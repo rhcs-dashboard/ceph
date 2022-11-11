@@ -64,7 +64,7 @@ export class DashboardTimeSelectorComponent {
     this.selectedTime.emit(this.time);
   }
 
-  private timeToDate(secondsAgo: number, step: number = 15): any {
+  private timeToDate(secondsAgo: number, step: number = 30): any {
     const date: number = moment().unix() - secondsAgo;
     const dateNow: number = moment().unix();
     const formattedDate: any = {

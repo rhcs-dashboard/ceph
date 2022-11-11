@@ -29,7 +29,7 @@ export class DashboardAreaChartComponent implements OnInit, OnChanges {
       },
       {
         data: [],
-        backgroundColor: this.cssHelper.propertyValue('chart-color-orange'),
+        backgroundColor: this.cssHelper.propertyValue('chart-color-yellow'),
         borderColor: this.cssHelper.propertyValue('chart-color-orange')
       }
     ]
@@ -52,8 +52,8 @@ export class DashboardAreaChartComponent implements OnInit, OnChanges {
       displayColors: false,
       backgroundColor: this.cssHelper.propertyValue('chart-color-tooltip-background'),
       callbacks: {
-        title: function (): any {
-          return null;
+        title: function (tooltipItem: any): any {
+          return tooltipItem[0].xLabel;
         }
       }
     },
@@ -68,6 +68,9 @@ export class DashboardAreaChartComponent implements OnInit, OnChanges {
           type: 'time',
           gridLines: {
             display: false
+          },
+          time: {
+            tooltipFormat:'YYYY/MM/DD hh:mm:ss'
           }
         }
       ],
