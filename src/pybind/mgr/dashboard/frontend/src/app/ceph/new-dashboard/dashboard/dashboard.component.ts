@@ -53,8 +53,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
   usedCapacity: any;
   ips: any;
   ops: any;
-  latency: any;
-  clientThroughput: any;
+  readLatency: any;
+  writeLatency: any;
+  readClientThroughput: any;
+  writeClientThroughput: any;
   recoveryThroughput: any;
   timerGetPrometheusDataSub: Subscription;
   timerTime = 30000;
@@ -185,27 +187,53 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
       this.prometheusService
         .getPrometheusData({
-          params: Promqls.LATENCY,
+          params: Promqls.READ_LATENCY,
           start: selectedTime['start'],
           end: selectedTime['end'],
           step: selectedTime['step']
         })
         .subscribe((data: any) => {
           if (data.result.length) {
-            this.latency = data.result[0].values;
+            this.readLatency = data.result[0].values;
           }
         });
 
       this.prometheusService
         .getPrometheusData({
-          params: Promqls.CLIENTTHROUGHPUT,
+          params: Promqls.WRITE_LATENCY,
           start: selectedTime['start'],
           end: selectedTime['end'],
           step: selectedTime['step']
         })
         .subscribe((data: any) => {
           if (data.result.length) {
-            this.clientThroughput = data.result[0].values;
+            this.writeLatency = data.result[0].values;
+          }
+        });
+
+      this.prometheusService
+        .getPrometheusData({
+          params: Promqls.READCLIENTTHROUGHPUT,
+          start: selectedTime['start'],
+          end: selectedTime['end'],
+          step: selectedTime['step']
+        })
+        .subscribe((data: any) => {
+          if (data.result.length) {
+            this.readClientThroughput = data.result[0].values;
+          }
+        });
+
+      this.prometheusService
+        .getPrometheusData({
+          params: Promqls.WRITECLIENTTHROUGHPUT,
+          start: selectedTime['start'],
+          end: selectedTime['end'],
+          step: selectedTime['step']
+        })
+        .subscribe((data: any) => {
+          if (data.result.length) {
+            this.writeClientThroughput = data.result[0].values;
           }
         });
 

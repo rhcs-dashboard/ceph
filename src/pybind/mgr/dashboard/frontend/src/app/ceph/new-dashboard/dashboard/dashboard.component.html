@@ -106,24 +106,34 @@
         </cd-dashboard-time-selector>
         <cd-dashboard-area-chart chartTitle="Used Capacity"
                                  dataUnits="TB"
-                                 [data]="usedCapacity">
-        </cd-dashboard-area-chart>
+                                 [data]="usedCapacity"
+                                 [label1]="'Used Capacity'">
+        </cd-dashboard-area-chart><br><br>
         <cd-dashboard-area-chart chartTitle="IOPS"
                                  dataUnits="k"
                                  [data]="ips"
-                                 [data2]="ops">
-        </cd-dashboard-area-chart>
+                                 [data2]="ops"
+                                 [label1]="'ips'"
+                                 [label2]="'ops'">
+        </cd-dashboard-area-chart><br><br>
         <cd-dashboard-area-chart chartTitle="Latency"
                                  dataUnits="ms"
-                                 [data]="latency">
-        </cd-dashboard-area-chart>
+                                 [data]="readLatency"
+                                 [data2]="writeLatency"
+                                 [label1]="'Apply Latency'"
+                                 [label2]="'Commit Latency'">
+        </cd-dashboard-area-chart><br><br>
         <cd-dashboard-area-chart chartTitle="Client Throughput"
                                  dataUnits="GB/s"
-                                 [data]="clientThroughput">
-        </cd-dashboard-area-chart>
+                                 [data]="readClientThroughput"
+                                 [data2]="writeClientThroughput"
+                                 [label1]="'Pool Read Bytes'"
+                                 [label2]="'Pool Write Bytes'">
+        </cd-dashboard-area-chart><br><br>
         <cd-dashboard-area-chart chartTitle="Recovery Throughput"
                                  dataUnits="GB/s"
-                                 [data]="recoveryThroughput">
+                                 [data]="recoveryThroughput"
+                                 [label1]="'OSD Recovery Bytes'">
         </cd-dashboard-area-chart>
       </div>
     </cd-card>

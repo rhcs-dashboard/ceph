@@ -17,43 +17,61 @@ export class DashboardAreaChartComponent implements OnInit, OnChanges {
   data: any;
   @Input()
   data2?: any;
+  @Input()
+  label1: any;
+  @Input()
+  label2?: any;
 
   currentData: number;
 
   chartData: any = {
     dataset: [
       {
+        label: '',
         data: [{ x: 0, y: 0 }],
         backgroundColor: this.cssHelper.propertyValue('chart-color-translucent-blue'),
-        borderColor: this.cssHelper.propertyValue('chart-color-strong-blue')
+        borderColor: this.cssHelper.propertyValue('chart-color-strong-blue'),
+        fill: true,
+        lineTension: 0,
       },
       {
+        label: '',
         data: [],
         backgroundColor: this.cssHelper.propertyValue('chart-color-yellow'),
-        borderColor: this.cssHelper.propertyValue('chart-color-orange')
+        borderColor: this.cssHelper.propertyValue('chart-color-orange'),
+        fill: true,   
+        lineTension: 0,
       }
     ]
   };
 
+  
+
   options: any = {
     responsive: true,
     maintainAspectRatio: false,
+    legend: {
+      display: false,
+      position: "bottom",
+      labels: {
+        fontColor: "#333",
+        fontSize: 4
+      }
+    },
     elements: {
       point: {
         radius: 0
       }
     },
-    legend: {
-      display: false
-    },
     tooltips: {
       mode: 'nearest',
+      yAlign: 100,
       intersect: false,
-      displayColors: false,
+      displayColors: true,
       backgroundColor: this.cssHelper.propertyValue('chart-color-tooltip-background'),
       callbacks: {
         title: function (tooltipItem: any): any {
-          return tooltipItem[0].xLabel;
+          return tooltipItem[0].yLabel + ' ' + tooltipItem[0].xLabel;
         }
       }
     },
@@ -74,14 +92,12 @@ export class DashboardAreaChartComponent implements OnInit, OnChanges {
           }
         }
       ],
-      yAxes: [
+      y: [
         {
           gridLines: {
             display: false
           },
           ticks: {
-            beginAtZero: true,
-            maxTicksLimit: 3,
             callback: (value: any) => {
               if (value === 0) {
                 return null;
@@ -104,9 +120,11 @@ export class DashboardAreaChartComponent implements OnInit, OnChanges {
   ngOnChanges(): void {
     if (this.data) {
       this.chartData.dataset[0].data = this.formatData(this.data);
+      this.chartData.dataset[0].label = this.label1;
     }
     if (this.data2) {
       this.chartData.dataset[1].data = this.formatData(this.data2);
+      this.chartData.dataset[1].label = this.label2;
     }
     this.currentData = Number(
       this.chartData.dataset[0].data[this.chartData.dataset[0].data.length - 1].y
