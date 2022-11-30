@@ -1,0 +1,103 @@
+@use '../styles/defaults/bootstrap-defaults' as vv;
+
+@import '~carbon-components/scss/globals/scss/styles';
+
+$chart-color-blue: #0f62fe;
+$chart-color-green: #198038;
+$chart-color-yellow: #f1c21b;
+$chart-color-orange: #ff832b;
+$chart-color-red: #da1e28;
+$bg-color: #f4f4f4;
+$bg-text-color: #161616;
+
+:root {
+  --chart-color-blue: #0f62fe;
+  --chart-color-green: #198038;
+  --chart-color-yellow: #f1c21b;
+  --chart-color-orange: #ff832b;
+  --chart-color-red: #da1e28;
+  --chart-color-gray: #f4f4f4;
+}
+
+cd-workbench-layout {
+  .dashboard {
+    background-color: $bg-color !important;
+    color: $bg-text-color !important;
+  }
+}
+
+cd-dashboard {
+  cd-info-card {
+    .shadow-sm {
+      border-radius: 0;
+      box-shadow: none !important;
+    }
+
+    .text-center {
+      margin-right: auto;
+      text-align: left !important;
+    }
+  }
+
+  cd-info-group {
+    .info-group-title {
+      font-size: 1rem !important;
+      font-weight: 600;
+      margin-left: 2.2rem !important;
+    }
+
+    h4.card-title {
+      font-size: 1rem !important;
+      margin-left: 1.3rem !important;
+    }
+
+    .card-text {
+      font-size: 0.9rem !important;
+      font-weight: normal !important;
+    }
+
+    .card-text-line-break::after {
+      content: '\a\a' !important;
+    }
+  }
+}
+
+cd-create-cluster {
+  h3 {
+    @include carbon--type-style('productive-heading-04');
+    position: relative;
+    visibility: hidden;
+
+    strong {
+      display: none;
+    }
+  }
+
+  h3::after {
+    color: $bg-text-color !important;
+    content: 'Welcome to IBM Storage Ceph Dashboard';
+    font-size: unset !important;
+    margin-left: -124%;
+    position: absolute;
+    visibility: visible;
+    width: 150%;
+  }
+
+  .blank-page {
+    img {
+      background: none !important;
+      content: url('../assets/StorageCeph.svg') !important;
+      height: 96px !important;
+      width: 96px !important;
+    }
+  }
+
+  .btn {
+    border-radius: 0;
+  }
+
+  .btn-accent {
+    background-color: $chart-color-blue !important;
+    color: vv.$white !important;
+  }
+}

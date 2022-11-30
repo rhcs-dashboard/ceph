@@ -445,13 +445,13 @@ cd-dashboard {
 
     button::after {
       border: 0;
-      content: '\f057';
       color: vv.$white;
+      content: '\f057';
       font-family: 'ForkAwesome';
       font-size: 2rem;
       position: inherit;
-      visibility: initial;
       right: 0;
+      visibility: initial;
     }
   }
 
