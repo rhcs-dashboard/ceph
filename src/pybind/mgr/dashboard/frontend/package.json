@@ -111,7 +111,7 @@
     "@angular/cli": "12.2.16",
     "@angular/compiler-cli": "12.2.16",
     "@angular/language-service": "12.2.16",
-    "@applitools/eyes-cypress": "3.22.5",
+    "@applitools/eyes-cypress": "3.27.8",
     "@compodoc/compodoc": "1.1.18",
     "@cypress/browserify-preprocessor": "3.0.2",
     "@grafana/e2e": "8.4.5",
