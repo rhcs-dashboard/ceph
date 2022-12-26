@@ -466,7 +466,7 @@ cd-dashboard {
     }
 
     strong {
-      font-size: larger !important;
+      font-size: larger;
     }
   }
 
@@ -475,18 +475,18 @@ cd-dashboard {
   }
 
   .product-versions {
-    margin-bottom: 0.4rem !important;
+    margin-bottom: 0.4rem;
 
     strong {
-      font-size: medium !important;
-      margin-right: 16.7rem !important;
+      font-size: medium;
+      margin-right: 17rem !important;
     }
   }
 
   .modal-footer {
     background-color: transparent !important;
     font-size: 0.8rem !important;
-    margin-top: 5rem !important;
+    margin-top: 5rem;
   }
 }
 

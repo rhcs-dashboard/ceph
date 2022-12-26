@@ -8,7 +8,9 @@ $chart-color-yellow: #f1c21b;
 $chart-color-orange: #ff832b;
 $chart-color-red: #da1e28;
 $bg-color: #f4f4f4;
+$bg-color-dark: #161616;
 $bg-text-color: #161616;
+$text-secondary: #c6c6c6;
 
 :root {
   --chart-color-blue: #0f62fe;
@@ -23,6 +25,124 @@ cd-workbench-layout {
   .dashboard {
     background-color: $bg-color !important;
     color: $bg-text-color !important;
+  }
+}
+
+// About modal branding
+cd-about {
+  .about-container {
+    background: none !important;
+    background-color: $bg-color-dark !important;
+    height: 34rem !important;
+    margin: 0 !important;
+    width: 50rem !important;
+  }
+
+  .modal-header {
+    padding-bottom: 0 !important;
+    padding-top: 0.5rem !important;
+  }
+
+  .modal-body {
+    padding-left: 40px !important;
+
+    img {
+      background: url('../assets/StorageCeph_dark_theme.svg') no-repeat !important;
+      height: 96px !important;
+      width: 96px !important;
+    }
+  }
+
+  button {
+    font-size: unset !important;
+  }
+
+  .close {
+    font-size: unset !important;
+    font-weight: 100 !important;
+    text-shadow: none !important;
+  }
+
+  button::after {
+    content: '\f00d' !important;
+    font-size: 1rem !important;
+  }
+
+  h3 {
+    @include carbon--type-style('productive-heading-04');
+    position: relative;
+    visibility: hidden;
+
+    strong {
+      display: none;
+    }
+  }
+
+  h3::after {
+    content: 'IBM Storage Ceph';
+    font-size: unset !important;
+    position: absolute;
+    visibility: visible;
+    width: 150%;
+  }
+
+  .product-versions {
+    @include carbon--type-style('body-short-02');
+    color: $text-secondary !important;
+    margin-bottom: 1rem !important;
+
+    strong {
+      font-size: unset !important;
+      font-weight: 400 !important;
+    }
+
+    span {
+      margin-left: -16.3rem !important;
+    }
+  }
+
+  dt {
+    @include carbon--type-style('body-short-02');
+    color: $text-secondary !important;
+    font-weight: 300 !important;
+    line-height: 1.5;
+  }
+
+  dd {
+    @include carbon--type-style('body-short-02');
+    color: $text-secondary !important;
+    font-weight: 300 !important;
+    line-height: 1.5;
+  }
+
+  .modal-footer {
+    color: $text-secondary !important;
+    margin-top: 0 !important;
+    padding: 0 !important;
+
+    .text-left {
+      position: relative;
+      visibility: hidden;
+    }
+
+    // IBM Licence text
+    .text-left::after {
+      content: 'Licenced materials - Property of IBM Corp. and IBM Storage Ceph are trademark or registered trademarks of International Business Machine.';
+      line-height: 1rem;
+      margin-left: -89.8%;
+      position: absolute;
+      visibility: visible;
+      width: 60%;
+    }
+  }
+
+  // IBM Copyright text
+  .modal-footer::after {
+    content: 'Copyright IBM corporation 1994, 2022';
+    margin-left: 40px;
+    margin-top: 3rem;
+    position: absolute;
+    visibility: visible;
   }
 }
 
