@@ -1,4 +1,5 @@
-@use '../styles/defaults/bootstrap-defaults' as vv;
+@use '/src/ibm/variables' as vv;
+@use '@carbon/colors' as colors;
 
 @import '~carbon-components/scss/globals/scss/styles';
 
@@ -283,4 +284,228 @@ cd-create-cluster {
     background-color: $chart-color-blue !important;
     color: vv.$white !important;
   }
+}
+
+.form-control {
+  background-color: $field-01 !important;
+  border-bottom: $ui-04;
+  color: $text-01 !important;
+  font-size: 0.875rem;
+
+  &:focus {
+    border: 2px solid $focus !important;
+    box-shadow: 0.5px rgba($focus, 0.5) !important;
+    outline: $focus;
+  }
+
+  &:disabled {
+    background: $disabled-01;
+    color: $disabled-02;
+  }
+
+  &.is-invalid {
+    border: 2px solid $support-01 !important;
+    box-shadow: 0.5px rgba($support-01, 0.5) !important;
+  }
+}
+
+.form-control::placeholder {
+  color: $text-03;
+}
+
+.placeholder {
+  font-size: 0.75rem;
+}
+
+.cd-navbar-top {
+  a img {
+    background: url('/assets/Ceph_Ceph_Logo_with_text_white.svg') no-repeat;
+    background-size: 100px;
+    display: inline-block;
+    padding-right: 130px;
+    padding-top: 36px;
+    width: 0;
+  }
+}
+
+.about-container {
+  background: none;
+
+  .modal-body {
+    img {
+      background: url('/assets/Logo-RedHat-A-Reverse-RGB.svg') no-repeat;
+      background-size: 150px;
+      display: inline-block;
+      padding-right: 150px;
+      padding-top: px;
+      width: 0;
+    }
+  }
+}
+
+.login {
+  background-color: lighten(vv.$overlay, 50) !important;
+  background-image: url('../assets/ibm/IBMCephLoginBG.png') !important;
+  background-position: center;
+  background-size: cover;
+
+  .container {
+    margin: 0;
+    max-width: 825px;
+    padding: 0;
+
+    .branding-info {
+      display: none !important;
+    }
+
+    .form-title-size {
+      @each $name, $value in $heading-03 {
+        $name: $value;
+      }
+    }
+
+    form:first-child::before {
+      @extend .form-title-size;
+      color: vv.$primary;
+      content: 'Log in \A \A' !important;
+      height: 40px;
+      margin-left: 1rem !important;
+      margin-top: 16px !important;
+      white-space: pre-wrap;
+    }
+
+    .login-form {
+      padding: 0;
+
+      cd-login {
+        .container {
+          background-color: colors.$white;
+          margin-left: calc(50vw - (100% / 2));
+          margin-top: calc(50vh - (100% / 2));
+
+          .pl-4 {
+            padding-left: 1rem !important;
+          }
+
+          form {
+            padding: 0;
+            // form title is inside before tag so this is the only way to add margin on top
+            padding-top: 1rem;
+
+            .form-group {
+              .form-group-append {
+                display: flex;
+                flex-direction: row;
+                justify-content: flex-end;
+                margin-left: calc(100% - 3rem) !important;
+                margin-top: 2.3rem;
+                position: absolute;
+
+                .btn-password {
+                  background-color: transparent !important;
+                  border-color: transparent !important;
+                  box-shadow: none !important;
+                  color: vv.$primary;
+                }
+              }
+
+              label {
+                font-weight: normal;
+              }
+            }
+
+            .login-buttons {
+              height: 64px;
+            }
+
+            .btn-accent {
+              border-radius: 0 !important;
+              color: colors.$gray-60;
+              height: 100%;
+              margin: 0;
+              padding: 1rem !important;
+              text-align: left;
+
+              &::after {
+                content: url('../assets/ibm/arrow--right.svg');
+              }
+
+              &:disabled {
+                background-color: colors.$gray-30 !important;
+                color: colors.$gray-50 !important;
+              }
+            }
+
+            .btn-arrow {
+              bottom: 100%;
+              content: url('../assets/ibm/arrow--right.svg');
+              left: calc(100% - 2rem);
+              margin-top: 1.5rem !important;
+              position: relative;
+              width: 16px;
+            }
+
+            .btn-arrow-disabled {
+              content: url('../assets/ibm/arrow--right-black.svg') !important;
+            }
+
+            .form-item {
+              margin-left: 1rem;
+              margin-right: 1rem;
+              width: calc(100% - 2rem) !important;
+            }
+
+            .placeholder {
+              @extend .form-item;
+              color: vv.$primary;
+              margin-bottom: 0.5rem;
+              padding: 0 !important;
+            }
+
+            .form-control {
+              @extend .form-item;
+              background-color: $field-01 !important;
+              background-image: none !important;
+              border-bottom: $ui-04;
+              color: $text-01 !important;
+              font-size: 0.875rem;
+              height: 2rem !important;
+
+              &:focus {
+                border: 2px solid $focus !important;
+                box-shadow: 0.5px rgba($focus, 0.5) !important;
+                color: colors.$gray-100 !important;
+                outline: $focus;
+              }
+
+              &:invalid {
+                border: 2px solid $support-01;
+                box-shadow: 0.5px rgba($support-01, 0.5) !important;
+              }
+
+              &:placeholder {
+                content: 'User name';
+              }
+
+              &:disabled {
+                background: $disabled-01;
+                color: $disabled-02;
+              }
+            }
+
+            .invalid-feedback {
+              @extend .form-item;
+              margin-top: 0.25rem !important;
+              padding: 0 !important;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+.btn-primary .badge {
+  background-color: colors.$blue-60;
+  color: colors.$white;
 }

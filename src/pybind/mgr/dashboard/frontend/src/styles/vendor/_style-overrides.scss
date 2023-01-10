@@ -68,7 +68,7 @@ $pf-global--image-path: '~@patternfly/patternfly/assets/images';
       }
 
       .input-group {
-        padding-top: 20px;
+        padding-top: 0;
       }
 
       .container {
@@ -125,7 +125,7 @@ $pf-global--image-path: '~@patternfly/patternfly/assets/images';
       .form-control {
         @extend .pf-c-form-control;
         background-color: vv.$white !important;
-        border: 1px solid $pf-color-black-200 !important;
+        border: 1px solid $pf-color-black-200;
         border-bottom: 2px solid $pf-color-red-100 !important;
         color: vv.$black !important;
         height: initial !important;
@@ -582,7 +582,7 @@ cd-dashboard {
 
 .form-control {
   @extend .pf-c-form-control;
-  border-bottom: 1px solid vv.$btn-border-bottom !important;
+  border-bottom: 1px solid vv.$btn-border-bottom;
   border-radius: unset !important;
   font-size: 0.8rem !important;
   height: 31px !important;
@@ -592,7 +592,7 @@ cd-dashboard {
   }
 
   &:disabled {
-    border-bottom: 1px solid vv.$btn-border-bottom !important;
+    border-bottom: 1px solid vv.$btn-border-bottom;
   }
 
   &:focus {
@@ -605,7 +605,7 @@ cd-dashboard {
   }
 
   &.is-invalid {
-    border-color: vv.$danger !important;
+    border-color: vv.$danger;
     box-shadow: 0 0 0 0.5px rgba(vv.$danger, 0.5) !important;
   }
 }

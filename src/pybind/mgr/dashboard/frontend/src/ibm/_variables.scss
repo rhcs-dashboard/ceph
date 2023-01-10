@@ -1,0 +1,37 @@
+@use '@carbon/colors' as colors;
+
+$overlay: colors.$gray-100;
+$link: colors.$blue-60;
+// $navbar-bg: colors.$pf-color-black-900 !default;
+// $sidebar-bg: colors.$pf-color-black-850 !default;
+// $navbar-hover: colors.$pf-color-black-800 !default;
+// $disable-color: colors.$pf-color-black-600;
+// $log-bg-color: colors.$pf-color-black-200;
+// $btn-light-border: colors.$pf-color-black-200;
+// $btn-border-bottom: colors.$pf-color-black-500;
+// $hover-border: #ced4da;
+// $nav-tab-hover: colors.$pf-color-black-300;
+// $badge-success: colors.$pf-color-green-50;
+// $table-active-row: #80bfff;
+
+/* Bootstrap variables that are already defined can be overridden using configuration:
+https://sass-lang.com/documentation/at-rules/forward#configuring-modules
+
+Example:
+@forward '../defaults/bootstrap-defaults' with (
+  $theme-colors: (
+    'accent': $my-accent-color
+  )
+);
+*/
+
+$primary: colors.$gray-100;
+$white: #fff !default;
+// $secondary: colors.$pf-color-blue-500,
+// $success: colors.$pf-color-green-500,
+// $info: colors.$pf-color-blue-300,
+// $warning: colors.$pf-color-gold-500,
+// $danger: colors.$pf-color-red-100,
+// $light: colors.$pf-color-black-300,
+// $navbar-height: 50px,
+// $font-family-sans-serif: var(--pf-global--FontFamily--sans-serif)
