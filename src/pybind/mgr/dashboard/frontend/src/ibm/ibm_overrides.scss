@@ -34,11 +34,11 @@ cd-workbench-layout {
 .btn-primary,
 .btn-accent,
 .btn-accent.dropdown-toggle {
-  background-color: $carbon-primary !important;
+  background-color: #0f62fe !important;
   border-radius: 0 !important;
 
   &:focus {
-    box-shadow: rgba($carbon-primary, 0.5);
+    box-shadow:rgba(#0f62fe, 0.5)
   }
 }
 
@@ -53,7 +53,6 @@ cd-workbench-layout {
 .text-danger {
   color: $support-01 !important;
 }
-
 .text-info {
   color: $support-04 !important;
 }
@@ -79,7 +78,6 @@ cd-workbench-layout {
   color: vv.$white !important;
   font-weight: 400 !important;
 }
-
 .badge-info {
   background-color: $support-04 !important;
   color: vv.$white !important;
@@ -87,7 +85,7 @@ cd-workbench-layout {
 }
 
 .badge-background-primary {
-  background-color: $carbon-primary !important;
+  background-color: #0f62fe !important;
   color: vv.$white !important;
   font-weight: 400 !important;
 }
@@ -185,28 +183,21 @@ cd-about {
     padding: 0 !important;
 
     .text-left {
-      position: relative;
-      visibility: hidden;
-    }
+      display: flex;
 
-    // IBM Licence text
-    .text-left::after {
-      content: 'Licenced materials - Property of IBM Corp. and IBM Storage Ceph are trademark or registered trademarks of International Business Machine.';
-      line-height: 1rem;
-      margin-left: -89.8%;
-      position: absolute;
-      visibility: visible;
-      width: 60%;
-    }
-  }
+      .copyright {
+        display: flex;
+        margin-left: 2.3rem;
+        margin-top: 4.5rem !important;
+        width: 100%;
+      }
 
-  // IBM Copyright text
-  .modal-footer::after {
-    content: 'Copyright IBM corporation 1994, 2022';
-    margin-left: 40px;
-    margin-top: 3rem;
-    position: absolute;
-    visibility: visible;
+      .licence {
+        line-height: 1.2rem;
+        margin-left: -49.5rem !important;
+        width: 62%;
+      }
+    }
   }
 }
 
@@ -259,7 +250,7 @@ cd-create-cluster {
 
   h3::after {
     color: $bg-text-color !important;
-    content: 'Welcome to IBM Storage Ceph Dashboard';
+    content: 'Welcome to IBM Storage Ceph';
     font-size: unset !important;
     margin-left: -124%;
     position: absolute;
@@ -349,6 +340,40 @@ cd-create-cluster {
   background-position: center;
   background-size: cover;
 
+  .list-inline {
+    margin-left: calc(50vw - (100% / 2)) !important;
+    width: 100%;
+  }
+
+  cd-login-password-form {
+    h2 {
+      margin-left: calc(50vw - (100% / 2));
+      margin-top: calc(50vh - (100% / 2));
+      width: 100%;
+    }
+
+    h4,
+    form {
+      margin-left: calc(50vw - (100% / 2));
+      width: 100%;
+    }
+
+    form {
+      .form-group {
+        background-color: transparent !important;
+        border-left: 0 !important;
+
+        &:focus-within {
+          border-left: 0 !important;
+        }
+
+        .invalid-feedback {
+          color: $support-01 !important;
+        }
+      }
+    }
+  }
+
   .container {
     margin: 0;
     max-width: 825px;
@@ -416,6 +441,7 @@ cd-create-cluster {
 
             .login-buttons {
               height: 64px;
+              margin-top: 40px;
             }
 
             .btn-accent {
@@ -423,12 +449,10 @@ cd-create-cluster {
               color: colors.$gray-60;
               height: 100%;
               margin: 0;
+              margin-left: 50%;
               padding: 1rem !important;
               text-align: left;
-
-              &::after {
-                content: url('../assets/ibm/arrow--right.svg');
-              }
+              width: 50%;
 
               &:disabled {
                 background-color: colors.$gray-30 !important;
@@ -508,4 +532,212 @@ cd-create-cluster {
 .btn-primary .badge {
   background-color: colors.$blue-60;
   color: colors.$white;
+}
+/* stylelint-disable */ //Set the carbon theme to g100 (darkest)
+$carbon--theme: $carbon--theme--g100;
+@include carbon--theme();
+/* stylelint-enable */
+cd-navigation {
+  .cd-navbar-top {
+    .fa-bell::before {
+      content: url('../assets/ibm/notification.svg') !important;
+    }
+
+    .fa-question-circle-o::before {
+      content: url('../assets/ibm/help.svg') !important;
+    }
+
+    .fa-cog::before {
+      content: url('../assets/ibm/userSettings.svg') !important;
+    }
+
+    .fa-user::before {
+      content: url('../assets/ibm/userAvatar.svg') !important;
+    }
+
+    .dropdown .dropdown-menu {
+      background-color: $background !important;
+      border-radius: 0 !important;
+
+      .dropdown-item {
+        color: $text-primary;
+      }
+
+      a:hover,
+      button:hover {
+        background-color: $background-hover !important;
+        color: $text-primary !important;
+      }
+
+      .fa-lock::before {
+        content: none !important;
+      }
+
+      .fa-sign-out::before {
+        content: url('../assets/ibm/logout.svg') !important;
+        margin-right: -1rem !important;
+      }
+    }
+
+    .dropdown-toggle::after {
+      content: none !important;
+    }
+
+    .cd-navbar-brand {
+      height: 3rem !important;
+    }
+
+    .fa-bars::before {
+      font-size: 1.25rem !important;
+    }
+
+    a img {
+      display: none !important;
+    }
+
+    .navbar-brand::before {
+      content: 'IBM Storage Ceph' !important;
+    }
+
+    ul {
+      .nav-item {
+        .fa::before {
+          font-size: 1.25rem !important;
+        }
+      }
+    }
+  }
+
+  .wrapper {
+    #sidebar {
+      .simplebar-content-wrapper {
+        background-color: $background !important;
+
+        ul ul a {
+          background-color: $background !important;
+        }
+
+        a:hover,
+        li:hover {
+          background-color: $background-hover !important;
+          color: $text-primary !important;
+        }
+
+        a:focus,
+        li:focus {
+          border: 2px solid $focus !important;
+        }
+
+        a:active,
+        li:active {
+          background-color: $background-active !important;
+          color: $text-primary !important;
+        }
+      }
+    }
+
+    a.dropdown-toggle {
+      &[aria-expanded='true']::after {
+        transform: rotate(-90deg) !important;
+      }
+    }
+  }
+}
+
+cd-notifications-sidebar {
+  .card {
+    background-color: $background !important;
+    border-radius: 0 !important;
+    color: $text-primary !important;
+
+    .card-header {
+      background-color: $background !important;
+
+      .float-right {
+        pointer-events: none !important;
+
+        .fa-times::before {
+          content: none !important;
+        }
+      }
+    }
+
+    .card-body {
+      .btn-light {
+        background-color: $background !important;
+        color: $text-primary !important;
+      }
+
+      .fa-trash-o::before {
+        color: $text-primary !important;
+      }
+    }
+
+    .simplebar-vertical {
+      .simplebar-scrollbar::before {
+        background-color: $text-primary !important;
+      }
+    }
+
+    p {
+      color: $text-secondary !important;
+    }
+
+    .border-danger {
+      border-color: $support-error !important;
+
+      .fa-circle {
+        color: $support-error !important;
+      }
+    }
+
+    .border-info {
+      border-color: $support-info !important;
+
+      .fa-circle {
+        color: $support-info !important;
+      }
+    }
+
+    .border-success {
+      border-color: $support-success !important;
+
+      .fa-circle {
+        color: $support-success !important;
+      }
+    }
+  }
+}
+
+cd-identity {
+  .dropdown-item:not(.disabled) {
+    align-items: center !important;
+    display: flex !important;
+    flex-direction: row-reverse !important;
+    justify-content: space-between !important;
+  }
+
+  .dropdown-item:last-child {
+    span {
+      visibility: hidden !important;
+    }
+
+    &::after {
+      content: 'Logout' !important;
+      visibility: visible !important;
+    }
+  }
+
+  button:hover {
+    background-color: $background-hover !important;
+    color: $text-primary !important;
+  }
+}
+
+cd-error {
+  .blank-page {
+    .fa-wrench {
+      color: $support-04 !important;
+    }
+  }
 }

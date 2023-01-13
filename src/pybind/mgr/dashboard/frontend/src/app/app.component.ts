@@ -22,6 +22,7 @@ export class AppComponent {
 
     tooltipConfig.container = 'body';
 
+    const favicon = this.document.getElementById('cdFavicon');
     if (environment.build === 'ibm') {
       const projectName = 'IBM Storage Ceph';
       const headEl = this.document.getElementsByTagName('head')[0];
@@ -32,8 +33,11 @@ export class AppComponent {
       headEl.appendChild(newLinkEl);
 
       this.document.title = projectName;
-      const favicon = this.document.getElementById('cdFavicon');
       favicon.setAttribute('href', 'assets/StorageCeph_favicon.svg');
+    } else if (environment.build === 'redhat') {
+      const projectName = 'Red Hat Ceph Storage';
+      this.document.title = projectName;
+      favicon.setAttribute('href', 'assets/RedHat_favicon_0319.svg');
     }
   }
 }

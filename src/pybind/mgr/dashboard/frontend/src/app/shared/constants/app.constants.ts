@@ -4,12 +4,17 @@ import { environment } from '~/environments/environment';
 
 export class AppConstants {
   public static readonly version = '6';
-  public static readonly organization = 'Redhat';
-  public static readonly projectName = 'Red Hat Ceph Storage Dashboard';
+  public static readonly organization = environment.build === 'ibm' ? 'IBM' : 'Redhat';
+  public static readonly projectName =
+    environment.build === 'ibm' ? 'IBM Storage Ceph' : 'Red Hat Ceph Storage Dashboard';
   public static readonly license =
-    'Licensed under Creative Commons Attribution Share Alike 3.0 (CC-BY-SA-3.0)';
+    environment.build === 'ibm'
+      ? 'Licenced materials - Property of IBM Corporation and IBM Storage Ceph are trademarks or registered trademarks of International Business Machine Corporation.'
+      : 'Licensed under Creative Commons Attribution Share Alike 3.0 (CC-BY-SA-3.0)';
   public static readonly copyright =
-    'Copyright(c) ' + environment.year + ' Red Hat Inc. and contributors.';
+    environment.build === 'ibm'
+      ? `Copyright(c) ${environment.year} IBM Corporation`
+      : 'Copyright(c) ' + environment.year + ' Red Hat Inc. and contributors.';
   public static readonly cephLogo = 'assets/Logo-RedHat-Hat-Color-RGB.png';
 }
 
