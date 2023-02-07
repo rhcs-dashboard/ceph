@@ -12,6 +12,8 @@ $bg-color-dark: #161616;
 $bg-text-color: #161616;
 $text-secondary: #c6c6c6;
 
+$carbon-primary: #0f62fe;
+
 :root {
   --chart-color-blue: #0f62fe;
   --chart-color-green: #198038;
@@ -26,6 +28,67 @@ cd-workbench-layout {
     background-color: $bg-color !important;
     color: $bg-text-color !important;
   }
+}
+
+.btn-primary,
+.btn-accent,
+.btn-accent.dropdown-toggle {
+  background-color: $carbon-primary !important;
+  border-radius: 0 !important;
+
+  &:focus {
+    box-shadow: rgba($carbon-primary, 0.5);
+  }
+}
+
+.text-success {
+  color: $support-02 !important;
+}
+
+.text-warning {
+  color: $support-03 !important;
+}
+
+.text-danger {
+  color: $support-01 !important;
+}
+
+.text-info {
+  color: $support-04 !important;
+}
+
+.badge {
+  font-weight: 400 !important;
+}
+
+.badge-success {
+  background-color: $support-02 !important;
+  color: vv.$white !important;
+  font-weight: 400 !important;
+}
+
+.badge-warning {
+  background-color: $support-03 !important;
+  color: vv.$white !important;
+  font-weight: 400 !important;
+}
+
+.badge-danger {
+  background-color: $support-01 !important;
+  color: vv.$white !important;
+  font-weight: 400 !important;
+}
+
+.badge-info {
+  background-color: $support-04 !important;
+  color: vv.$white !important;
+  font-weight: 400 !important;
+}
+
+.badge-background-primary {
+  background-color: $carbon-primary !important;
+  color: vv.$white !important;
+  font-weight: 400 !important;
 }
 
 // About modal branding
