@@ -73,6 +73,7 @@ $pf-global--image-path: '~@patternfly/patternfly/assets/images';
 
       .container {
         background-color: vv.$white;
+        width: 500px !important;
 
         form {
           padding: 50px 20px 60px;
@@ -197,7 +198,7 @@ cd-login-password-form {
   .cd-navbar-brand {
     background: vv.$navbar-bg !important;
     border-top: unset !important;
-    padding-left: 1.5rem !important;
+    padding-left: 0.5rem !important;
   }
 
   .py-0 {
@@ -306,6 +307,7 @@ cd-login-password-form {
 /* Notification Dot */
 a {
   .dot {
+    background-color: vv.$primary !important;
     border: unset !important;
   }
 
@@ -437,12 +439,18 @@ cd-dashboard {
       display: none !important;
     }
 
+    .btn-close {
+      visibility: hidden;
+    }
+
     button::after {
       border: 0;
       content: '\f057';
+      color: vv.$white;
       font-family: 'ForkAwesome';
       font-size: 2rem;
       position: inherit;
+      visibility: initial;
       right: 0;
     }
   }
@@ -716,7 +724,7 @@ cd-table .cd-datatable {
   }
 }
 
-.custom-select {
+.form-select {
   border: 1px solid vv.$btn-light-border !important;
   border-bottom: 1px solid vv.$btn-border-bottom !important;
   border-radius: 0 !important;
@@ -757,7 +765,7 @@ textarea.form-control {
   height: unset !important;
 }
 
-.input-group-prepend .input-group-text {
+.input-group .input-group-text {
   background-color: vv.$white !important;
   border-bottom: 1px solid vv.$btn-border-bottom !important;
   border-radius: unset !important;
@@ -775,17 +783,17 @@ textarea.form-control {
 
 .badge-success {
   background-color: vv.$badge-success !important;
-  color: $pf-color-green-600 !important;
+  color: vv.$white !important;
 }
 
 .badge-danger {
   background-color: $pf-color-red-50 !important;
-  color: $pf-color-red-300 !important;
+  color: vv.$white !important;
 }
 
 .badge-warning {
   background-color: $pf-color-gold-50 !important;
-  color: $pf-color-gold-700 !important;
+  color: vv.$white !important;
 }
 
 .badge-remove {
@@ -794,15 +802,16 @@ textarea.form-control {
 
 .badge-hdd,
 .badge-tab,
-.badge-dark {
+.badge-dark,
+.badge-dark.me-2 {
   background-color: $pf-color-black-200 !important;
   color: $pf-color-black-900 !important;
 }
 
 .badge-ssd,
 .badge-info {
-  background-color: $pf-color-blue-50 !important;
-  color: $pf-color-blue-600 !important;
+  background-color: vv.$primary !important;
+  color: vv.$white !important;
 }
 
 .btn-warning {
@@ -989,5 +998,11 @@ cd-modal {
 
   .collapse {
     border-left: 3px solid vv.$primary;
+  }
+}
+
+cd-dashboard-v3 {
+  .container-fluid {
+    padding-bottom: 30px !important;
   }
 }
