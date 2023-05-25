@@ -201,6 +201,76 @@ cd-about {
   }
 }
 
+cd-dashboard-v3 {
+  cd-card {
+    h4.card-title.mt-4 {
+      @include carbon--type-style('productive-heading-03');
+      font-size: 1.25rem !important;
+      margin-bottom: 0 !important;
+    }
+  }
+
+  dt {
+    @include carbon--type-style('body-short-02');
+    font-size: large;
+    font-weight: 500 !important;
+    line-height: 1.5;
+  }
+
+  dd {
+    @include carbon--type-style('body-short-02');
+    font-size: medium !important;
+    font-weight: 300 !important;
+    line-height: 1.5;
+  }
+
+  .lead {
+    font-size: medium;
+    font-weight: 400 !important;
+  }
+
+  i.fa-2x {
+    font-size: 1.9em !important;
+  }
+
+  cd-dashboard-area-chart {
+    b.chartTitle {
+      font-size: medium;
+      font-weight: 600;
+    }
+  }
+
+  .fa-exclamation-triangle.fa-2x {
+    color: #F1C21B !important;
+  }
+
+  .fa-exclamation-circle.fa-2x {
+    color: #DA1E28 !important;
+  }
+
+  .fa-check-circle.fa-2x {
+    color: #198038 !important;
+  }
+
+  i.text-info.fa fa-exclamation-circle {
+    color: #0043CE !important;
+  }
+
+  .btn-outline-danger {
+    border-color: #DA1E28 !important;
+    color: #DA1E28 !important;
+  }
+
+  .btn-outline-warning {
+    border-color: #F1C21B !important;
+    color: #F1C21B !important;
+  }
+
+  .card-shadow {
+    box-shadow: none !important;
+  }
+}
+
 cd-dashboard {
   cd-info-card {
     .shadow-sm {
