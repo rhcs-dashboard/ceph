@@ -121,42 +121,50 @@ void DaemonMetricCollector::dump_asok_metrics() {
     for (auto &perf_group_item : counter_schema) {
       std::string perf_group = {perf_group_item.key().begin(),
                                 perf_group_item.key().end()};
-      json_object perf_group_object = perf_group_item.value().as_object();
-      auto counters = perf_group_object["counters"].as_object();
-      auto counters_labels = perf_group_object["labels"].as_object();
-      auto counters_values =
-          counter_dump[perf_group].as_object()["counters"].as_object();
-      labels_t labels;
+      json_array perf_group_schema_array = perf_group_item.value().as_array();
+      json_array perf_grp_dump_array = counter_dump[perf_group].as_array();
+      for (auto schema_itr = perf_group_schema_array.begin(),
+                dump_itr = perf_grp_dump_array.begin();
+                schema_itr != perf_group_schema_array.end() &&
+                dump_itr != perf_grp_dump_array.end();
+                ++schema_itr, ++dump_itr) {
+                  auto& perf_schema_grp = *schema_itr;
+                  auto& perf_dump_grp = *dump_itr;
+                  auto counters = perf_schema_grp.at("counters").as_object();
+                  auto counters_labels = perf_schema_grp.at("labels").as_object();
+                  auto counters_values = perf_dump_grp.at("counters").as_object();
+                  labels_t labels;
 
-      for(auto &label: counters_labels) {
-        std::string label_key = {label.key().begin(), label.key().end()};
-        labels[label_key] = quote(label.value().as_string().c_str());
-      }
-      for (auto &counter : counters) {
-        json_object counter_group = counter.value().as_object();
-        if (counter_group["priority"].as_int64() < prio_limit) {
-          continue;        
-        }
-        std::string counter_name_init =  {counter.key().begin(), counter.key().end()};
-        std::string counter_name = perf_group + "_" + counter_name_init;
-        promethize(counter_name);
+                  for (auto &label: counters_labels) {
+                    std::string label_key = {label.key().begin(), label.key().end()};
+                    labels[label_key] = quote(label.value().as_string().c_str());
+                  }
+                  for (auto &counter : counters) {
+                    json_object counter_group = counter.value().as_object();
+                    if (counter_group["priority"].as_int64() < prio_limit) {
+                      continue;
+                    }
+                    std::string counter_name_init =  {counter.key().begin(), counter.key().end()};
+                    std::string counter_name = perf_group + counter_name_init;
+                    promethize(counter_name);
 
-        if (counters_labels.empty()) {
-          auto labels_and_name = get_labels_and_metric_name(daemon_name, counter_name);
-          labels = labels_and_name.first;
-          counter_name = labels_and_name.second;
-        }
-        // For now this is only required for rgw multi-site metrics
-        auto multisite_labels_and_name = add_fixed_name_metrics(counter_name);
-        if (!multisite_labels_and_name.first.empty()) {
-          labels.insert(multisite_labels_and_name.first.begin(), multisite_labels_and_name.first.end());
-          counter_name = multisite_labels_and_name.second;
-        }
-        labels.insert({"ceph_daemon", quote(daemon_name)});
-        auto perf_values = counters_values.at(counter_name_init);
-        dump_asok_metric(counter_group, perf_values, counter_name, labels);
+                    if (counters_labels.empty()) {
+                      auto labels_and_name = get_labels_and_metric_name(daemon_name, counter_name);
+                      labels = labels_and_name.first;
+                      counter_name = labels_and_name.second;
+                    }
+                    // For now this is only required for rgw multi-site metrics
+                    auto multisite_labels_and_name = add_fixed_name_metrics(counter_name);
+                    if (!multisite_labels_and_name.first.empty()) {
+                      labels.insert(multisite_labels_and_name.first.begin(), multisite_labels_and_name.first.end());
+                      counter_name = multisite_labels_and_name.second;
+                    }
+                    labels.insert({"ceph_daemon", quote(daemon_name)});
+                    auto perf_values = counters_values.at(counter_name_init);
+                    dump_asok_metric(counter_group, perf_values, counter_name, labels);
+                  }
       }
-    }
+  }
     std::string config_show =
         asok_request(sock_client, "config show", daemon_name);
     if (config_show.size() == 0) {
