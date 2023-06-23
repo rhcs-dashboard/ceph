@@ -310,22 +310,6 @@ cd-dashboard {
 cd-create-cluster {
   h3 {
     @include carbon--type-style('productive-heading-04');
-    position: relative;
-    visibility: hidden;
-
-    strong {
-      display: none;
-    }
-  }
-
-  h3::after {
-    color: $bg-text-color !important;
-    content: 'Welcome to IBM Storage Ceph';
-    font-size: unset !important;
-    margin-left: -124%;
-    position: absolute;
-    visibility: visible;
-    width: 150%;
   }
 
   .blank-page {
