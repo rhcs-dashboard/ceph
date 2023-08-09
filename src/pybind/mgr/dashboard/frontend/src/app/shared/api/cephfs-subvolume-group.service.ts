@@ -1,0 +1,63 @@
+import { HttpClient } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { Observable, of } from 'rxjs';
+import { CephfsSubvolumeGroup } from '../models/cephfs-subvolume-group.model';
+import _ from 'lodash';
+import { mapTo, catchError } from 'rxjs/operators';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class CephfsSubvolumeGroupService {
+  baseURL = 'api/cephfs/subvolume/group';
+
+  constructor(private http: HttpClient) {}
+
+  get(volName: string): Observable<CephfsSubvolumeGroup[]> {
+    return this.http.get<CephfsSubvolumeGroup[]>(`${this.baseURL}/${volName}`);
+  }
+
+  create(
+    volName: string,
+    groupName: string,
+    poolName: string,
+    size: number,
+    uid: number,
+    gid: number,
+    mode: string
+  ) {
+    return this.http.post(
+      this.baseURL,
+      {
+        vol_name: volName,
+        group_name: groupName,
+        pool_layout: poolName,
+        size: size,
+        uid: uid,
+        gid: gid,
+        mode: mode
+      },
+      { observe: 'response' }
+    );
+  }
+
+  info(volName: string, groupName: string) {
+    return this.http.get(`${this.baseURL}/${volName}/info`, {
+      params: {
+        subvol_name: groupName
+      }
+    });
+  }
+
+  exists(groupName: string, volName: string) {
+    return this.info(volName, groupName).pipe(
+      mapTo(true),
+      catchError((error: Event) => {
+        if (_.isFunction(error.preventDefault)) {
+          error.preventDefault();
+        }
+        return of(false);
+      })
+    );
+  }
+}
