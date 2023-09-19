@@ -34,6 +34,10 @@ class DaemonMetricCollector {
 public:
   void main();
   std::string get_metrics();
+<<<<<<< HEAD
+=======
+  labels_t get_extra_labels(std::string daemon_name);
+>>>>>>> f061955f0be (exporter: add ceph_daemon labels to labeled counters as well)
 
 private:
   std::map<std::string, AdminSocketClient> clients;
