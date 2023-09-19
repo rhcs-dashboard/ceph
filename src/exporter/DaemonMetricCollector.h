@@ -34,6 +34,7 @@ class DaemonMetricCollector {
 public:
   void main();
   std::string get_metrics();
+  labels_t get_extra_labels(std::string daemon_name);
 
 private:
   std::map<std::string, AdminSocketClient> clients;
