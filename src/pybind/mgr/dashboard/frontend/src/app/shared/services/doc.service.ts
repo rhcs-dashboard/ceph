@@ -5,6 +5,7 @@ import { filter, first, map } from 'rxjs/operators';
 
 import { CephReleaseNamePipe } from '../pipes/ceph-release-name.pipe';
 import { SummaryService } from './summary.service';
+import { AppConstants } from '../constants/app.constants';
 
 @Injectable({
   providedIn: 'root'
@@ -23,8 +24,8 @@ export class DocService {
     });
   }
 
-  urlGenerator(section: string, release = 'main'): string {
-    const docVersion = release === 'main' ? 'latest' : release;
+  urlGenerator(section: string, release = AppConstants.release): string {
+    const docVersion = release === AppConstants.release ? 'latest' : release;
     const domain = `https://docs.ceph.com/en/${docVersion}/`;
     const domainCeph = `https://ceph.io`;
     const domainCephOld = `https://old.ceph.com`;

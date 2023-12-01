@@ -8,6 +8,7 @@ export class AppConstants {
   public static readonly license = 'Free software (LGPL 2.1).';
   public static readonly copyright = 'Copyright(c) ' + environment.year + ' Ceph contributors.';
   public static readonly cephLogo = 'assets/Ceph_Logo.svg';
+  public static readonly release = 'main';
 }
 
 export enum URLVerbs {
