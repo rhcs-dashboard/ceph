@@ -1,4 +1,11 @@
-import { Component, Input, OnChanges, SimpleChanges, ViewChild } from '@angular/core';
+import {
+  Component,
+  Input,
+  ViewChild,
+  OnChanges,
+  AfterViewInit,
+  ChangeDetectorRef
+} from '@angular/core';
 
 import { CssHelper } from '~/app/shared/classes/css-helper';
 import { DimlessBinaryPipe } from '~/app/shared/pipes/dimless-binary.pipe';
@@ -13,7 +20,7 @@ import { NumberFormatterService } from '~/app/shared/services/number-formatter.s
   templateUrl: './dashboard-area-chart.component.html',
   styleUrls: ['./dashboard-area-chart.component.scss']
 })
-export class DashboardAreaChartComponent implements OnChanges {
+export class DashboardAreaChartComponent implements OnChanges, AfterViewInit {
   @ViewChild(BaseChartDirective) chart: BaseChartDirective;
 
   @Input()
@@ -31,6 +38,10 @@ export class DashboardAreaChartComponent implements OnChanges {
   @Input()
   label2?: string;
   @Input()
+  dataArray?: any[] = [];
+  @Input()
+  labelsArray?: string[] = [];
+  @Input()
   decimals?: number = 1;
 
   currentDataUnits: string;
@@ -43,6 +54,7 @@ export class DashboardAreaChartComponent implements OnChanges {
   chartDataUnits: string;
   chartData: any = {};
   options: any = {};
+  tplChartData: any = {};
 
   public chartAreaBorderPlugin: PluginServiceGlobalRegistrationAndOptions[] = [
     {
@@ -71,7 +83,8 @@ export class DashboardAreaChartComponent implements OnChanges {
     private dimlessBinaryPerSecond: DimlessBinaryPerSecondPipe,
     private dimlessPipe: DimlessPipe,
     private formatter: FormatterService,
-    private numberFormatter: NumberFormatterService
+    private numberFormatter: NumberFormatterService,
+    private cdr: ChangeDetectorRef
   ) {
     this.chartData = {
       dataset: [
@@ -178,42 +191,82 @@ export class DashboardAreaChartComponent implements OnChanges {
     };
   }
 
-  ngOnChanges(changes: SimpleChanges): void {
-    this.updateChartData(changes);
+  ngOnChanges(): void {
+    this.updateChartData();
   }
 
-  private updateChartData(changes: SimpleChanges): void {
-    this.chartData.dataset[0].label = this.label;
-    this.chartData.dataset[1].label = this.label2;
-    this.setChartTicks();
-    if (changes.data && changes.data.currentValue) {
-      this.data = changes.data.currentValue;
-      this.chartData.dataset[0].data = this.formatData(this.data);
-      [this.currentData, this.currentDataUnits] = this.convertUnits(
-        this.data[this.data.length - 1][1]
-      ).split(' ');
-      [this.maxConvertedValue, this.maxConvertedValueUnits] = this.convertUnits(
-        this.maxValue
-      ).split(' ');
-    }
-    if (changes.data2 && changes.data2.currentValue) {
-      this.data2 = changes.data2.currentValue;
-      this.chartData.dataset[1].data = this.formatData(this.data2);
-      [this.currentData2, this.currentDataUnits2] = this.convertUnits(
-        this.data2[this.data2.length - 1][1]
-      ).split(' ');
-    }
-    if (this.chart) {
-      this.chart.chart.update();
-    }
+  ngAfterViewInit(): void {
+    this.updateChartData();
+  }
+
+  private updateChartData(): void {
+    setTimeout(() => {
+      const colorArray = [
+        '#FF5733',
+        '#33FF57',
+        '#5733FF',
+        '#33A8FF',
+        '#FF33A8',
+        '#4CAF50',
+        '#2196F3',
+        '#FF9800',
+        '#9C27B0',
+        '#795548'
+      ];
+
+      if (this.labelsArray.length > 2) {
+        for (let index = 2; index < this.labelsArray.length; index++) {
+          const slicedColors = colorArray.slice(0, index + 1);
+          this.chartData.dataset[index] = {
+            label: '',
+            data: [],
+            tension: 0.2,
+            pointBackgroundColor: slicedColors[index],
+            backgroundColor: slicedColors[index],
+            borderColor: slicedColors[index],
+            borderWidth: 1
+          };
+        }
+      }
+
+      if (this.labelsArray.length === this.chartData.dataset.length) {
+        for (let index = 0; index < this.labelsArray.length; index++) {
+          this.chartData.dataset[index].label = this.labelsArray[index];
+        }
+      }
+
+      this.setChartTicks();
+
+      this.tplChartData = this.chartData;
+      for (let index = 0; index < this.dataArray.length; index++) {
+        this.chartData.dataset[index].data = this.formatData(this.dataArray[index]);
+        let tplArray = this.dataArray[index];
+        if (tplArray) {
+          [
+            this.tplChartData.dataset[index]['currentData'],
+            this.tplChartData.dataset[index]['currentDataUnits']
+          ] = this.convertUnits(tplArray[tplArray.length - 1][1]).split(' ');
+          [this.maxConvertedValue, this.maxConvertedValueUnits] = this.convertUnits(
+            this.maxValue
+          ).split(' ');
+        }
+      }
+
+      if (this.chart) {
+        this.chart.chart.update();
+      }
+    }, 10);
   }
 
   private formatData(array: Array<any>): any {
     let formattedData = {};
-    formattedData = array.map((data: any) => ({
-      x: data[0] * 1000,
-      y: Number(this.convertToChartDataUnits(data[1]).replace(/[^\d,.]+/g, ''))
-    }));
+    if (array && array.length > 0) {
+      formattedData = array.map((data: any) => ({
+        x: data[0] * 1000,
+        y: Number(this.convertToChartDataUnits(data[1]).replace(/[^\d,.]+/g, ''))
+      }));
+    }
+
     return formattedData;
   }
 
@@ -276,15 +329,17 @@ export class DashboardAreaChartComponent implements OnChanges {
     let maxValueDataUnits = '';
     let extraRoom = 1.2;
 
-    if (this.data) {
-      let maxValueData = Math.max(...this.data.map((values: any) => values[1]));
-      if (this.data2) {
-        let maxValueData2 = Math.max(...this.data2.map((values: any) => values[1]));
-        maxValue = Math.max(maxValueData, maxValueData2);
-      } else {
-        maxValue = maxValueData;
+    if (this.dataArray) {
+      const allValues = this.dataArray
+        .filter(Array.isArray) // Filter out non-array elements
+        .reduce((acc, data) => {
+          return acc.concat(data.map((values: any) => values[1]));
+        }, []);
+
+      if (allValues.length > 0) {
+        maxValue = Math.max(...allValues);
+        [maxValue, maxValueDataUnits] = this.convertUnits(maxValue).split(' ');
       }
-      [maxValue, maxValueDataUnits] = this.convertUnits(maxValue).split(' ');
     }
 
     const yAxesTicks = this.chart.chart.options.scales.yAxes[0].ticks;
@@ -300,6 +355,6 @@ export class DashboardAreaChartComponent implements OnChanges {
       return `${value} ${maxValueDataUnits}`;
     };
     this.chartDataUnits = maxValueDataUnits || '';
-    this.chart.chart.update();
+    this.cdr.detectChanges();
   }
 }
