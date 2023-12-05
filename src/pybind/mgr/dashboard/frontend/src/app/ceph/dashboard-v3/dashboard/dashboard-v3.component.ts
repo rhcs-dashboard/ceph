@@ -67,6 +67,9 @@ export class DashboardV3Component extends PrometheusListHelper implements OnInit
   telemetryEnabled: boolean;
   telemetryURL = 'https://telemetry-public.ceph.com/';
   origin = window.location.origin;
+  labels: string[];
+  allData: any[] = [];
+  allLabels: string[] = [];
 
   constructor(
     private summaryService: SummaryService,
@@ -150,6 +153,7 @@ export class DashboardV3Component extends PrometheusListHelper implements OnInit
       queries,
       this.queriesResults
     );
+    this.allLabels = ['Read', 'Write', 'Recovery', 'Total'];
   }
 
   private getTelemetryReport() {
