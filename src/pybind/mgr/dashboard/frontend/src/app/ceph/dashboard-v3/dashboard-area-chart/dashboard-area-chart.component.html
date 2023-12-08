@@ -3,16 +3,19 @@
     <br>
     <b class="chartTitle pb-2" i18n>{{ chartTitle }}</b>
     <div *ngFor="let data of tplChartData.dataset" i18n>
-        <div class="d-inline-flex align-items-center gap-1">
-            <div class="box" [style.background-color]="data.backgroundColor"></div>
-            <div *ngIf="data.label !== chartTitle">{{ data.label }}:</div>
-            {{ data.currentData || 'N/A' }} {{ data.currentDataUnits }}
-            <div *ngIf="maxValue && data.currentData">
-                used of {{ maxConvertedValue }} {{ maxConvertedValueUnits }}
-            </div>
+      <div *ngIf="data.data.length !== 0"
+           class="d-inline-flex align-items-center gap-1">
+        <div class="box" 
+             [style.background-color]="data.pointBackgroundColor">
         </div>
+        <div *ngIf="data.label !== chartTitle">{{ data.label }}:</div>
+          {{ data.currentData || 'N/A' }} {{ data.currentDataUnits }}
+        <div *ngIf="maxValue && data.currentData">
+          used of {{ maxConvertedValue }} {{ maxConvertedValueUnits }}
+        </div>
+      </div>
     </div>
-</div>
+  </div>
 
   <div class="col-9 d-flex flex-column">
     <div class="chart mt-3">

@@ -1,11 +1,4 @@
-import {
-  Component,
-  Input,
-  ViewChild,
-  OnChanges,
-  AfterViewInit,
-  ChangeDetectorRef
-} from '@angular/core';
+import { Component, Input, ViewChild, OnChanges, AfterViewInit } from '@angular/core';
 
 import { CssHelper } from '~/app/shared/classes/css-helper';
 import { DimlessBinaryPipe } from '~/app/shared/pipes/dimless-binary.pipe';
@@ -83,8 +76,7 @@ export class DashboardAreaChartComponent implements OnChanges, AfterViewInit {
     private dimlessBinaryPerSecond: DimlessBinaryPerSecondPipe,
     private dimlessPipe: DimlessPipe,
     private formatter: FormatterService,
-    private numberFormatter: NumberFormatterService,
-    private cdr: ChangeDetectorRef
+    private numberFormatter: NumberFormatterService
   ) {
     this.chartData = {
       dataset: [
@@ -202,16 +194,11 @@ export class DashboardAreaChartComponent implements OnChanges, AfterViewInit {
   private updateChartData(): void {
     setTimeout(() => {
       const colorArray = [
-        '#FF5733',
-        '#33FF57',
-        '#5733FF',
-        '#33A8FF',
-        '#FF33A8',
-        '#4CAF50',
-        '#2196F3',
-        '#FF9800',
-        '#9C27B0',
-        '#795548'
+        this.cssHelper.propertyValue('chart-color-yellow'),
+        this.cssHelper.propertyValue('chart-color-green'),
+        this.cssHelper.propertyValue('chart-color-cyan'),
+        this.cssHelper.propertyValue('chart-color-purple'),
+        this.cssHelper.propertyValue('chart-color-red')
       ];
 
       if (this.labelsArray.length > 2) {
@@ -229,10 +216,8 @@ export class DashboardAreaChartComponent implements OnChanges, AfterViewInit {
         }
       }
 
-      if (this.labelsArray.length === this.chartData.dataset.length) {
-        for (let index = 0; index < this.labelsArray.length; index++) {
-          this.chartData.dataset[index].label = this.labelsArray[index];
-        }
+      for (let index = 0; index < this.labelsArray.length; index++) {
+        this.chartData.dataset[index].label = this.labelsArray[index];
       }
 
       this.setChartTicks();
@@ -355,6 +340,6 @@ export class DashboardAreaChartComponent implements OnChanges, AfterViewInit {
       return `${value} ${maxValueDataUnits}`;
     };
     this.chartDataUnits = maxValueDataUnits || '';
-    this.cdr.detectChanges();
+    this.chart.chart.update();
   }
 }
