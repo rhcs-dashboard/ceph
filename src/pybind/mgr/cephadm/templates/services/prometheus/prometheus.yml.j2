@@ -2,6 +2,8 @@
 global:
   scrape_interval: 10s
   evaluation_interval: 10s
+  external_labels:
+    cluster: {{ cluster_fsid }}
 rule_files:
   - /etc/prometheus/alerting/*
 
@@ -36,6 +38,12 @@ scrape_configs:
     tls_config:
       ca_file: mgr_prometheus_cert.pem
     honor_labels: true
+    relabel_configs:
+    - source_labels: [__address__]
+      target_label: cluster
+      replacement: {{ cluster_fsid }}
+    - action: drop
+      regex: .+;.+
     http_sd_configs:
     - url: {{ mgr_prometheus_sd_url }}
       basic_auth:
@@ -107,3 +115,15 @@ scrape_configs:
     - url: {{ ceph_exporter_sd_url }}
 {% endif %}
 {% endif %}
+
+
+  - job_name: 'federate'
+    scrape_interval: 15s
+    honor_labels: true
+    metrics_path: '/federate'
+    params:
+      'match[]':
+        - '{job="ceph"}'
+    static_configs:
+    - targets: {{ external_prometheus_targets }}
+
