@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from typing import Optional
 import http.cookies
 import json
 import logging
@@ -37,8 +38,9 @@ class Auth(RESTController, ControllerAuthMixin):
     """
     Provide authenticates and returns JWT token.
     """
+    JWT_TOKEN_TTL = 8  # default 8 hours
     # pylint: disable=R0912
-    def create(self, username, password):
+    def create(self, username, password, ttl: Optional[int] = JWT_TOKEN_TTL):
         user_data = AuthManager.authenticate(username, password)
         user_perms, pwd_expiration_date, pwd_update_required = None, None, None
         max_attempt = Settings.ACCOUNT_LOCKOUT_ATTEMPTS
@@ -103,7 +105,7 @@ class Auth(RESTController, ControllerAuthMixin):
                 logger.info('Login successful: %s', username)
                 mgr.ACCESS_CTRL_DB.reset_attempt(username)
                 mgr.ACCESS_CTRL_DB.save()
-                token = JwtManager.gen_token(username)
+                token = JwtManager.gen_token(username, ttl=ttl)
 
                 # For backward-compatibility: PyJWT versions < 2.0.0 return bytes.
                 token = token.decode('utf-8') if isinstance(token, bytes) else token

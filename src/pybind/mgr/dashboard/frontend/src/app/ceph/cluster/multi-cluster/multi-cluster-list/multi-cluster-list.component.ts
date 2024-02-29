@@ -29,6 +29,8 @@ export class MultiClusterListComponent {
   table: TableComponent;
   @ViewChild('urlTpl', { static: true })
   public urlTpl: TemplateRef<any>;
+  @ViewChild('durationTpl', { static: true })
+  durationTpl: TemplateRef<any>;
 
   permissions: Permissions;
   tableActions: CdTableAction[];
@@ -40,6 +42,7 @@ export class MultiClusterListComponent {
   clustersTokenMap: Map<string, string> = new Map<string, string>();
   newData: any;
   modalRef: NgbModalRef;
+  icons = Icons;
 
   constructor(
     private multiClusterService: MultiClusterService,
@@ -88,6 +91,16 @@ export class MultiClusterListComponent {
         const clusterDetailsArray = Object.values(resp['config']).flat();
         this.data = clusterDetailsArray;
         this.checkClusterConnectionStatus();
+        this.data.forEach((cluster: any) => {
+          cluster['remainingTimeWithoutSeconds'] = 0;
+          if (cluster['ttl'] && cluster['ttl'] > 0) {
+            cluster['ttl'] = cluster['ttl'] * 1000;
+            cluster['remainingTimeWithoutSeconds'] = this.getRemainingTimeWithoutSeconds(
+              cluster['ttl']
+            );
+            cluster['remainingDays'] = this.getRemainingDays(cluster['ttl']);
+          }
+        });
       }
     });
 
@@ -125,6 +138,12 @@ export class MultiClusterListComponent {
         prop: 'user',
         name: $localize`User`,
         flexGrow: 2
+      },
+      {
+        prop: 'ttl',
+        name: $localize`Token expires`,
+        flexGrow: 2,
+        cellTemplate: this.durationTpl
       }
     ];
 
@@ -134,17 +153,31 @@ export class MultiClusterListComponent {
     });
   }
 
+  getRemainingDays(time: number): number {
+    if (time === undefined || time == null) {
+      return undefined;
+    }
+    if (time < 0) {
+      return 0;
+    }
+    const toDays = 1000 * 60 * 60 * 24;
+    return Math.max(0, Math.floor(time / toDays));
+  }
+
+  getRemainingTimeWithoutSeconds(time: number): number {
+    return Math.floor(time / (1000 * 60)) * 60 * 1000;
+  }
+
   checkClusterConnectionStatus() {
     if (this.clusterTokenStatus && this.data) {
       this.data.forEach((cluster: MultiCluster) => {
         const clusterStatus = this.clusterTokenStatus[cluster.name];
-
         if (clusterStatus !== undefined) {
           cluster.cluster_connection_status = clusterStatus.status;
+          cluster.ttl = clusterStatus.time_left;
         } else {
           cluster.cluster_connection_status = 2;
         }
-
         if (cluster.cluster_alias === 'local-cluster') {
           cluster.cluster_connection_status = 0;
         }
@@ -194,6 +227,18 @@ export class MultiClusterListComponent {
             NotificationType.success,
             $localize`Disconnected cluster '${cluster['cluster_alias']}'`
           );
+          this.multiClusterService.refresh();
+          this.summaryService.refresh();
+          const currentRoute = this.router.url.split('?')[0];
+          if (currentRoute.includes('dashboard')) {
+            this.router.navigateByUrl('/pool', { skipLocationChange: true }).then(() => {
+              this.router.navigate([currentRoute]);
+            });
+          } else {
+            this.router.navigateByUrl('/', { skipLocationChange: true }).then(() => {
+              this.router.navigate([currentRoute]);
+            });
+          }
         })
     });
   }
