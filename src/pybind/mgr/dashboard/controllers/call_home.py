@@ -15,7 +15,7 @@ class CallHome(RESTController):
                        first_name: str, last_name: str,
                        email: str) -> Tuple[int, str, str]:
         try:
-            error_code, out, err = mgr.remote('call_home_agent', 'list_tenants', ibm_id, company_name,
+            error_code, out, err = mgr.remote('call_home_agent', 'cli_list_tenants', ibm_id, company_name,
                                               first_name, last_name, email)
             if error_code != 0:
                 raise DashboardException(f'Listing tenants error: {err}')
@@ -29,7 +29,7 @@ class CallHome(RESTController):
     def set(self, tenant_id: str, ibm_id: str, company_name: str,
                 first_name: str, last_name: str, email: str) -> Tuple[int, str, str]:
         try:
-            error_code, _, err = mgr.remote('call_home_agent', 'set_tenant_id', tenant_id, ibm_id,
+            error_code, _, err = mgr.remote('call_home_agent', 'cli_set_tenant', tenant_id, ibm_id,
                                                 company_name, first_name, last_name, email)
             if error_code != 0:
                 raise DashboardException(f'Error setting tenant id: {err}')
@@ -41,7 +41,7 @@ class CallHome(RESTController):
     @Endpoint('GET')
     def download(self, report_type: str):
         try:
-            error_code, out, err = mgr.remote('call_home_agent', 'print_report_cmd', report_type)
+            error_code, out, err = mgr.remote('call_home_agent', 'cli_show', report_type)
             if error_code != 0:
                 raise DashboardException(f'Error downloading report: {err}')
         except RuntimeError as e:
@@ -52,7 +52,7 @@ class CallHome(RESTController):
     @Endpoint('GET')
     def info(self):
         try:
-            error_code, out, err = mgr.remote('call_home_agent', 'customer')
+            error_code, out, err = mgr.remote('call_home_agent', 'cli_get_user_info')
             if error_code != 0:
                 raise DashboardException(f'Error getting customer info: {err}')
         except RuntimeError as e:

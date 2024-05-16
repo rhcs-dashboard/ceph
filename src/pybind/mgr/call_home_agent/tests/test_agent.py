@@ -1,10 +1,21 @@
 import unittest
 import time
 import json
+import os
+from collections import defaultdict
 
 from unittest.mock import MagicMock, Mock, patch
 
-from call_home_agent.module import Report, exec_prometheus_query
+#from call_home_agent.module import Report
+from call_home_agent.module import CallHomeAgent
+from call_home_agent.ReportLastContact import ReportLastContact, EventLastContact
+from call_home_agent.ReportInventory import ReportInventory, EventInventory
+from call_home_agent.ReportStatusAlerts import ReportStatusAlerts
+from call_home_agent.ReportStatusHealth import ReportStatusHealth
+from call_home_agent.WorkFlowUploadSnap import WorkFlowUploadSnap
+from call_home_agent.Report import Report, ReportTimes
+import mgr_module
+import traceback
 
 TEST_JWT_TOKEN = r"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ0ZXN0IiwiaWF0IjoxNjkxNzUzNDM5LCJqdGkiOiIwMTIzNDU2Nzg5MDEyMzQ1Njc4OTAwMTIzNDU2Nzg5MCJ9.0F66k81_PmKoSd9erQoxnq73760SXs8WQTd3s8pqEFY\\"
 EXPECTED_JTI = '01234567890123456789001234567890'
@@ -14,207 +25,371 @@ JWT_REG_CREDS =json.dumps(JWT_REG_CREDS_DICT)
 PLAIN_PASSWORD_REG_CREDS_DICT = {"url": "test.icr.io", "username": "test_username", "password": "plain_password"}
 
 
-def fake_content(mgr):
-    return {'inventory': {}}
+class MockedMgr():
+    class Log:
+        def error(self, msg):
+            print(msg)
 
-def get_test_manager():
-    test_mgr = MagicMock()
-    test_mgr.get = Mock(return_value={'fsid': '12345'})
-    test_mgr.get_store = MagicMock(return_value=None)
+        def warning(self, msg):
+            print(msg)
 
-    test_mgr.version = "1"
-    test_mgr.target_space = "dev"
-    test_mgr.valid_container_registry = r"^.+\.icr\.io"
-    test_mgr.send_command = Mock(return_value=JWT_REG_CREDS)
-    return test_mgr
+        def info(self, msg):
+            print(msg)
 
-class TestReport(unittest.TestCase):
+        def debug(self, msg):
+            #print(msg)
+            pass
+
+        def exception(self, msg):
+            print(msg)
+
+    class HealthChecks:
+        def pop(self, what, something):
+            pass
+
+    def __init__(self, *args, **kwargs):
+        self.version = '99.9'
+        self.log = self.Log()
+        self.health_checks = self.HealthChecks()
+
+    def get(self, what):
+        simple_commands = ["osd_map_crush", "devices", "df", "fs_map", "mgr_map", "osd_map_tree", "osd_metadata", "osd_map", "pg_summary", "service_map"]
+        if what == 'mon_map':
+            return {'fsid': 'mocked_fsid'}
+        elif what == 'health':
+            return {'json': json.dumps({'health': 'mocked health text'})}
+        elif what in simple_commands:
+            return {what: f"mocked {what}"}
+        else:
+            raise Exception(f"Unknown get what [{what}], please mock it")
+
+    def list_servers(self):
+        return ['mock_serverA', 'mock_serverB']
+
+    def mon_command(self, command):
+        return 0, json.dumps({'health': {'status': 'mocked health status  mon_cmd'}}), ""
+
+    def remote(self, component, command, service_name=None, hostname=None, sos_params=None):
+        m = MagicMock()
+        m.exception_str = ''
+        if command in ['list_daemons', 'get_hosts']:
+            #attrs = {'hostname': 'daemon_hostname'}
+            m.result = [Mock(hostname='daemon_hostname', labels=['_admin','meow'], ip='4.3.2.1', ports=[42])]
+            return m
+        elif command == 'sos':
+            m.result = ['sosreport_case_part1 sosreport_case_part2 sosreport_case_part3']
+            return m
+        else:
+            m.result = 'mocked hw status'
+            return m
+
+    def get_module_option(self, opt_name, default=None):
+        for opt in self.MODULE_OPTIONS:
+            if opt['name'] == opt_name:
+                return opt['default']
+        raise Exception(f"EEEEEEEEEEEEEEEEEEEEEEEEEE Can't find Option name {opt_name}")
+
+    def get_store(self, opt_name, default=None):
+        # if default is None:
+        #     raise Exception(f"EEEEEEEEEEEEEEEEEEEEEEEEEE Mocked get_store requires default")
+        return default
+
+    def set_store(self, opt_name, val):
+        pass
+
+    def set_health_checks(self, val):
+        pass
+
+    def shutdown(self):
+        pass
+
+def mocked_ceph_command(self, srv_type, prefix, key=None, mgr=None, detail=None):
+    if prefix == 'config-key get':
+        if key == 'mgr/cephadm/registry_credentials':
+            return JWT_REG_CREDS
+        else:
+            raise Exception(f"Unknown ceph command [{prefix}], key=[{key}], please mock it")
+    elif prefix in ['status', 'health', 'osd tree', 'report', 'osd dump', 'df']:
+        return f"mocked_ceph_command {prefix}"
+    else:
+        raise Exception(f"Unknown ceph command [{prefix}], please mock it")
+
+def mocked_requests_get(url, auth=None, data=None, headers=None, proxies=None, params=None):
+    """
+    Used by ReportStatusAlerts to query prometheous
+    """
+    m = Mock()
+    if "api/v1/query" in url:
+        # This is a request for Prometheous
+        m.json.return_value = {'data': {'result': [{'value': "1234"}] }}
+    elif "api/v1/targets" in url:
+        m.json.return_value = {'data': {'activeTargets': [{'health': "up"}] }}
+    else:
+        m.json.return_value = {'data': {'alerts': [] }}
+    return m
+
+
+original_time_time = time.time
+test_object = None
+debug = False
+verbose = False
+
+def mock_glob(pattern: str):
+    print(f"mock_glob: globbing {pattern}")
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    return [f"{current_dir}/testfile1", f"{current_dir}/testfile2", f"{current_dir}/testfile3"]
+
+#@patch('mgr_module.MgrModule.version', '99.9')
+class TestAgent(unittest.TestCase):
+
+    ########################### Time handling ############################
+    def mocked_time_time(self):
+        if self.test_end and self.mocked_now > self.test_end:
+            self.agent.shutdown()
+
+        debug and print(f"#### mocked_now is {self.mocked_now}")
+        return self.mocked_now
+
+    def mocked_sleep(self, seconds):
+        debug and print(f"#### mocked_sleep for {seconds} seconds")
+        self.mocked_now += seconds
+        #print("".join(traceback.format_stack()))
+
+    ########################### HTTP requests ############################
+    def mocked_requests_post(self, url, auth=None, data=None, headers=None, proxies=None, timeout=None):
+        print("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv request.post vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")
+        print(f"  URL: {url}")
+        print(f"  now: {test_object.mocked_now if test_object.mocked_now is not None else 'None'}")
+        event_type = None
+        if data:
+            try:
+                pretty = json.dumps(json.loads(data), indent=4)
+                try:
+                    event_type = json.loads(data)['events'][0]['header']['event_type']
+                    if event_type == 'confirm_response':
+                        component = 'NA'
+                    else:
+                        component = json.loads(data)['events'][0]['body']['component']
+                    print(f"  event_type={event_type}  component={component}")
+                    self.sent_events[f"{event_type}-{component}"] += 1  # so we can assertEqual on it later
+                except:
+                    print('Data does not contain an event type')
+                verbose and print(f"Data: {pretty}")
+            except:
+                print(f"Data: {data}")
+        print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+
+        m = Mock()
+        m.raise_for_status.return_value = None
+        m.text = json.dumps(self.requests_post_response)
+        m.json.return_value = json.loads(m.text)
+        if 'upload_tid' in url:  # ecurep
+            m.json.return_value = {'id': 'upload_tid123'}
+            return m
+        elif 'upload_sf' in url:  # ecurep
+            return m
+        elif 'esupport' in url:  # call home
+            if event_type == 'last_contact':
+                if self.mock_requests_send_has_ur:
+                    self.mock_requests_send_has_ur -= 1
+                    print("mocked_requests_post(): Returning yes UR")
+                    m.text = self.mocked_last_contact_response_yes_ur
+                    if self.mock_requests_cooldown_pmr:
+                        # replace the pmr so that it will be different UR for stale, but same for cooldown
+                        new_pmr = self.mock_requests_cooldown_pmr.pop()
+                        m.text = self.mocked_last_contact_response_yes_ur.replace('TS1234567', new_pmr)
+                        print(f"####### replacing PMR to {new_pmr}")
+                else:
+                    m.text = self.mocked_last_contact_response_no_ur
+                m.json.return_value = json.loads(m.text)
+            return m
+        else:
+            raise Exception(f"Unknown mocked_requests_post URL [{url}], please mock it")
+    ######################################################################
+
+    def mock_mgr(self):
+
+        CallHomeAgent.__bases__ = (MockedMgr,)
+        #patch('mgr_module.MgrModule.version', '99.9').start()
+        patch('call_home_agent.module.CallHomeAgent.ceph_command', mocked_ceph_command).start()
+        patch('call_home_agent.WorkFlowUploadSnap.DIAGS_FOLDER', '/tmp').start()
+        patch('call_home_agent.module.CallHomeAgent.get_secrets',
+              return_value={'api_key': 'mocked_api_key',
+                            'private_key': 'mocked_private_key',
+                            'ecurep_transfer_id': 'mocked_ecurep_transfer_id',
+                            'ecurep_password': 'mocked_ecurep_password'}
+              ).start()
+
+
+        patch('requests.post', self.mocked_requests_post).start()
+        patch('requests.get', mocked_requests_get).start()
+        patch('glob.glob', mock_glob).start()
+        patch('os.remove', Mock()).start()
+        patch('os.path.getsize', Mock(return_value=42)).start()
+
     def setUp(self):
-        """ A test report is created to be used in each test
-        """
-        testMgr = get_test_manager()
-        self.patcher = patch('call_home_agent.dataDicts.get_settings')
-        self.mock_settings = self.patcher.start()
+        self.mock_mgr()
+        global test_object
+        test_object = self
 
-        self.mock_settings.return_value = {'api_key': b'api_key',
-                                      'private_key': b'private_key'}
+        ####### time handling #######
+        #self.mocked_now = original_time_time()
+        self.mocked_now = 0
+        self.test_end = None
 
-        self.report = Report('inventory',
-                            'ceph_inventory',
-                            'Ceph cluster composition',
-                            'AB54321',
-                            'ibm_tenant_id',
-                            fake_content,
-                            "http://chesurl.com",
-                            "",
-                            15,
-                            testMgr)
+        ####### HTTP requests handling #######
+        self.mocked_last_contact_response_no_ur = None
+        self.mocked_last_contact_response_yes_ur = None
+        self.mock_requests_send_has_ur = 0
+        self.mock_requests_cooldown_pmr = []
+        self.sent_events = defaultdict(int)
 
-    @patch('call_home_agent.dataDicts.ceph_command')
-    def test_content(self, mock_ceph_command):
+        # Load the json answers that requests.post() should return
+        with open(os.path.dirname(__file__) + '/response_no_pending_ur.json', 'r') as resp:
+            self.mocked_last_contact_response_no_ur = resp.read()
 
-        """ Verify if some strategic fields contains the right info
-        """
-        mock_ceph_command.return_value = JWT_REG_CREDS
+        with open(os.path.dirname(__file__) + '/response_yes_pending_ur.json', 'r') as resp:
+            self.mocked_last_contact_response_yes_ur = resp.read()
 
-        report = self.report.generate_report()
+        self.requests_post_response = {'some': 'answer'}
 
-        # header fields
-        self.assertEqual(report['agent'], "RedHat_Marine_firmware_agent")
-        self.assertNotEqual(report['api_key'], "")
-        self.assertNotEqual(report['private_key'], "")
-        self.assertEqual(report['asset'], "ceph")
-        self.assertEqual(report['analytics_event_source_type'], "asset_event")
-        self.assertEqual(report['analytics_group'], "Storage")
-        self.assertEqual(report['analytics_category'], "RedHatMarine")
+    def test_reports(self):
+        agent = CallHomeAgent()
+        self.agent = agent
+        ReportInventory(agent).run()
+        ReportLastContact(agent).run()
+        # ReportStatusAlerts: We dont fully mock the returned json to get_prometheus_alerts(), therefore
+        #   it raises an exception, catches it, and generates a "Can't read from prometheus" health alert.
+        ReportStatusAlerts(agent).run()
+        ReportStatusHealth(agent).run()
 
-        # events list
-        events = report['events']
-        self.assertEqual(len(events), 1)
+    def test_last_contact_no_ur(self):
+        agent = CallHomeAgent()
+        self.agent = agent
+        ReportLastContact(agent).run()
+        self.assertEqual(len(agent.ur_queue), 0)
+        self.assertEqual(self.sent_events['status-ceph_log_upload'], 0)
+        self.assertEqual(self.sent_events['confirm_response-NA'], 0)
 
-        # event details
-        event = events[0]
-        self.assertTrue('header' in event.keys())
-        self.assertTrue('body' in event.keys())
-        self.assertEqual(event['header']['event_type'], self.report.report_type)
-        self.assertEqual(event['header']['tenant_id'], 'ibm_tenant_id')
-        self.assertEqual(event['body']['component'], 'ceph_inventory')
+    def test_last_contact_yes_ur(self):
+        agent = CallHomeAgent()
+        self.agent = agent
+        self.mock_requests_send_has_ur = True
+        ReportLastContact(agent).run()
+        self.assertEqual(self.sent_events['status-ceph_log_upload'], 4)
+        self.assertEqual(self.sent_events['confirm_response-NA'], 1)
+        self.assertEqual(len(agent.ur_queue), 0)
+        self.assertEqual(len(agent.ur_stale), 1)
+        self.assertEqual(len(agent.ur_cooldown), 1)
 
-        # event payload not empty
-        self.assertEqual(event['body']['payload']['content'], fake_content(MagicMock()))
+    def test_serve_and_stale(self):
+        with patch('time.time', side_effect=self.mocked_time_time), patch('time.sleep', side_effect=self.mocked_sleep), patch('threading.Event.wait', side_effect=self.mocked_sleep):
+            agent = CallHomeAgent()
 
-    @patch('call_home_agent.dataDicts.ceph_command')
-    def test_jti_from_jwt(self, mock_ceph_command):
-        """ Extract jwt unique identifier from container registry
-        JWT user password
-        """
-        mock_ceph_command.return_value = JWT_REG_CREDS
-        report = self.report.generate_report()
-        event = report['events'][0]
-        self.assertEqual(event['body']['payload']['jti'], EXPECTED_JTI)
+            self.test_end = self.mocked_time_time() + 86000  # a bit less than a day
+            self.mock_requests_send_has_ur = 2
+            self.agent = agent
+            # This test checks the UR stale mechanism by running the agent for enough time for a stale message to be old enough to be deleted
+            # from the stale memory. By default, stale_timeout is 10 days but running this test, emulating 10 days takes too much time
+            # so we change the stale_timeout to 1 day so it will be quicker.
+            agent.stale_timeout = 86400
+            agent.serve()
 
-    @patch('call_home_agent.dataDicts.ceph_command')
-    def test_jti_from_jwt_not_available(self, mock_ceph_command):
-        """ Not able to extract jwt unique identifier from container registry
-            JWT user password.
-            Or the registry url is not the expected one
-        """
-        # password is not a JWT token
-        testMgr = get_test_manager()
-        mock_ceph_command.return_value = json.dumps(PLAIN_PASSWORD_REG_CREDS_DICT)
-        report = Report('inventory',
-                        'ceph_inventory',
-                        'Ceph cluster composition',
-                        'AB54321',
-                        'ibm_tenant_id',
-                        fake_content,
-                        "http://chesurl.com",
-                        "",
-                        15,
-                        testMgr)
-        report_dict = report.generate_report()
-        event = report_dict['events'][0]
-        self.assertEqual(event['body']['payload']['jti'], "")
+            self.assertEqual(len(agent.ur_queue), 0)
+            self.assertEqual(len(agent.ur_stale), 1) # 1 if less than 24 hours. 0 if more
+            self.assertEqual(len(agent.ur_cooldown), 0)
+            self.assertEqual(self.sent_events['confirm_response-NA'], 1)
 
-        # Url does not match the accepted registry url pattern
-        JWT_REG_CREDS_DICT['url'] = "quay.io/user"
-        mock_ceph_command.return_value = json.dumps(JWT_REG_CREDS_DICT)
-        report = Report('inventory',
-                        'ceph_inventory',
-                        'Ceph cluster composition',
-                        'AB54321',
-                        'ibm_tenant_id',
-                        fake_content,
-                        "http://chesurl.com",
-                        "",
-                        15,
-                        testMgr)
-        report_dict = report.generate_report()
-        event = report_dict['events'][0]
-        self.assertEqual(event['body']['payload']['jti'], "")
+            self.mocked_sleep(1000) # now we're past 24 hours since start
 
-    @patch('call_home_agent.dataDicts.ceph_command')
-    def test_valid_registry_urls_for_jti(self, mock_ceph_command):
-        testMgr = get_test_manager()
-        test_credentials = JWT_REG_CREDS_DICT
-        for test_url in ["cp.icr.io", "cp.icr.io/cp", "cp.stg.icr.io", "cp.stg.icr.io/cp"]:
-            test_credentials["url"] = test_url
-            mock_ceph_command.return_value = json.dumps(test_credentials)
-            report = Report('inventory',
-                            'ceph_inventory',
-                            'Ceph cluster composition',
-                            'AB54321',
-                            'ibm_tenant_id',
-                            fake_content,
-                            "http://chesurl.com",
-                            "",
-                            15,
-                            testMgr)
-            report_dict = report.generate_report()
-            event = report_dict['events'][0]
-            self.assertEqual(event['body']['payload']['jti'], EXPECTED_JTI)
+            self.test_end = self.mocked_time_time() + 43200  # half a day
+            self.mock_requests_send_has_ur = 2
+            agent.run = True
+            agent.serve()
 
-    @patch('requests.post')
-    def test_send(self, mock_post):
-        """ Send the report properly implies to update the last_upload attribute
-        """
-        t = int(self.report.last_upload)
-        self.report.send()
-        self.assertGreaterEqual(int(self.report.last_upload), t)
+            self.assertEqual(self.sent_events['confirm_response-NA'], 2)
+            #self.assertEqual(1, 0)
 
-    @patch('requests.post')
-    @patch('call_home_agent.dataDicts.ceph_command')
-    def test_communication_error(self, mock_ceph_cmd, mock_post):
-        """Any kind of error executing the "POST" will be raised
-        """
-        mock_ceph_cmd.return_value = {}
-        mock_post.side_effect=Exception('COM Error')
-        self.report.interval = 60
-        self.report.last_upload = str(int(time.time()) - 90)
+    def test_serve_and_cooldown(self):
+        with patch('time.time', side_effect=self.mocked_time_time), patch('time.sleep', side_effect=self.mocked_sleep), patch('threading.Event.wait', side_effect=self.mocked_sleep):
+            agent = CallHomeAgent()
 
-        with self.assertRaises(Exception) as context:
-            self.report.send()
-        self.assertTrue('COM Error' in str(context.exception))
+            self.test_end = self.mocked_time_time() + 86000  # a bit less than a day
+            self.mock_requests_send_has_ur = 2
+            self.mock_requests_cooldown_pmr = ['TS1234567', 'TS1234568']
+            self.agent = agent
+            agent.serve()
 
-    @patch('requests.post')
-    def test_not_time_to_send(self, mock_post):
-        """A report only can be sent when the time to send the report arrives
-        """
-        self.report.interval = 60
-        self.report.last_upload = str(int(time.time()))
-        self.report.send()
-        mock_post.assert_not_called()
+            self.assertEqual(len(agent.ur_queue), 0)
+            self.assertEqual(len(agent.ur_stale), 2) # as we got 2 different PMRs, we have 2 for stale.
+            self.assertEqual(len(agent.ur_cooldown), 0)
+            self.assertEqual(self.sent_events['confirm_response-NA'], 2)
 
-    @patch('requests.post')
-    @patch('call_home_agent.dataDicts.ceph_command')
-    def test_not_time_to_send_but_forced(self, mock_ceph_cmd, mock_post):
-        """A report only can be sent when the time to send the report arrives,
-           except if you force the operation
-        """
-        mock_ceph_cmd.return_value = {}
-        self.report.interval = 60
-        self.report.last_upload = str(int(time.time()))
-        self.report.send(force=True)
-        mock_post.assert_called()
+    def test_report_multiple_events(self):
+        class ReportMultiple(Report):
+            def __init__(self, agent, event_classes) -> None:
+                super().__init__(agent, 'test_multiple', event_classes)
 
-    @patch('requests.get')
-    def test_exec_prometheus_query(self, mock_get):
-        request_get_response = MagicMock(status_code=200, reason='pepe', text='{"status":"success","data":{"resultType":"vector","result":[{"metric":{"ceph_health":"HEALTH_OK"},"value":[1616414100,"1"]}]}}')
-        mock_get.return_value = request_get_response
-        result = exec_prometheus_query("http://prom/query/v1", "ceph_health")
-        assert result['status'] ==  "success"
+        agent = CallHomeAgent()
+        self.agent = agent
+        ReportMultiple(agent, [EventInventory, EventLastContact]).run()
+        #self.assertEqual(1, 0)
 
-        # Test metric error (server is ok, but something wrong executing the query):
-        request_get_response.raise_for_status = MagicMock(side_effect=Exception("Error in metrics"))
-        with self.assertRaises(Exception) as exception_context:
-            result = exec_prometheus_query("http://prom/query/v1", "ceph_health")
-        self.assertRegex(str(exception_context.exception), "Error in metrics")
+    def test_cli_print_report_cmd(self):
+        agent = CallHomeAgent()
+        ret = agent.cli_show('status')
+        
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        print(ret.stdout)
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        self.assertFalse('private_key' in ret.stdout)
+        self.assertFalse('api_key' in ret.stdout)
+        self.assertTrue('target_space' in ret.stdout)
 
-        # Result metrics not returned because a Prometheus server problem
-        mock_get.side_effect=Exception("Server error")
-        with self.assertRaises(Exception) as exception_context:
-            result = exec_prometheus_query("http://prom/query/v1", "ceph_health")
-        self.assertRegex(str(exception_context.exception), "Server error")
+    def test_cli_send_report_cmd(self):
+        agent = CallHomeAgent()
+        ret = agent.cli_send('status')
+        
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        print(ret.stdout)
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        self.assertEqual(ret.stdout, 'status report sent successfully:\n{\n    "some": "answer"\n}')
 
-    def tearDown(self):
-        self.patcher.stop()
+    def test_cli_upload_diagnostics(self):
+        agent = CallHomeAgent()
+        ret = agent.cli_upload_diagnostics('ticket123', 1)
+        
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        print(ret.stdout)
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        self.assertEqual(ret.stdout, 'Success')
+
+    def test_cli_list_queues(self):
+        agent = CallHomeAgent()
+        self.mock_requests_send_has_ur = 2
+        self.mock_requests_cooldown_pmr = ['TS1234567', 'TS1234568']
+        ReportLastContact(agent).run()
+        ReportLastContact(agent).run()
+        ret = agent.cli_list_queues()
+        
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        print(ret.stdout)
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        self.assertTrue('upload_snap-3-TS1234568-' in ret.stdout)
+
+    def test_connectivity_status(self):
+        agent = CallHomeAgent()
+        status = agent.get_call_home_status()
+        self.assertEqual(status['connectivity'], False)
+
+        # Send message, expect an error because it's not returning the correct json fields
+        agent.test_connectivity()
+        status = agent.get_call_home_status()
+        self.assertEqual(status['connectivity'], False)
+        self.assertEqual(status['connectivity_error'], 'Bad response from Call Home: {\n    "some": "answer"\n}')
+
+        self.requests_post_response = {"service": "ibm_callhome_connect", "more": "info"}
+        agent.test_connectivity()
+        status = agent.get_call_home_status()
+        self.assertEqual(status['connectivity'], True)
+        self.assertEqual(status['connectivity_error'], 'Success')
