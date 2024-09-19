@@ -183,7 +183,6 @@ def strtobool(value: str) -> bool:
         return False
     raise ValueError(f'invalid truth value {value!r}')
 
-
 def bytes_to_human(num: float, mode: str = 'decimal') -> str:
     """Convert a bytes value into it's human-readable form.
 
