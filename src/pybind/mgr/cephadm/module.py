@@ -3116,9 +3116,7 @@ Then run the following:
         elif daemon_type in ['ceph-exporter', 'node-exporter']:
             deps += get_daemon_names(['mgmt-gateway'])
         elif daemon_type == 'mgmt-gateway':
-            # url_prefix for monitoring daemons depends on the presence of mgmt-gateway
-            # while dashboard urls depend on the mgr daemons
-            deps += get_daemon_names(['grafana', 'prometheus', 'alertmanager', 'oauth2-proxy'])
+            deps = MgmtGatewayService.get_dependencies(self)
         else:
             # this daemon type doesn't need deps mgmt
             pass
