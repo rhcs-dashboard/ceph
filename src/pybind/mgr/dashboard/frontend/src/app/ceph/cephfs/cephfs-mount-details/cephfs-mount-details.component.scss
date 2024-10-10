@@ -1,0 +1,18 @@
+.select {
+    margin-bottom : 15px;
+    max-width: 50%;
+}
+.container {
+    display: flex;
+    align-items: center; /* Align items vertically in the center */
+    gap: 10px; /* Adds space between the select and download button */
+  }
+  
+  .select {
+    flex: 1; /* This allows the select element to take up more space */
+  }
+  
+  cd-download-button {
+    flex-shrink: 0; /* Prevents the download button from shrinking */
+  }
+  

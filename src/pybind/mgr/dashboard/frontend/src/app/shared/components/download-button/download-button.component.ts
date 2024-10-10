@@ -13,12 +13,14 @@ export class DownloadButtonComponent {
   @Input() textItem: string;
   @Input() fileName: any;
   @Input() title = $localize`Download`;
+  @Input() fileExtension: string;
 
   icons = Icons;
   constructor(private textToDownloadService: TextToDownloadService) {}
 
   download(format?: string) {
     this.fileName = `${this.fileName}_${new Date().toLocaleDateString()}`;
+    this.fileExtension = this.fileExtension ? this.fileExtension : "txt";
     if (format === 'json') {
       this.textToDownloadService.download(
         JSON.stringify(this.objectItem, null, 2),
@@ -26,6 +28,7 @@ export class DownloadButtonComponent {
       );
     } else {
       this.textToDownloadService.download(this.textItem, `${this.fileName}.txt`);
+      this.textToDownloadService.download(this.textItem, `${this.fileName}.${this.fileExtension}`);
     }
   }
 }

@@ -4,11 +4,21 @@
   <cds-modal-header (closeSelect)="closeModal()">
     <h3 cdsModalHeaderHeading
         i18n>
-      Attach commands
+      Attach commandsssssss
     </h3>
   </cds-modal-header>
-
   <div class="cds--modal-content">
+
+    <cds-select class ="select">
+      <option *ngFor="let user of allUsers"
+                      [value]="user.entity"
+                      >{{ user.entity }}</option>
+      </cds-select> 
+      <cd-download-button [textItem]="download"
+      fileName="ceph-users"
+      fileExtension="keyring">
+</cd-download-button>
+      
     <h5 class="fw-bold"
         i18n>
       Using Mount command
