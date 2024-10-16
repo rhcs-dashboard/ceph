@@ -10,7 +10,9 @@ import {
   ButtonModule,
   GridModule,
   ProgressIndicatorModule,
-  TreeviewModule
+  TreeviewModule,
+  InputModule,
+  ModalModule
 } from 'carbon-components-angular';
 
 import {
@@ -102,7 +104,9 @@ import { MultiClusterDetailsComponent } from './multi-cluster/multi-cluster-deta
     CheckboxModule,
     GridModule,
     ProgressIndicatorModule,
-    ButtonModule
+    ButtonModule,
+    InputModule,
+    ModalModule
   ],
   declarations: [
     HostsComponent,

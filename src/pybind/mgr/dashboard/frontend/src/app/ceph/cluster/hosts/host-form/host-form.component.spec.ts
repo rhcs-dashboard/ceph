@@ -44,7 +44,7 @@ describe('HostFormComponent', () => {
 
   it('should open the form in a modal', () => {
     const nativeEl = fixture.debugElement.nativeElement;
-    expect(nativeEl.querySelector('cd-modal')).not.toBe(null);
+    expect(nativeEl.querySelector('cds-modal')).not.toBe(null);
   });
 
   it('should validate the network address is valid', fakeAsync(() => {
