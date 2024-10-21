@@ -30,6 +30,7 @@ import multiprocessing.pool
 import subprocess
 from prettytable import PrettyTable
 
+import ceph.cephadm.images as default_images
 from ceph.deployment import inventory
 from ceph.deployment.drive_group import DriveGroupSpec
 from ceph.deployment.service_spec import \
@@ -130,24 +131,7 @@ def os_exit_noop(status: int) -> None:
 
 os._exit = os_exit_noop   # type: ignore
 
-
-# Default container images -----------------------------------------------------
 DEFAULT_IMAGE = 'registry.redhat.io/rhceph/rhceph-8-rhel9:latest'
-DEFAULT_PROMETHEUS_IMAGE = 'registry.redhat.io/openshift4/ose-prometheus:v4.15'
-DEFAULT_NODE_EXPORTER_IMAGE = 'registry.redhat.io/openshift4/ose-prometheus-node-exporter:v4.15'
-DEFAULT_NVMEOF_IMAGE = 'registry.redhat.io/rhceph/ceph-nvmeof-rhel9:1.3'
-DEFAULT_LOKI_IMAGE = 'registry.redhat.io/openshift-logging/logging-loki-rhel8:v3.1.0'
-DEFAULT_PROMTAIL_IMAGE = 'registry.redhat.io/rhceph/rhceph-promtail-rhel9:v3.0.0'
-DEFAULT_ALERT_MANAGER_IMAGE = 'registry.redhat.io/openshift4/ose-prometheus-alertmanager:v4.15'
-DEFAULT_GRAFANA_IMAGE = 'registry.redhat.io/rhceph/grafana-rhel9:latest'
-DEFAULT_HAPROXY_IMAGE = 'registry.redhat.io/rhceph/rhceph-haproxy-rhel9:latest'
-DEFAULT_KEEPALIVED_IMAGE = 'registry.redhat.io/rhceph/keepalived-rhel9:latest'
-DEFAULT_SNMP_GATEWAY_IMAGE = 'registry.redhat.io/rhceph/snmp-notifier-rhel9:latest'
-DEFAULT_NGINX_IMAGE = 'registry.redhat.io/rhel9/nginx-124:latest'
-DEFAULT_OAUTH2_PROXY = 'registry.redhat.io/rhceph/oauth2-proxy-rhel9:v7.6.0'
-DEFAULT_SAMBA_IMAGE = 'cp.icr.io/cp/ibm-ceph/samba-server-rhel9:v0.5'
-DEFAULT_SAMBA_METRICS_IMAGE = 'cp.icr.io/cp/ibm-ceph/samba-metrics-rhel9:v0.5'
-# ------------------------------------------------------------------------------
 
 
 def host_exists(hostname_position: int = 1) -> Callable:
@@ -235,72 +219,72 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
         ),
         Option(
             'container_image_prometheus',
-            default=DEFAULT_PROMETHEUS_IMAGE,
+            default=default_images.DEFAULT_PROMETHEUS_IMAGE,
             desc='Prometheus container image',
         ),
         Option(
             'container_image_nvmeof',
-            default=DEFAULT_NVMEOF_IMAGE,
+            default=default_images.DEFAULT_NVMEOF_IMAGE,
             desc='Nvme-of container image',
         ),
         Option(
             'container_image_grafana',
-            default=DEFAULT_GRAFANA_IMAGE,
+            default=default_images.DEFAULT_GRAFANA_IMAGE,
             desc='Prometheus container image',
         ),
         Option(
             'container_image_alertmanager',
-            default=DEFAULT_ALERT_MANAGER_IMAGE,
+            default=default_images.DEFAULT_ALERTMANAGER_IMAGE,
             desc='Prometheus container image',
         ),
         Option(
             'container_image_node_exporter',
-            default=DEFAULT_NODE_EXPORTER_IMAGE,
+            default=default_images.DEFAULT_NODE_EXPORTER_IMAGE,
             desc='Prometheus container image',
         ),
         Option(
             'container_image_loki',
-            default=DEFAULT_LOKI_IMAGE,
+            default=default_images.DEFAULT_LOKI_IMAGE,
             desc='Loki container image',
         ),
         Option(
             'container_image_promtail',
-            default=DEFAULT_PROMTAIL_IMAGE,
+            default=default_images.DEFAULT_PROMTAIL_IMAGE,
             desc='Promtail container image',
         ),
         Option(
             'container_image_haproxy',
-            default=DEFAULT_HAPROXY_IMAGE,
+            default=default_images.DEFAULT_HAPROXY_IMAGE,
             desc='HAproxy container image',
         ),
         Option(
             'container_image_keepalived',
-            default=DEFAULT_KEEPALIVED_IMAGE,
+            default=default_images.DEFAULT_KEEPALIVED_IMAGE,
             desc='Keepalived container image',
         ),
         Option(
             'container_image_snmp_gateway',
-            default=DEFAULT_SNMP_GATEWAY_IMAGE,
+            default=default_images.DEFAULT_SNMP_GATEWAY_IMAGE,
             desc='SNMP Gateway container image',
         ),
         Option(
             'container_image_nginx',
-            default=DEFAULT_NGINX_IMAGE,
+            default=default_images.DEFAULT_NGINX_IMAGE,
             desc='Nginx container image',
         ),
         Option(
             'container_image_oauth2_proxy',
-            default=DEFAULT_OAUTH2_PROXY,
+            default=default_images.DEFAULT_OAUTH2_PROXY,
             desc='oauth2-proxy container image',
         ),
         Option(
             'container_image_samba',
-            default=DEFAULT_SAMBA_IMAGE,
+            default=default_images.DEFAULT_SAMBA_IMAGE,
             desc='Samba/SMB container image',
         ),
         Option(
             'container_image_samba_metrics',
-            default=DEFAULT_SAMBA_METRICS_IMAGE,
+            default=default_images.DEFAULT_SAMBA_METRICS_IMAGE,
             desc='Samba/SMB metrics exporter container image',
         ),
         Option(

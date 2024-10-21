@@ -4,20 +4,6 @@
 DEFAULT_IMAGE = 'registry.redhat.io/rhceph/rhceph-8-rhel9:latest'
 DEFAULT_IMAGE_IS_MAIN = False
 DEFAULT_IMAGE_RELEASE = 'squid'
-DEFAULT_PROMETHEUS_IMAGE = 'registry.redhat.io/openshift4/ose-prometheus:v4.15'
-DEFAULT_LOKI_IMAGE = 'registry.redhat.io/openshift-logging/logging-loki-rhel8:v3.1.0'
-DEFAULT_PROMTAIL_IMAGE = 'registry.redhat.io/rhceph/rhceph-promtail-rhel9:v3.0.0'
-DEFAULT_NODE_EXPORTER_IMAGE = 'registry.redhat.io/openshift4/ose-prometheus-node-exporter:v4.15'
-DEFAULT_ALERT_MANAGER_IMAGE = 'registry.redhat.io/openshift4/ose-prometheus-alertmanager:v4.15'
-DEFAULT_GRAFANA_IMAGE = 'registry.redhat.io/rhceph/grafana-rhel9:latest'
-DEFAULT_HAPROXY_IMAGE = 'registry.redhat.io/rhceph/rhceph-haproxy-rhel9:latest'
-DEFAULT_KEEPALIVED_IMAGE = 'registry.redhat.io/rhceph/keepalived-rhel9:latest'
-DEFAULT_NVMEOF_IMAGE = 'registry.redhat.io/rhceph/ceph-nvmeof-rhel9:1.3'
-DEFAULT_SNMP_GATEWAY_IMAGE = 'registry.redhat.io/rhceph/snmp-notifier-rhel9:latest'
-DEFAULT_SMB_IMAGE = 'cp.icr.io/cp/ibm-ceph/samba-server-rhel9:v0.5'
-DEFAULT_SMBMETRICS_IMAGE = 'cp.icr.io/cp/ibm-ceph/samba-metrics-rhel9:v0.5'
-DEFAULT_NGINX_IMAGE = 'registry.redhat.io/rhel9/nginx-124:latest'
-DEFAULT_OAUTH2_PROXY_IMAGE = 'registry.redhat.io/rhceph/oauth2-proxy-rhel9:v7.6.0'
 DEFAULT_REGISTRY = 'registry.redhat.io'  # normalize unqualified digests to this
 # ------------------------------------------------------------------------------
 
