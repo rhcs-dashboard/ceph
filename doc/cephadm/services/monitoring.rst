@@ -169,20 +169,12 @@ the [ceph-users] mailing list in April of 2024. The thread can be viewed here:
 ``var/lib/ceph/{FSID}/cephadm.{DIGEST}``, where ``{DIGEST}`` is an alphanumeric
 string representing the currently-running version of Ceph.
 
-To see the default container images, run a command of the following form:
+To see the default container images, run below command:
 
 .. prompt:: bash #
 
-   grep -E "DEFAULT*IMAGE" /var/lib/ceph/{FSID}/cephadm.{DIGEST}
+   cephadm list-images
 
-::
-
-   DEFAULT_PROMETHEUS_IMAGE = 'quay.io/prometheus/prometheus:v2.51.0'
-   DEFAULT_LOKI_IMAGE = 'docker.io/grafana/loki:2.9.5'    
-   DEFAULT_PROMTAIL_IMAGE = 'docker.io/grafana/promtail:2.9.5'    
-   DEFAULT_NODE_EXPORTER_IMAGE = 'quay.io/prometheus/node-exporter:v1.7.0'    
-   DEFAULT_ALERT_MANAGER_IMAGE = 'quay.io/prometheus/alertmanager:v0.27.0'   
-   DEFAULT_GRAFANA_IMAGE = 'quay.io/ceph/grafana:10.4.0'
 
 ``cephadm`` stores a local copy of the ``cephadm`` binary in
 ``var/lib/ceph/{FSID}/cephadm.{DIGEST}``, where ``{DIGEST}`` is an alphanumeric
@@ -248,8 +240,14 @@ used by ``cephadm``.
       DEFAULT_SMB_IMAGE = 'quay.io/samba.org/samba-server:devbuilds-centos-amd64'
 
 Default monitoring images are specified in
-``/src/cephadm/cephadmlib/constants.py`` and in
-``/src/pybind/mgr/cephadm/module.py``.
+``/src/python-common/ceph/cephadm/images.py``.
+
+
+.. autoclass:: ceph.cephadm.images.DefaultImages
+   :members:
+   :undoc-members:
+   :exclude-members: desc, image_ref, key
+
 
 *The information in the "Default Images" section was developed by Eugen Block
 in a thread on the [ceph-users] mailing list in April of 2024 and updated for

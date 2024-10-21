@@ -3,14 +3,7 @@ import os
 from typing import Dict, List, Tuple
 
 from ..call_wrappers import call, CallVerbosity
-from ceph.cephadm.images import (
-    DEFAULT_ALERTMANAGER_IMAGE,
-    DEFAULT_GRAFANA_IMAGE,
-    DEFAULT_LOKI_IMAGE,
-    DEFAULT_NODE_EXPORTER_IMAGE,
-    DEFAULT_PROMETHEUS_IMAGE,
-    DEFAULT_PROMTAIL_IMAGE,
-)
+from ceph.cephadm.images import DefaultImages
 from ..constants import (
     UID_NOBODY,
     GID_NOGROUP,
@@ -49,7 +42,7 @@ class Monitoring(ContainerDaemonForm):
 
     components = {
         'prometheus': {
-            'image': DEFAULT_PROMETHEUS_IMAGE,
+            'image': DefaultImages.PROMETHEUS.image_ref,
             'cpus': '2',
             'memory': '4GB',
             'args': [
@@ -61,7 +54,7 @@ class Monitoring(ContainerDaemonForm):
             ],
         },
         'loki': {
-            'image': DEFAULT_LOKI_IMAGE,
+            'image': DefaultImages.LOKI.image_ref,
             'cpus': '1',
             'memory': '1GB',
             'args': [
@@ -70,7 +63,7 @@ class Monitoring(ContainerDaemonForm):
             'config-json-files': ['loki.yml'],
         },
         'promtail': {
-            'image': DEFAULT_PROMTAIL_IMAGE,
+            'image': DefaultImages.PROMTAIL.image_ref,
             'cpus': '1',
             'memory': '1GB',
             'args': [
@@ -81,13 +74,13 @@ class Monitoring(ContainerDaemonForm):
             ],
         },
         'node-exporter': {
-            'image': DEFAULT_NODE_EXPORTER_IMAGE,
+            'image': DefaultImages.NODE_EXPORTER.image_ref,
             'cpus': '1',
             'memory': '1GB',
             'args': ['--no-collector.timex'],
         },
         'grafana': {
-            'image': DEFAULT_GRAFANA_IMAGE,
+            'image': DefaultImages.GRAFANA.image_ref,
             'cpus': '2',
             'memory': '4GB',
             'args': [],
@@ -99,7 +92,7 @@ class Monitoring(ContainerDaemonForm):
             ],
         },
         'alertmanager': {
-            'image': DEFAULT_ALERTMANAGER_IMAGE,
+            'image': DefaultImages.ALERTMANAGER.image_ref,
             'cpus': '2',
             'memory': '2GB',
             'config-json-files': [

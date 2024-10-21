@@ -15,7 +15,7 @@ from .. import deployment_utils
 from .. import file_utils
 from ..call_wrappers import call, CallVerbosity
 from ..constants import DEFAULT_IMAGE
-from ceph.cephadm.images import DEFAULT_SAMBA_IMAGE
+from ceph.cephadm.images import DefaultImages
 from ..container_daemon_form import ContainerDaemonForm, daemon_to_container
 from ..container_engines import Podman
 from ..container_types import (
@@ -389,7 +389,7 @@ class SMB(ContainerDaemonForm):
 
     daemon_type = 'smb'
     daemon_base = '/usr/sbin/smbd'
-    default_image = DEFAULT_SAMBA_IMAGE
+    default_image = DefaultImages.SAMBA.image_ref
 
     @classmethod
     def for_daemon_type(cls, daemon_type: str) -> bool:
