@@ -87,6 +87,7 @@ import { ProgressComponent } from './progress/progress.component';
 
 // Icons
 import InfoIcon from '@carbon/icons/es/information/16';
+import CopyIcon from '@carbon/icons/es/copy/32';
 
 @NgModule({
   imports: [
@@ -218,6 +219,6 @@ import InfoIcon from '@carbon/icons/es/information/16';
 })
 export class ComponentsModule {
   constructor(private iconService: IconService) {
-    this.iconService.registerAll([InfoIcon]);
+    this.iconService.registerAll([InfoIcon, CopyIcon]);
   }
 }

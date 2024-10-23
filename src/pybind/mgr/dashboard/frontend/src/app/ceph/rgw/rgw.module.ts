@@ -82,7 +82,8 @@ import {
   TabsModule,
   AccordionModule,
   TagModule,
-  TooltipModule
+  TooltipModule,
+  ComboBoxModule
 } from 'carbon-components-angular';
 import { CephSharedModule } from '../shared/ceph-shared.module';
 import { RgwStorageClassDetailsComponent } from './rgw-storage-class-details/rgw-storage-class-details.component';
@@ -123,13 +124,10 @@ import { RgwRateLimitDetailsComponent } from './rgw-rate-limit-details/rgw-rate-
     SelectModule,
     NumberModule,
     TabsModule,
-    IconModule,
-    SelectModule,
     RadioModule,
-    SelectModule,
-    NumberModule,
     TagModule,
-    TooltipModule
+    TooltipModule,
+    ComboBoxModule
   ],
   exports: [
     RgwDaemonListComponent,
