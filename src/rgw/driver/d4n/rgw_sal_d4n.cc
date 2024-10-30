@@ -231,7 +231,7 @@ int D4NFilterObject::get_obj_attrs(optional_yield y, const DoutPrefixProvider* d
 }
 
 int D4NFilterObject::modify_obj_attrs(const char* attr_name, bufferlist& attr_val,
-                               optional_yield y, const DoutPrefixProvider* dpp) 
+                               optional_yield y, const DoutPrefixProvider* dpp,  uint32_t flags)
 {
   Attrs update;
   update[(std::string)attr_name] = attr_val;
@@ -243,7 +243,7 @@ int D4NFilterObject::modify_obj_attrs(const char* attr_name, bufferlist& attr_va
     ldpp_dout(dpp, 20) << "D4N Filter: Cache modify object attribute operation succeeded." << dendl;
   }
 
-  return next->modify_obj_attrs(attr_name, attr_val, y, dpp);  
+  return next->modify_obj_attrs(attr_name, attr_val, y, dpp, flags);
 }
 
 int D4NFilterObject::delete_obj_attrs(const DoutPrefixProvider* dpp, const char* attr_name,

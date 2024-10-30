@@ -1600,7 +1600,7 @@ int POSIXObject::get_obj_attrs(optional_yield y, const DoutPrefixProvider* dpp,
 }
 
 int POSIXObject::modify_obj_attrs(const char* attr_name, bufferlist& attr_val,
-                               optional_yield y, const DoutPrefixProvider* dpp)
+                               optional_yield y, const DoutPrefixProvider* dpp, uint32_t flags)
 {
   state.attrset[attr_name] = attr_val;
   return write_attr(dpp, y, attr_name, attr_val);
