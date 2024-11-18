@@ -1,21 +1,91 @@
 
 # -*- coding: utf-8 -*-
 
-import logging
 import json
+import logging
+from typing import List
 
-from typing import Dict, List, Union
+from smb.enums import Intent
+from smb.proto import Simplified
+from smb.resources import Cluster, Share
 
-
+from dashboard.controllers._docs import EndpointDoc
 from dashboard.controllers._permissions import CreatePermission, DeletePermission
-from smb import results
-from smb.enums import AuthMode, SMBClustering, Intent
+from dashboard.exceptions import DashboardException
 
 from .. import mgr
 from ..security import Scope
 from . import APIDoc, APIRouter, ReadPermission, RESTController
 
 logger = logging.getLogger('controllers.smb')
+
+CLUSTER_SCHEMA = {
+    "resource_type": (str, "ceph.smb.cluster"),
+    "cluster_id": (str, "Unique identifier for the cluster"),
+    "auth_mode": (str, "Either 'active-directory' or 'user'"),
+    "intent": (str, "Desired state of the resource, e.g., 'present' or 'removed'"),
+    "domain_settings": ({
+        "realm": (str, "Domain realm, e.g., 'DOMAIN1.SINK.TEST'"),
+        "join_sources": ([{
+            "source_type": (str, "resource"),
+            "ref": (str, "Reference identifier for the join auth resource")
+        }], "List of join auth sources for domain settings")
+    }, "Domain-specific settings for active-directory auth mode"),
+    "user_group_settings": ([{
+        "source_type": (str, "resource"),
+        "ref": (str, "Reference identifier for the user group resource")
+    }], "User group settings for user auth mode"),
+    "custom_dns": ([str], "List of custom DNS server addresses"),
+    "placement": ({
+        "count": (int, "Number of instances to place")
+    }, "Placement configuration for the resource")
+}
+
+CLUSTER_SCHEMA_RESULTS = {
+    "results": ([{
+        "resource": ({
+            "resource_type": (str, "ceph.smb.cluster"),
+            "cluster_id": (str, "Unique identifier for the cluster"),
+            "auth_mode": (str, "Either 'active-directory' or 'user'"),
+            "intent": (str, "Desired state of the resource, e.g., 'present' or 'removed'"),
+            "domain_settings": ({
+                "realm": (str, "Domain realm, e.g., 'DOMAIN1.SINK.TEST'"),
+                "join_sources": ([{
+                    "source_type": (str, "resource"),
+                    "ref": (str, "Reference identifier for the join auth resource")
+                }], "List of join auth sources for domain settings")
+            }, "Domain-specific settings for active-directory auth mode"),
+            "user_group_settings": ([{
+                "source_type": (str, "resource"),
+                "ref": (str, "Reference identifier for the user group resource")
+            }], "User group settings for user auth mode (optional)"),
+            "custom_dns": ([str], "List of custom DNS server addresses (optional)"),
+            "placement": ({
+                "count": (int, "Number of instances to place")
+            }, "Placement configuration for the resource (optional)"),
+        }, "Resource details"),
+        "state": (str, "State of the resource"),
+        "success": (bool, "Indicates whether the operation was successful")
+    }], "List of results with resource details"),
+    "success": (bool, "Overall success status of the operation")
+}
+
+LIST_CLUSTER_SCHEMA = [CLUSTER_SCHEMA]
+
+SHARE_SCHEMA = {
+    "resource_type": (str, "ceph.smb.share"),
+    "cluster_id": (str, "Unique identifier for the cluster"),
+    "share_id": (str, "Unique identifier for the share"),
+    "intent": (str, "Desired state of the resource, e.g., 'present' or 'removed'"),
+    "name": (str, "Name of the share"),
+    "readonly": (bool, "Indicates if the share is read-only"),
+    "browseable": (bool, "Indicates if the share is browseable"),
+    "cephfs": ({
+        "volume": (str, "Name of the CephFS file system"),
+        "path": (str, "Path within the CephFS file system"),
+        "provider": (str, "Provider of the CephFS share, e.g., 'samba-vfs'")
+    }, "Configuration for the CephFS share")
+}
 
 
 @APIRouter('/smb/cluster', Scope.SMB)
@@ -24,83 +94,93 @@ class SMBCluster(RESTController):
     _resource: str = 'ceph.smb.cluster'
 
     @ReadPermission
-    def list(self) -> List[Dict]:
+    @EndpointDoc("List smb clusters",
+                 responses={200: LIST_CLUSTER_SCHEMA})
+    def list(self) -> List[Cluster]:
+        """
+        List smb clusters
+        """
         res = mgr.remote('smb', 'show', [self._resource])
-        if isinstance(res, list):
-            return res
-        return [res]
+        return res['resources'] if 'resources' in res else [res]
+
+    @ReadPermission
+    @EndpointDoc("Get an smb cluster",
+                 parameters={
+                     'cluster_id': (str, 'Unique identifier for the cluster')
+                 },
+                 responses={200: CLUSTER_SCHEMA})
+    def get(self, cluster_id: str) -> Cluster:
+        """
+        Get an smb cluster by cluster id
+        """
+        return mgr.remote('smb', 'show', [f'{self._resource}.{cluster_id}'])
 
     @CreatePermission
-    def create(
-        self,
-        cluster_id: str,
-        auth_mode: AuthMode,
-        intent: Intent = Intent.PRESENT,
-        domain_settings: Dict = {},
-        user_group_settings: List[str] = [],
-        custom_dns: List[str] = [],
-        placement: str = '',
-        clustering: Union[SMBClustering, None] = None,
-        public_addrs: List[str] = [],
-        custom_smb_global_options: Dict = {}
-    ) -> results.Simplified:
-        # pylint: disable=unused-argument
-        cluster_data = locals().items()
+    @EndpointDoc("Create smb cluster",
+                 parameters={
+                     'cluster_resource': (str, 'cluster_resource')
+                 },
+                 responses={201: CLUSTER_SCHEMA_RESULTS})
+    def create(self, cluster_resource: Cluster) -> Simplified:
+        """
+        Create an smb cluster
 
-        resource = {}
-        resource['resource_type'] = self._resource
+        :param cluster_resource: Dict cluster data
+        :return: Returns cluster resource.
+        :rtype: Dict[str, Any]
+        """
+        try:
+            return mgr.remote(
+                'smb',
+                'apply_resources',
+                json.dumps(cluster_resource)).to_simplified()
+        except RuntimeError as e:
+            raise DashboardException(e, component='smb')
 
-        for key, value in cluster_data:
-            if key != 'self' and value:
-                if key == 'domain_settings' and domain_settings:
-                    if 'domain_settings' not in resource:
-                        resource[key] = {}
-                        resource[key]['join_sources'] = []
-
-                    resource[key]['realm'] = domain_settings['realm'] if 'realm' in domain_settings else None
-
-                    for auth_id in domain_settings['join_sources'] if 'join_sources' in domain_settings else []:
-                        value = {'source_type': 'resource', 'ref': auth_id}
-                        resource[key]['join_sources'].append(value)
-
-                elif key == 'user_group_settings' and user_group_settings:
-                    if 'user_group_settings' not in resource:
-                            resource[key] = []
-
-                    for user_id in user_group_settings:
-                        value = {'source_type': 'resource', 'ref': user_id}
-                        resource[key].append(value)
-                else:
-                    resource[key] = value
-        res =  mgr.remote('smb', 'apply_resources', json.dumps(resource))
-        return res.to_simplified() if type(res) is results.Result else res
-
-    
-    @DeletePermission
-    def delete(self, cluster_id: str) -> results.Simplified:
-        resource = {
-            'resource_type': self._resource,
-            'cluster_id': cluster_id
-        }
-
-        res = mgr.remote('smb', 'delete_cluster', json.dumps(resource))
-        return res.to_simplified() if isinstance(res, results.Result) else res
 
 @APIRouter('/smb/share', Scope.SMB)
 @APIDoc("SMB Share Management API", "SMB")
 class SMBShare(RESTController):
-    _resource = 'ceph.smb.share'
+    _resource: str = 'ceph.smb.share'
 
     @ReadPermission
-    def list(self, cluster_id: str = '') -> List[Dict]:
-            return mgr.remote('smb', 'show', [f'{self._resource}.{cluster_id}' if cluster_id else f'{self._resource}'])
+    @EndpointDoc("List smb shares",
+                 parameters={
+                     'cluster_id': (str, 'Unique identifier for the cluster')
+                 },
+                 responses={200: SHARE_SCHEMA})
+    def list(self, cluster_id: str = '') -> List[Share]:
+        """
+        List all smb shares or all shares for a given cluster
+
+        :param cluster_id: Dict containing cluster information
+        :return: Returns list of shares.
+        :rtype: List[Dict]
+        """
+        res = mgr.remote(
+            'smb',
+            'show',
+            [f'{self._resource}.{cluster_id}' if cluster_id else self._resource])
+        return res['resources'] if 'resources' in res else res
 
     @DeletePermission
-    def delete(self, cluster_id: str, share_id: str) -> results.Simplified:
+    @EndpointDoc("Remove smb shares",
+                 parameters={
+                     'cluster_id': (str, 'Unique identifier for the cluster'),
+                     'share_id': (str, 'Unique identifier for the share')
+                 },
+                 responses={204: None})
+    def delete(self, cluster_id: str, share_id: str):
+        """
+        Remove an smb share from a given cluster
+
+        :param cluster_id: Cluster identifier
+        :param share_id: Share identifier
+        :return: None.
+        """
         resource = {}
         resource['resource_type'] = self._resource
         resource['cluster_id'] = cluster_id
         resource['share_id'] = share_id
         resource['intent'] = Intent.REMOVED
-        return mgr.remote('smb', 'apply_resources', json.dumps(resource)).to_simplified()
-
+        return mgr.remote('smb', 'apply_resources', json.dumps(resource)).one().to_simplified()

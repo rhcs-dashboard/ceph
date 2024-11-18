@@ -30,7 +30,6 @@ GET_STATFS_SCHEMA = {
 }
 
 
-
 # pylint: disable=R0904
 @APIRouter('/cephfs', Scope.CEPHFS)
 @APIDoc("Cephfs Management API", "Cephfs")
