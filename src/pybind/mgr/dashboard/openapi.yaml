@@ -14055,6 +14055,117 @@ paths:
       - jwt: []
       tags:
       - Settings
+  /api/smb/cluster:
+    get:
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/vnd.ceph.api.v1.0+json:
+              type: object
+          description: OK
+        '400':
+          description: Operation exception. Please check the response body for details.
+        '401':
+          description: Unauthenticated access. Please login first.
+        '403':
+          description: Unauthorized access. Please check your permissions.
+        '500':
+          description: Unexpected error. Please check the response body for the stack
+            trace.
+      security:
+      - jwt: []
+      tags:
+      - SMB
+    post:
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                auth_mode:
+                  type: string
+                  enum:
+                    - user
+                    - active-directory
+                   description: "Authentication mode, must be either 'user' or 'acttive-directory'."
+                cluster_id:
+                  type: string
+                clustering:
+                  type: string
+                custom_dns:
+                  type: string
+                define_user_pass:
+                  type: string
+                domain_join_ref:
+                  type: array
+                domain_join_user_pass:
+                  type: array
+                domain_realm:
+                  default: ''
+                  type: string
+                placement:
+                  type: string
+                public_addrs:
+                  type: string
+                user_group_ref:
+                  type: string
+              required:
+              - cluster_id
+              - auth_mode
+              type: object
+      responses:
+        '201':
+          content:
+            application/vnd.ceph.api.v1.0+json:
+              type: object
+          description: Resource created.
+        '202':
+          content:
+            application/vnd.ceph.api.v1.0+json:
+              type: object
+          description: Operation is still executing. Please check the task queue.
+        '400':
+          description: Operation exception. Please check the response body for details.
+        '401':
+          description: Unauthenticated access. Please login first.
+        '403':
+          description: Unauthorized access. Please check your permissions.
+        '500':
+          description: Unexpected error. Please check the response body for the stack
+            trace.
+      security:
+      - jwt: []
+      tags:
+      - SMB
+  /api/smb/share:
+    get:
+      parameters:
+      - in: query
+        name: cluster_id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/vnd.ceph.api.v1.0+json:
+              type: object
+          description: OK
+        '400':
+          description: Operation exception. Please check the response body for details.
+        '401':
+          description: Unauthenticated access. Please login first.
+        '403':
+          description: Unauthorized access. Please check your permissions.
+        '500':
+          description: Unexpected error. Please check the response body for the stack
+            trace.
+      security:
+      - jwt: []
+      tags:
+      - SMB
   /api/summary:
     get:
       parameters: []
@@ -15478,6 +15589,8 @@ tags:
   name: RgwZonegroup
 - description: Role Management API
   name: Role
+- description: SMB Cluster Management API
+  name: SMB
 - description: Service Management API
   name: Service
 - description: Settings Management API
