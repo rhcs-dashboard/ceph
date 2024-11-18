@@ -12,4 +12,8 @@ export class SmbService {
   list() {
     return this.http.get(`${this.baseURL}`);
   }
+
+  create(request: any) {
+    return this.http.post(`${this.baseURL}`, {request });
+  }
 }

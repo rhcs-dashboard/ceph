@@ -14,11 +14,16 @@ import { ListWithDetails } from '~/app/shared/classes/list-with-details.class';
 import { AuthStorageService } from '~/app/shared/services/auth-storage.service';
 import { SmbService } from '~/app/shared/api/smb.service';
 import { CdTableFetchDataContext } from '~/app/shared/models/cd-table-fetch-data-context';
+import { URLBuilderService } from '~/app/shared/services/url-builder.service';
+
+
+const BASE_URL = 'cephfs/smb';
 
 @Component({
   selector: 'cd-smb-cluster-list',
   templateUrl: './smb-cluster-list.component.html',
-  styleUrls: ['./smb-cluster-list.component.scss']
+  styleUrls: ['./smb-cluster-list.component.scss'],
+  providers: [{ provide: URLBuilderService, useValue: new URLBuilderService(BASE_URL) }]
 })
 export class SmbClusterListComponent extends ListWithDetails implements OnInit {
   @ViewChild('table', { static: true })
@@ -35,7 +40,8 @@ export class SmbClusterListComponent extends ListWithDetails implements OnInit {
   constructor(
     private authStorageService: AuthStorageService,
     public actionLabels: ActionLabelsI18n,
-    private smbService: SmbService
+    private smbService: SmbService,
+    private urlBuilder: URLBuilderService,
   ) {
     super();
 
@@ -45,7 +51,8 @@ export class SmbClusterListComponent extends ListWithDetails implements OnInit {
         name: this.actionLabels.CREATE + ' Cluster ',
         permission: 'create',
         icon: Icons.add,
-        click: () => this.openModal(),
+        routerLink: () => this.urlBuilder.getCreate(),
+        
         canBePrimary: (selection: CdTableSelection) => !selection.hasSingleSelection
       },
       {
@@ -71,6 +78,7 @@ export class SmbClusterListComponent extends ListWithDetails implements OnInit {
   }
 
   ngOnInit() {
+    console.log(this.urlBuilder.getCreate());
     this.columns = [
       {
         name: $localize`Cluster`,
