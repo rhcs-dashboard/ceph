@@ -142,7 +142,7 @@ class FeatureToggles(I.CanMgr, I.Setupable, I.HasOptions,
             "cephfs": (bool, ''),
             "rgw": (bool, ''),
             "nfs": (bool, ''),
-            "dashboard": (bool, '')
+            "dashboard": (bool, ''),
         }
 
         @APIRouter('/feature_toggles')

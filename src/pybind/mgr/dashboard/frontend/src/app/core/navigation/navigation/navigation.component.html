@@ -257,6 +257,12 @@
                             i18n-title
                             *ngIf="permissions.nfs.read && enabledFeature.nfs"
                             class="tc_submenuitem tc_submenuitem_file_nfs"><span i18n>NFS</span></cds-sidenav-item>
+          <cds-sidenav-item route="/cephfs/smb"
+                            [useRouter]="true"
+                            title="SMB"
+                            i18n-title
+                            class="tc_submenuitem tc_submenuitem_file_smb"><span i18n>SMB</span></cds-sidenav-item>                
+        
         </cds-sidenav-menu>
         <!-- Observability -->
         <cds-sidenav-menu title="Observability"
