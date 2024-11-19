@@ -13,10 +13,10 @@ describe('SmbService', () => {
     imports: [HttpClientTestingModule]
   });
 
-
   beforeEach(() => {
     TestBed.configureTestingModule({});
     service = TestBed.inject(SmbService);
+    httpTesting = TestBed.inject(HttpTestingController);
   });
 
   it('should be created', () => {
@@ -24,7 +24,7 @@ describe('SmbService', () => {
   });
 
   it('should call list', () => {
-    service.list().subscribe();
+    service.listClusters().subscribe();
     const req = httpTesting.expectOne('api/smb/cluster');
     expect(req.request.method).toBe('GET');
   });

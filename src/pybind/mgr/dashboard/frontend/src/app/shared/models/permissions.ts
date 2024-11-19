@@ -49,6 +49,6 @@ export class Permissions {
     this.grafana = new Permission(serverPermissions['grafana']);
     this.prometheus = new Permission(serverPermissions['prometheus']);
     this.nfs = new Permission(serverPermissions['nfs-ganesha']);
-    this.smb = new Permission(serverPermissions['nfs-ganesha']);
+    this.smb = new Permission(serverPermissions['smb']);
   }
 }
