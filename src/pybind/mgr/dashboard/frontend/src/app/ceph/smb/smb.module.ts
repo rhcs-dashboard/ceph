@@ -18,13 +18,20 @@ import {
   ModalModule,
   NumberModule,
   PlaceholderModule,
-  SelectModule
+  SelectModule,
+  TabsModule,
+  TooltipModule
 } from 'carbon-components-angular';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { SharedModule } from '~/app/shared/shared.module';
 import { RouterModule } from '@angular/router';
 import { NgModule } from '@angular/core';
+
+import { SmbUsersgroupsListComponent } from './smb-usersgroups-list/smb-usersgroups-list.component';
+import { SmbTabsComponent } from './smb-tabs/smb-tabs.component';
+import { SmbJoinAuthListComponent } from './smb-join-auth-list/smb-join-auth-list.component';
+import { SmbUsersgroupsDetailsComponent } from './smb-usersgroups-details/smb-usersgroups-details.component';
 
 @NgModule({
   imports: [
@@ -40,6 +47,8 @@ import { NgModule } from '@angular/core';
     DataTableModule,
     GridModule,
     SelectModule,
+    TabsModule,
+    TooltipModule,
     InputModule,
     CheckboxModule,
     SelectModule,
@@ -53,7 +62,15 @@ import { NgModule } from '@angular/core';
     IconModule
   ],
   exports: [SmbClusterListComponent, SmbClusterFormComponent],
-  declarations: [SmbClusterListComponent, SmbClusterFormComponent, SmbDomainSettingModalComponent]
+  declarations: [
+    SmbClusterListComponent,
+    SmbClusterFormComponent,
+    SmbDomainSettingModalComponent,
+    SmbUsersgroupsListComponent,
+    SmbTabsComponent,
+    SmbJoinAuthListComponent,
+    SmbUsersgroupsDetailsComponent
+  ]
 })
 export class SmbModule {
   constructor(private iconService: IconService) {

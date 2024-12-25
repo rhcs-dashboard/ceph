@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
 
-import { DomainSettings, SMBCluster } from '~/app/ceph/smb/smb.model';
+import { DomainSettings, SMBJoinAuth, SMBCluster, SMBUsersGroups } from '~/app/ceph/smb/smb.model';
 
 @Injectable({
   providedIn: 'root'
@@ -30,5 +30,13 @@ export class SmbService {
     return this.http.delete(`${this.baseURL}/cluster/${clusterId}`, {
       observe: 'response'
     });
+  }
+
+  listJoinAuths(): Observable<SMBJoinAuth[]> {
+    return this.http.get<SMBJoinAuth[]>(`${this.baseURL}/joinauth`);
+  }
+
+  listUsersGroups(): Observable<SMBUsersGroups[]> {
+    return this.http.get<SMBUsersGroups[]>(`${this.baseURL}/usersgroups`);
   }
 }

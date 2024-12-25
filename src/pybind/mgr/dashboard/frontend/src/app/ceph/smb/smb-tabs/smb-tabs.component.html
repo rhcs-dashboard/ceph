@@ -1,0 +1,62 @@
+<div
+  *ngIf="selectedTab == Tabs.clusters"
+  i18n
+>
+  <h1>Clusters</h1>
+  <h5>Logical management units that may map to one or more managed Samba service</h5>
+</div>
+
+<div
+  *ngIf="selectedTab == Tabs.joinAuths"
+  i18n
+>
+  <h1>Active Directory access</h1>
+  <h5>Logical management units for authorization on Active Directory servers</h5>
+</div>
+
+<div
+  *ngIf="selectedTab == Tabs.usersgroups"
+  i18n
+>
+  <h1>Users Groups access</h1>
+  <h5>Logical management units for authorization on Stand-alone servers</h5>
+</div>
+
+
+<cds-tabs
+  type="contained"
+  followFocus="true"
+  isNavigation="true"
+  [cacheActive]="false">
+  <cds-tab
+    heading="Clusters"
+    [tabContent]="clusters"
+    i18n-heading
+    (selected)="onSelected(Tabs.clusters)">
+  </cds-tab>
+  <cds-tab
+    heading="Active Directory"
+    [tabContent]="joinAuth"
+    i18n-heading
+    (selected)="onSelected(Tabs.joinAuths)">
+  </cds-tab>
+  <cds-tab
+    heading="Standalone"
+    [tabContent]="usersgroups"
+    i18n-heading
+    (selected)="onSelected(Tabs.usersgroups)">
+  </cds-tab>
+</cds-tabs>
+
+<ng-template #clusters>
+  <cd-smb-cluster-list></cd-smb-cluster-list>
+</ng-template>
+
+
+<ng-template #joinAuth>
+  <cd-smb-join-auth-list></cd-smb-join-auth-list>
+</ng-template>
+
+<ng-template #usersgroups>
+  <cd-smb-users-list></cd-smb-users-list>
+</ng-template>
