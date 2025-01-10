@@ -11,11 +11,22 @@ import { Permission } from '~/app/shared/models/permissions';
 import { AuthStorageService } from '~/app/shared/services/auth-storage.service';
 import { SMBJoinAuth } from '../smb.model';
 import { ListWithDetails } from '~/app/shared/classes/list-with-details.class';
+import { Router } from '@angular/router';
+import { Icons } from '~/app/shared/enum/icons.enum';
+import { CdTableSelection } from '~/app/shared/models/cd-table-selection';
+import { URLBuilderService } from '~/app/shared/services/url-builder.service';
+import { CriticalConfirmationModalComponent } from '~/app/shared/components/critical-confirmation-modal/critical-confirmation-modal.component';
+import { ModalCdsService } from '~/app/shared/services/modal-cds.service';
+import { FinishedTask } from '~/app/shared/models/finished-task';
+import { TaskWrapperService } from '~/app/shared/services/task-wrapper.service';
+
+const BASE_URL = 'cephfs/smb/joinauth'
 
 @Component({
   selector: 'cd-smb-join-auth-list',
   templateUrl: './smb-join-auth-list.component.html',
-  styleUrls: ['./smb-join-auth-list.component.scss']
+  styleUrls: ['./smb-join-auth-list.component.scss'],
+  providers: [{ provide: URLBuilderService, useValue: new URLBuilderService(BASE_URL) }]
 })
 export class SmbJoinAuthListComponent extends ListWithDetails implements OnInit {
   @ViewChild('table', { static: true })
@@ -27,11 +38,16 @@ export class SmbJoinAuthListComponent extends ListWithDetails implements OnInit 
 
   joinAuth$: Observable<SMBJoinAuth[]>;
   subject$ = new BehaviorSubject<SMBJoinAuth[]>([]);
+  selection: CdTableSelection = new CdTableSelection();
 
   constructor(
+    private router: Router,
+    private urlBuilder: URLBuilderService,
     private authStorageService: AuthStorageService,
     public actionLabels: ActionLabelsI18n,
-    private smbService: SmbService
+    private smbService: SmbService,
+    private modalService: ModalCdsService,
+    private taskWrapper: TaskWrapperService
   ) {
     super();
     this.permission = this.authStorageService.getPermissions().smb;
@@ -56,6 +72,29 @@ export class SmbJoinAuthListComponent extends ListWithDetails implements OnInit 
       }
     ];
 
+    this.tableActions = [
+      {
+        name: this.actionLabels.CREATE,
+        permission: 'create',
+        icon: Icons.add,
+        click: () => this.router.navigate([this.urlBuilder.getCreate()]),
+        canBePrimary: (selection: CdTableSelection) => !selection.hasSelection
+      },
+      {
+        name: this.actionLabels.EDIT,
+        permission: 'update',
+        icon: Icons.edit,
+        click: () =>
+          this.router.navigate([this.urlBuilder.getEdit(String(this.selection.first().auth_id))])
+      },
+      {
+        name: this.actionLabels.DELETE,
+        permission: 'update',
+        icon: Icons.destroy,
+        click: () => this.openDeleteModal()
+      }
+    ];
+
     this.joinAuth$ = this.subject$.pipe(
       switchMap(() =>
         this.smbService.listJoinAuths().pipe(
@@ -70,5 +109,26 @@ export class SmbJoinAuthListComponent extends ListWithDetails implements OnInit 
 
   loadJoinAuth() {
     this.subject$.next([]);
+  }
+
+
+  openDeleteModal() {
+    const authId = this.selection.first().auth_id;
+
+    this.modalService.show(CriticalConfirmationModalComponent, {
+      itemDescription: $localize`Join Auth`,
+      itemNames: [authId],
+      submitActionObservable: () =>
+        this.taskWrapper.wrapTaskAroundCall({
+          task: new FinishedTask('smb/joinauth/remove', {
+            authId: authId
+          }),
+          call: this.smbService.deleteJoinAuth(authId)
+        })
+    });
+  }
+
+  updateSelection(selection: CdTableSelection) {
+    this.selection = selection;
   }
 }

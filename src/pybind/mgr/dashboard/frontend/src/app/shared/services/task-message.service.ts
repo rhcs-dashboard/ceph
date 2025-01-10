@@ -403,6 +403,24 @@ export class TaskMessageService {
     'smb/cluster/remove': this.newTaskMessage(this.commonOperations.remove, (metadata) =>
       this.smbCluster(metadata)
     ),
+    'smb/joinauth/create': this.newTaskMessage(this.commonOperations.create, (metadata) =>
+      this.smbJoinAuth(metadata)
+    ),
+    'smb/joinauth/edit': this.newTaskMessage(this.commonOperations.update, (metadata) =>
+      this.smbJoinAuth(metadata)
+    ),
+    'smb/joinauth/remove': this.newTaskMessage(this.commonOperations.remove, (metadata) =>
+      this.smbJoinAuth(metadata)
+    ),
+    'smb/usersgroups/create': this.newTaskMessage(this.commonOperations.create, (metadata) =>
+      this.smbUsersgroups(metadata)
+    ),
+    'smb/usersgroups/edit': this.newTaskMessage(this.commonOperations.update, (metadata) =>
+      this.smbUsersgroups(metadata)
+    ),
+    'smb/usersgroups/remove': this.newTaskMessage(this.commonOperations.remove, (metadata) =>
+      this.smbUsersgroups(metadata)
+    ),
     // Grafana tasks
     'grafana/dashboards/update': this.newTaskMessage(
       this.commonOperations.update,
@@ -490,6 +508,12 @@ export class TaskMessageService {
     // smb
     'smb/cluster/create': this.newTaskMessage(this.commonOperations.create, (metadata) =>
       this.smbCluster(metadata)
+    ),
+    'cephfs/smb/joinauth/create': this.newTaskMessage(this.commonOperations.create, (metadata) =>
+      this.smbJoinAuth(metadata)
+    ),
+    'cephfs/smb/usersgroups/create': this.newTaskMessage(this.commonOperations.create, (metadata) =>
+      this.smbUsersgroups(metadata)
     )
   };
 
@@ -551,7 +575,15 @@ export class TaskMessageService {
   }
 
   smbCluster(metadata: any) {
-    return $localize`SMB Cluster  '${metadata.cluster_id}'`;
+    return $localize`SMB Cluster '${metadata.cluster_id}'`;
+  }
+
+  smbJoinAuth(metadata: any) {
+    return $localize`SMB Join Auth '${metadata.authId}'`;
+  }
+
+  smbUsersgroups(metadata: any) {
+    return $localize`SMB Users Groups '${metadata.usersGroupsId}'`;
   }
 
   service(metadata: any) {

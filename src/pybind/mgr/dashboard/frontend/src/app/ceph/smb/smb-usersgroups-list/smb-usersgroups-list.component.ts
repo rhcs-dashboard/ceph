@@ -15,11 +15,22 @@ import { Permission } from '~/app/shared/models/permissions';
 import { AuthStorageService } from '~/app/shared/services/auth-storage.service';
 import { SmbService } from '~/app/shared/api/smb.service';
 import { SMBUsersGroups } from '../smb.model';
+import { Router } from '@angular/router';
+import { Icons } from '~/app/shared/enum/icons.enum';
+import { CdTableSelection } from '~/app/shared/models/cd-table-selection';
+import { URLBuilderService } from '~/app/shared/services/url-builder.service';
+import { CriticalConfirmationModalComponent } from '~/app/shared/components/critical-confirmation-modal/critical-confirmation-modal.component';
+import { FinishedTask } from '~/app/shared/models/finished-task';
+import { ModalCdsService } from '~/app/shared/services/modal-cds.service';
+import { TaskWrapperService } from '~/app/shared/services/task-wrapper.service';
+
+const BASE_URL = 'cephfs/smb/usersgroups'
 
 @Component({
   selector: 'cd-smb-users-list',
   templateUrl: './smb-usersgroups-list.component.html',
-  styleUrls: ['./smb-usersgroups-list.component.scss']
+  styleUrls: ['./smb-usersgroups-list.component.scss'],
+  providers: [{ provide: URLBuilderService, useValue: new URLBuilderService(BASE_URL) }]
 })
 export class SmbUsersgroupsListComponent extends ListWithDetails implements OnInit {
   @ViewChild('table', { static: true })
@@ -31,11 +42,16 @@ export class SmbUsersgroupsListComponent extends ListWithDetails implements OnIn
 
   usersGroups$: Observable<SMBUsersGroups[]>;
   subject$ = new BehaviorSubject<SMBUsersGroups[]>([]);
+  selection: CdTableSelection = new CdTableSelection();
 
   constructor(
+    private router: Router,
+    private urlBuilder: URLBuilderService,
     private authStorageService: AuthStorageService,
     public actionLabels: ActionLabelsI18n,
-    private smbService: SmbService
+    private smbService: SmbService,
+    private modalService: ModalCdsService,
+    private taskWrapper: TaskWrapperService
   ) {
     super();
     this.permission = this.authStorageService.getPermissions().smb;
@@ -54,9 +70,32 @@ export class SmbUsersgroupsListComponent extends ListWithDetails implements OnIn
         flexGrow: 2
       },
       {
-        name: $localize`Groups`,
-        prop: 'values.groups',
+        name: $localize`Number of Groups`,
+        prop: 'values.groups.length',
         flexGrow: 2
+      }
+    ];
+
+    this.tableActions = [
+      {
+        name: this.actionLabels.CREATE,
+        permission: 'create',
+        icon: Icons.add,
+        click: () => this.router.navigate([this.urlBuilder.getCreate()]),
+        canBePrimary: (selection: CdTableSelection) => !selection.hasSelection
+      },
+      {
+        name: this.actionLabels.EDIT,
+        permission: 'update',
+        icon: Icons.edit,
+        click: () =>
+          this.router.navigate([this.urlBuilder.getEdit(String(this.selection.first().users_groups_id))])
+      },
+      {
+        name: this.actionLabels.DELETE,
+        permission: 'delete',
+        icon: Icons.destroy,
+        click: () => this.openDeleteModal()
       }
     ];
 
@@ -74,5 +113,25 @@ export class SmbUsersgroupsListComponent extends ListWithDetails implements OnIn
 
   loadUsersGroups() {
     this.subject$.next([]);
+  }
+
+  openDeleteModal() {
+    const usersGroupsId = this.selection.first().users_groups_id;
+
+    this.modalService.show(CriticalConfirmationModalComponent, {
+      itemDescription: $localize`Users Groups`,
+      itemNames: [usersGroupsId],
+      submitActionObservable: () =>
+        this.taskWrapper.wrapTaskAroundCall({
+          task: new FinishedTask('smb/usersgroups/remove', {
+            usersGroupsId: usersGroupsId
+          }),
+          call: this.smbService.deleteUsersgroups(usersGroupsId)
+        })
+    });
+  }
+
+  updateSelection(selection: CdTableSelection) {
+    this.selection = selection;
   }
 }

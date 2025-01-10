@@ -53,6 +53,8 @@ import { MultiClusterListComponent } from './ceph/cluster/multi-cluster/multi-cl
 import { MultiClusterDetailsComponent } from './ceph/cluster/multi-cluster/multi-cluster-details/multi-cluster-details.component';
 import { SmbClusterFormComponent } from './ceph/smb/smb-cluster-form/smb-cluster-form.component';
 import { SmbTabsComponent } from './ceph/smb/smb-tabs/smb-tabs.component';
+import { SmbJoinAuthFormComponent } from './ceph/smb/smb-join-auth-form/smb-join-auth-form.component';
+import { SmbUsersgroupsFormComponent } from './ceph/smb/smb-usersgroups-form/smb-usersgroups-form.component';
 
 @Injectable()
 export class PerformanceCounterBreadcrumbsResolver extends BreadcrumbsResolver {
@@ -451,7 +453,27 @@ const routes: Routes = [
                 path: `${URLVerbs.CREATE}`,
                 component: SmbClusterFormComponent,
                 data: { breadcrumbs: ActionLabels.CREATE }
-              }
+              },
+              {
+                path: `joinauth/${URLVerbs.CREATE}`,
+                component: SmbJoinAuthFormComponent,
+                data: { breadcrumbs: ActionLabels.CREATE }
+              },
+              {
+                path: `joinauth/${URLVerbs.EDIT}/:authId`,
+                component: SmbJoinAuthFormComponent,
+                data: { breadcrumbs: ActionLabels.EDIT }
+              },
+              {
+                path: `usersgroups/${URLVerbs.CREATE}`,
+                component: SmbUsersgroupsFormComponent,
+                data: { breadcrumbs: ActionLabels.CREATE }
+              },
+              {
+                path: `usersgroups/${URLVerbs.EDIT}/:usersGroupsId`,
+                component: SmbUsersgroupsFormComponent,
+                data: { breadcrumbs: ActionLabels.EDIT }
+              },
             ]
           }
         ]
