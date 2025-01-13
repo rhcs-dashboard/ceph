@@ -236,22 +236,24 @@ export class RgwBucketService extends ApiClient {
     client_cert: string,
     client_key: string
   ) {
-    return this.rgwDaemonService.request((params: HttpParams) => {
-      params = params.appendAll({
-        encryption_type: encryption_type,
-        kms_provider: kms_provider,
+    const reqBody = {
+      encryption_type: encryption_type,
+      kms_provider: kms_provider,
+      config: {
         auth_method: auth_method,
         secret_engine: secret_engine,
-        secret_path: secret_path,
+        secret_path: decodeURIComponent(secret_path),
         namespace: namespace,
-        address: address,
-        token: token,
+        address: decodeURIComponent(address),
+        token: decodeURIComponent(token),
         owner: owner,
-        ssl_cert: ssl_cert,
-        client_cert: client_cert,
-        client_key: client_key
-      });
-      return this.http.put(`${this.url}/setEncryptionConfig`, null, { params: params });
+        ssl_cert: decodeURIComponent(ssl_cert),
+        client_cert: decodeURIComponent(client_cert),
+        client_key: decodeURIComponent(client_key)
+      }
+    }
+    return this.rgwDaemonService.request((params: HttpParams) => {
+      return this.http.put(`${this.url}/setEncryptionConfig`, reqBody, { params: params });
     });
   }
 
