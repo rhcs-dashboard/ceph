@@ -8,6 +8,7 @@ import time
 import requests
 
 from mgr_module import HandleCommandResult
+from .service_registry import register_cephadm_service
 
 from orchestrator import DaemonDescription
 from ceph.deployment.service_spec import AlertManagerSpec, GrafanaSpec, ServiceSpec, \
@@ -23,6 +24,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+@register_cephadm_service
 class GrafanaService(CephadmService):
     TYPE = 'grafana'
     DEFAULT_SERVICE_PORT = 3000
@@ -288,6 +290,7 @@ class GrafanaService(CephadmService):
         return HandleCommandResult(0, warn_message, '')
 
 
+@register_cephadm_service
 class AlertmanagerService(CephadmService):
     TYPE = 'alertmanager'
     DEFAULT_SERVICE_PORT = 9093
@@ -488,6 +491,7 @@ class AlertmanagerService(CephadmService):
         return HandleCommandResult(0, warn_message, '')
 
 
+@register_cephadm_service
 class PrometheusService(CephadmService):
     TYPE = 'prometheus'
     DEFAULT_SERVICE_PORT = 9095
@@ -810,6 +814,7 @@ class PrometheusService(CephadmService):
         return '/prometheus/federate'
 
 
+@register_cephadm_service
 class NodeExporterService(CephadmService):
     TYPE = 'node-exporter'
     DEFAULT_SERVICE_PORT = 9100
@@ -867,6 +872,7 @@ class NodeExporterService(CephadmService):
         return HandleCommandResult(0, out, '')
 
 
+@register_cephadm_service
 class LokiService(CephadmService):
     TYPE = 'loki'
     DEFAULT_SERVICE_PORT = 3100
@@ -888,6 +894,7 @@ class LokiService(CephadmService):
         }, sorted(deps)
 
 
+@register_cephadm_service
 class PromtailService(CephadmService):
     TYPE = 'promtail'
     DEFAULT_SERVICE_PORT = 9080
@@ -925,6 +932,7 @@ class PromtailService(CephadmService):
         }, deps
 
 
+@register_cephadm_service
 class SNMPGatewayService(CephadmService):
     TYPE = 'snmp-gateway'
 
