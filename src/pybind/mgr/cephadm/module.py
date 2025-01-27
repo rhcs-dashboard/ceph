@@ -85,7 +85,6 @@ from .inventory import (
     ClientKeyringSpec,
     TunedProfileStore,
     NodeProxyCache,
-    CertKeyStore,
     OrchSecretNotFound,
     CoredumpctlOverrides,
 )
@@ -599,9 +598,6 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
         self.tuned_profiles.load()
 
         self.tuned_profile_utils = TunedProfileUtils(self)
-
-        self.cert_key_store = CertKeyStore(self)
-        self.cert_key_store.load()
 
         self.cert_mgr = CertMgr(self, self.get_mgr_ip())
 
@@ -3211,7 +3207,7 @@ Then run the following:
 
     @handle_orch_error
     def cert_store_key_ls(self) -> Dict[str, Any]:
-        return self.cert_key_store.key_ls()
+        return self.cert_mgr.key_ls()
 
     @handle_orch_error
     def cert_store_get_cert(
@@ -3221,7 +3217,7 @@ Then run the following:
         hostname: Optional[str] = None,
         no_exception_when_missing: bool = False
     ) -> str:
-        cert = self.cert_key_store.get_cert(entity, service_name or '', hostname or '')
+        cert = self.cert_mgr.get_cert(entity, service_name or '', hostname or '')
         if not cert:
             if no_exception_when_missing:
                 return ''
@@ -3236,7 +3232,7 @@ Then run the following:
         hostname: Optional[str] = None,
         no_exception_when_missing: bool = False
     ) -> str:
-        key = self.cert_key_store.get_key(entity, service_name or '', hostname or '')
+        key = self.cert_mgr.get_key(entity, service_name or '', hostname or '')
         if not key:
             if no_exception_when_missing:
                 return ''
@@ -3387,6 +3383,15 @@ Then run the following:
     def set_health_warning(self, name: str, summary: str, count: int, detail: List[str]) -> None:
         self.health_checks[name] = {
             'severity': 'warning',
+            'summary': summary,
+            'count': count,
+            'detail': detail,
+        }
+        self.set_health_checks(self.health_checks)
+
+    def set_health_error(self, name: str, summary: str, count: int, detail: List[str]) -> None:
+        self.health_checks[name] = {
+            'severity': 'error',
             'summary': summary,
             'count': count,
             'detail': detail,
