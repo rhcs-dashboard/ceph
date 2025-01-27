@@ -35,7 +35,8 @@ import {
   DropdownModule,
   SelectModule,
   ComboBoxModule,
-  ProgressIndicatorModule
+  ProgressIndicatorModule,
+  FileUploaderModule
 } from 'carbon-components-angular';
 
 import { MotdComponent } from '~/app/shared/components/motd/motd.component';
@@ -83,6 +84,7 @@ import { ProgressComponent } from './progress/progress.component';
 
 // Icons
 import InfoIcon from '@carbon/icons/es/information/16';
+import { DropFileUploaderComponent } from './drop-file-uploader/drop-file-uploader.component';
 
 @NgModule({
   imports: [
@@ -121,7 +123,8 @@ import InfoIcon from '@carbon/icons/es/information/16';
     DropdownModule,
     SelectModule,
     ComboBoxModule,
-    ProgressIndicatorModule
+    ProgressIndicatorModule,
+    FileUploaderModule
   ],
   declarations: [
     SparklineComponent,
@@ -163,7 +166,8 @@ import InfoIcon from '@carbon/icons/es/information/16';
     HelpTextComponent,
     FormAdvancedFieldsetComponent,
     UpgradableComponent,
-    ProgressComponent
+    ProgressComponent,
+    DropFileUploaderComponent
   ],
   providers: [],
   exports: [

@@ -272,4 +272,25 @@ export class RgwBucketService extends ApiClient {
       return this.http.get(`${this.url}/getEncryptionConfig`, { params: params });
     });
   }
+
+  listObjects(bucket: string, prefix = '', delimiter='') {
+    return this.rgwDaemonService.request((params: HttpParams) => {
+      params = params.append('prefix', prefix);
+      params = params.append('delimiter', delimiter);
+      return this.http.get(`${this.url}/get_object/${bucket}`, { params: params });
+    });
+  } 
+
+  uploadObjects(bucket: string, files: File) {
+
+    return this.rgwDaemonService.request((params: HttpParams) => {
+      const formData = new FormData();
+      formData.append('data', files);
+      params = params.appendAll({
+        'bucket': bucket,
+        'key': files.name
+      })
+      return this.http.put(`${this.url}/put_object`, formData, { params: params });
+    });
+  }
 }

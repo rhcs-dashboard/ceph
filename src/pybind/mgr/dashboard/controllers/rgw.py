@@ -705,7 +705,21 @@ class RgwBucket(RgwRESTController):
     @allow_empty_body
     def get_encryption_config(self, daemon_name=None, owner=None):
         return CephService.get_encryption_config(daemon_name)
+    
+    @RESTController.Collection(method='GET', path='/get_object')
+    @allow_empty_body
+    def get_objects(self, bucket, prefix='', delimiter='', daemon_name=None, owner=None):
+        rgw_client = RgwClient.instance(owner, daemon_name)
+        return rgw_client.list_objects(bucket, prefix, delimiter)
 
+    @RESTController.Collection(method='PUT', path='/put_object')
+    @allow_empty_body
+    def put_object(self, bucket, key, data, daemon_name=None, owner=None):
+        from io import BytesIO
+        rgw_client = RgwClient.instance(owner, daemon_name)
+        data = cherrypy.request.params.get('data')
+        content = data.file.read()
+        return rgw_client.upload_file(bucket, key, BytesIO(content))
 
 @UIRouter('/rgw/bucket', Scope.RGW)
 class RgwBucketUi(RgwBucket):

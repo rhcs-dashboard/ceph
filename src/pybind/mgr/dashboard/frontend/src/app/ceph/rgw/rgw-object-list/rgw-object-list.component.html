@@ -1,0 +1,43 @@
+<!-- <cd-table #table
+          [data]="data"
+          [columns]="columns"
+          (updateSelection)="updateSelection($event)"
+          columnMode="flex">
+
+  <cd-table-actions class="table-actions"
+                    [permission]="permission"
+                    [selection]="selection"
+                    [tableActions]="tableActions">
+</cd-table-actions>
+</cd-table> -->
+<div cdsRow class="ms-3">
+  <div cdsCol
+       [columnNumbers]="{ md: 4 }">
+  <div cdsRow>
+    <div cdsCol
+         [columnNumbers]="{ md:4 }">
+      <cds-search></cds-search>
+    </div>
+    <div cdsCol
+         [columnNumbers]="{ md: 4 }">
+  <button cdsButton="primary"
+          size="md"
+          (click)="openModal()">
+    <span i18n>Upload</span>
+  </button>
+  </div>
+  </div>
+    <cds-tree-view [tree]="nodes"
+                   (toggle)="nodeToggle($event)"
+                   (select)="onNodeSelected($event)"></cds-tree-view>
+  </div>
+
+  <div cdsCol
+       [columnNumbers]="{ md: 4 }"
+       *ngIf="metadata">
+       <legend>{{ metadataTitle }}</legend>
+        <div>
+          <cd-table-key-value [data]="metadata"></cd-table-key-value>
+        </div>
+  </div>
+</div>

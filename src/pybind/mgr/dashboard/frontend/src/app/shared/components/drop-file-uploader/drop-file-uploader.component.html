@@ -1,0 +1,38 @@
+<cds-modal size="sm"
+           [open]="open">
+    <cds-modal-header (closeSelect)="closeModal()">
+        <h3 cdsModalHeaderHeading
+            i18n>Upload</h3>
+    </cds-modal-header>
+    <section cdsModalContent>
+        <form name="fileUploadForm"
+              #formDir="ngForm"
+              [formGroup]="fileUploadForm"
+              novalidate>
+        <cds-file-uploader
+                    [title]="title"
+                    [description]="description"
+                    [buttonText]="buttonText"
+                    [multiple]="true"
+                    [(files)]="files"
+                    drop="true"
+                    [dropText]="dropText"
+                    [disabled]="disabled">
+        </cds-file-uploader>
+        </form>
+    </section>
+
+    
+
+    <cd-form-button-panel (submitActionEvent)="onUpload()"
+                          [form]="fileUploadForm"
+                          submitText="Upload"
+                          [modalForm]="true"></cd-form-button-panel>
+<!-- <button
+cdsButton
+*ngIf="files && files.size > 0"
+(click)="onUpload()"
+style="margin-top:20px">
+Upload
+</button> -->
+</cds-modal>

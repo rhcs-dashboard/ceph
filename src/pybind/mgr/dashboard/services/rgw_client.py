@@ -1084,6 +1084,31 @@ class RgwClient(RestClient):
                     return None
             raise e
 
+    @RestClient.api_get('/{bucket_name}?prefix={prefix}&delimiter={delimiter}')
+    def list_objects(self, bucket_name, prefix='', delimiter='', request=None):
+        # pylint: disable=unused-argument
+        try:
+            result = request(raw_content=True).decode('utf-8')
+            matches = re.findall(r'"CommonPrefixes":\s*(\[[^\]]*\])', result)
+            merged_prefixes = set()
+            for match in matches:
+                prefixes = json.loads(match)  # Parse each matched list
+                merged_prefixes.update(prefixes)
+            result = json_str_to_object(result)
+            result["CommonPrefixes"] = list(merged_prefixes)
+            return [result]
+            
+        except RequestException as e:
+            raise DashboardException(msg=str(e), component='rgw')
+
+    @RestClient.api_put('/{bucket_name}/{file_path}')
+    def upload_file(self, bucket_name, file_path, file, request=None):
+        # pylint: disable=unused-argument
+        try:
+            request(data=file)
+        except RequestException as e:
+            raise DashboardException(msg=str(e), component='rgw')
+
 
 class SyncStatus(Enum):
     enabled = 'enabled'

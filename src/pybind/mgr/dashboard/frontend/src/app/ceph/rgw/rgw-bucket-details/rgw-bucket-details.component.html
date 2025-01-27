@@ -3,6 +3,16 @@
        #nav="ngbNav"
        class="nav-tabs"
        cdStatefulTab="rgw-bucket-details">
+
+    <!-- List all the objects -->
+    <ng-container ngbNavItem="objects">
+      <a ngbNavLink
+         i18n>Storage Browser</a>
+      <ng-template ngbNavContent>
+        <cd-rgw-object-list [bucket]="selection.bucket"></cd-rgw-object-list>
+      </ng-template>
+    </ng-container>
+
     <ng-container ngbNavItem="details">
       <a ngbNavLink
          i18n>Details</a>
