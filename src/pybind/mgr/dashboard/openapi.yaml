@@ -14911,6 +14911,23 @@ paths:
                       required:
                       - count
                       type: object
+                    public_addrs:
+                      description: Public Address
+                      items:
+                        properties:
+                          address:
+                            description: This address will be assigned to one of the
+                              host's network devices
+                            type: string
+                          destination:
+                            description: Defines where the system will assign the
+                              managed IPs.
+                            type: string
+                        required:
+                        - address
+                        - destination
+                        type: object
+                      type: array
                     resource_type:
                       description: ceph.smb.cluster
                       type: string
@@ -14938,6 +14955,7 @@ paths:
                 - domain_settings
                 - user_group_settings
                 - custom_dns
+                - public_addrs
                 - placement
                 type: array
           description: OK
@@ -15036,6 +15054,23 @@ paths:
                               required:
                               - count
                               type: object
+                            public_addrs:
+                              description: Public Address
+                              items:
+                                properties:
+                                  address:
+                                    description: This address will be assigned to
+                                      one of the host's network devices
+                                    type: string
+                                  destination:
+                                    description: Defines where the system will assign
+                                      the managed IPs.
+                                    type: string
+                                required:
+                                - address
+                                - destination
+                                type: object
+                              type: array
                             resource_type:
                               description: ceph.smb.cluster
                               type: string
@@ -15063,6 +15098,7 @@ paths:
                           - domain_settings
                           - user_group_settings
                           - custom_dns
+                          - public_addrs
                           - placement
                           type: object
                         state:
@@ -15209,6 +15245,23 @@ paths:
                     required:
                     - count
                     type: object
+                  public_addrs:
+                    description: Public Address
+                    items:
+                      properties:
+                        address:
+                          description: This address will be assigned to one of the
+                            host's network devices
+                          type: string
+                        destination:
+                          description: Defines where the system will assign the managed
+                            IPs.
+                          type: string
+                      required:
+                      - address
+                      - destination
+                      type: object
+                    type: array
                   resource_type:
                     description: ceph.smb.cluster
                     type: string
@@ -15235,6 +15288,7 @@ paths:
                 - domain_settings
                 - user_group_settings
                 - custom_dns
+                - public_addrs
                 - placement
                 type: object
           description: OK
