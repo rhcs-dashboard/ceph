@@ -118,6 +118,7 @@ export class RgwBucketListComponent extends ListWithDetails implements OnInit, O
       permission: 'delete',
       icon: Icons.destroy,
       click: () => this.deleteAction(),
+      disable: () => this.isDeleteDisabled(),
       name: this.actionLabels.DELETE
     };
     const tieringAction: CdTableAction = {
@@ -129,6 +130,15 @@ export class RgwBucketListComponent extends ListWithDetails implements OnInit, O
     };
     this.tableActions = [addAction, editAction, deleteAction, tieringAction];
     this.setTableRefreshTimeout();
+  }
+
+  isDeleteDisabled(): boolean | string {
+    if (!this.selection.first()) {
+      return true;
+    }
+    return this.selection.first()?.num_objects > 0
+      ? $localize`Bucket is not empty. Remove all objects before deletion.`
+      : false;
   }
 
   getBucketList(context: CdTableFetchDataContext) {
