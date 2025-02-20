@@ -3,7 +3,7 @@
 import json
 
 from typing import Tuple
-from . import APIDoc, APIRouter, RESTController, Endpoint
+from . import APIDoc, APIRouter, RESTController, Endpoint, ReadPermission, CreatePermission
 from .. import mgr
 from ..exceptions import DashboardException
 
@@ -59,3 +59,25 @@ class CallHome(RESTController):
             raise DashboardException(e, component='call_home')
         
         return json.loads(out)
+
+    @Endpoint('GET')
+    @ReadPermission
+    def status(self):
+        try:
+            error_code, out, err = mgr.remote('call_home_agent', 'cli_connectivity_status')
+            if error_code != 0:
+                raise DashboardException(f'Error getting the status: {err}')
+        except RuntimeError as e:
+            raise DashboardException(e, component='call_home')
+
+        return json.loads(out)
+
+    @Endpoint('POST')
+    @CreatePermission
+    def connectivity(self):
+        try:
+            error_code, _, err = mgr.remote('call_home_agent', 'test_connectivity')
+            if error_code != 0:
+                raise DashboardException(f'Error testing the connectivity: {err}')
+        except RuntimeError as e:
+            raise DashboardException(e, component='call_home')

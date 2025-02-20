@@ -203,6 +203,28 @@
     <button class="btn btn-light"
             (click)="stop()">Deactivate</button>
   </p>
+
+  <div class="form-group row mt-4"
+       *ngIf="callHomeStatus$ | async as status">
+    <label class="cd-col-form-label"
+           i18n>Connectivity
+      <span class="d-block fs-6 fw-light text-muted"
+            [title]="status.last_checked * 1000 | date:'yyyy-MM-ddTHH:mm:ss.SSSZ':'UTC' | cdDate"
+          *ngIf="status.last_checked">Last refreshed: {{ status.last_checked * 1000 | date:'yyyy-MM-ddTHH:mm:ss.SSSZ':'UTC' | relativeDate }}</span>
+    </label>
+
+    <div class="cd-col-form-input mt-1">
+      <cd-call-home-connectivity-status [status]="status"></cd-call-home-connectivity-status>
+
+      <button class="btn btn-light ms-2"
+              id="testConnectivity"
+              (click)="testConnectivity()">
+        <i [ngClass]="callHomeRefreshLoading ? [icons.spinner, icons.spin] : [icons.refresh]"></i>
+        Test Connectivity
+      </button>
+    </div>
+  </div>
+
   <div class="form-group row mt-4">
     <label class="cd-col-form-label"
            i18n>Inventory</label>

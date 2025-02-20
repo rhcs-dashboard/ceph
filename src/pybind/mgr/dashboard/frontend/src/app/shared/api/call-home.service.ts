@@ -3,6 +3,7 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { MgrModuleService } from './mgr-module.service';
 import { HttpClient } from '@angular/common/http';
+import { ConnectivityStatus } from '../models/call-home.model';
 
 @Injectable({
   providedIn: 'root'
@@ -46,5 +47,13 @@ export class CallHomeService {
 
   info() {
     return this.http.get(`${this.baseURL}/info`);
+  }
+
+  status(): Observable<ConnectivityStatus> {
+    return this.http.get<ConnectivityStatus>(`${this.baseURL}/status`);
+  }
+
+  testConnectivity() {
+    return this.http.post(`${this.baseURL}/connectivity`, {});
   }
 }

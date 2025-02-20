@@ -4,13 +4,16 @@ import { MgrModuleService } from '../../api/mgr-module.service';
 import { NotificationService } from '../../services/notification.service';
 import { NotificationType } from '../../enum/notification-type.enum';
 import { BlockUI, NgBlockUI } from 'ng-block-ui';
-import { timer } from 'rxjs';
+import { BehaviorSubject, Observable, timer } from 'rxjs';
 import { CallHomeNotificationService } from '../../services/call-home-notification.service';
 import { CdFormGroup } from '../../forms/cd-form-group';
 import { FormControl, Validators } from '@angular/forms';
 import { CallHomeService } from '../../api/call-home.service';
 import { CdForm } from '../../forms/cd-form';
 import { TextToDownloadService } from '../../services/text-to-download.service';
+import { ConnectivityStatus } from '../../models/call-home.model';
+import { switchMap } from 'rxjs/operators';
+import { Icons } from '../../enum/icons.enum';
 
 @Component({
   selector: 'cd-call-home-modal',
@@ -26,8 +29,13 @@ export class CallHomeModalComponent extends CdForm implements OnInit {
   callHomeForm: CdFormGroup;
   isConfigured = false;
   title = $localize`Configure IBM Call Home`;
+  callHomeStatus$: Observable<ConnectivityStatus>;
+  callHomeStatusSubject = new BehaviorSubject<ConnectivityStatus>(null);
+  callHomeRefreshLoading = false;
 
   report: any;
+
+  icons = Icons;
 
   constructor(
     public activeModal: NgbActiveModal,
@@ -49,6 +57,10 @@ export class CallHomeModalComponent extends CdForm implements OnInit {
       }
       this.loadingReady();
     });
+    this.callHomeStatus$ = this.callHomeStatusSubject.pipe(
+      switchMap(() => this.callHomeSerive.status())
+    );
+    this.callHomeStatusSubject.next(null);
   }
 
   createForm() {
@@ -163,5 +175,19 @@ export class CallHomeModalComponent extends CdForm implements OnInit {
         }
       );
     }
+  }
+
+  testConnectivity() {
+    this.callHomeRefreshLoading = true;
+    this.callHomeSerive.testConnectivity().subscribe({
+      complete: () => {
+        this.notificationService.show(
+          NotificationType.success,
+          $localize`Refreshed call home connectivity status.`
+        );
+        this.callHomeStatusSubject.next(null);
+        this.callHomeRefreshLoading = false;
+      }
+    });
   }
 }

@@ -26,6 +26,10 @@ import { AlertClass } from '~/app/shared/enum/health-icon.enum';
 import { SettingsService } from '~/app/shared/api/settings.service';
 import { HardwareService } from '~/app/shared/api/hardware.service';
 import { MgrModuleService } from '~/app/shared/api/mgr-module.service';
+import { CallHomeService } from '~/app/shared/api/call-home.service';
+import { ConnectivityStatus } from '~/app/shared/models/call-home.model';
+import { NotificationService } from '~/app/shared/services/notification.service';
+import { NotificationType } from '~/app/shared/enum/notification-type.enum';
 
 @Component({
   selector: 'cd-dashboard-v3',
@@ -44,6 +48,10 @@ export class DashboardV3Component extends PrometheusListHelper implements OnInit
   capacity: any;
   healthData$: Observable<Object>;
   prometheusAlerts$: Observable<AlertmanagerAlert[]>;
+  callHomeStatus$: Observable<ConnectivityStatus>;
+  callHomeStatusSubject = new BehaviorSubject<ConnectivityStatus>(null);
+
+  callHomeRefreshLoading = false;
 
   icons = Icons;
   flexHeight = true;
@@ -92,7 +100,9 @@ export class DashboardV3Component extends PrometheusListHelper implements OnInit
     private mgrModuleService: MgrModuleService,
     private refreshIntervalService: RefreshIntervalService,
     public prometheusAlertService: PrometheusAlertService,
-    private hardwareService: HardwareService
+    private hardwareService: HardwareService,
+    private callHomeService: CallHomeService,
+    private notificationService: NotificationService
   ) {
     super(prometheusService);
     this.permissions = this.authStorageService.getPermissions();
@@ -122,6 +132,14 @@ export class DashboardV3Component extends PrometheusListHelper implements OnInit
     this.getTelemetryReport();
     this.managedByConfig$ = this.settingsService.getValues('MANAGED_BY_CLUSTERS');
     this.prometheusAlertService.getAlerts(true);
+    this.callHomeStatus$ = this.callHomeStatusSubject.pipe(
+      switchMap(() => this.callHomeService.getCallHomeStatus().pipe(
+        switchMap((status: boolean) => {
+          if (status) return this.callHomeService.status()
+          return of(null)
+        })
+      ))
+    );
   }
 
   getTelemetryText(): string {
@@ -200,5 +218,21 @@ export class DashboardV3Component extends PrometheusListHelper implements OnInit
         return of(resp?.hw_monitoring);
       })
     );
+  }
+
+  testConnectivity(showNotification = true) {
+    this.callHomeRefreshLoading = true;
+    this.callHomeService.testConnectivity().subscribe({
+      complete: () => {
+        if (showNotification) {
+          this.notificationService.show(
+            NotificationType.success,
+            $localize`Refreshed call home connectivity status.`
+          );
+        }
+        this.callHomeStatusSubject.next(null);
+        this.callHomeRefreshLoading = false;
+      }
+    });
   }
 }
