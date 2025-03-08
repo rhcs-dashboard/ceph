@@ -499,6 +499,7 @@ class OrchestratorCli(OrchestratorClientMixin, MgrModule,
                   hostname: str,
                   addr: Optional[str] = None,
                   labels: Optional[List[str]] = None,
+                  topological_labels: Optional[List[str]] = None,
                   maintenance: Optional[bool] = False) -> HandleCommandResult:
         """Add a host"""
         _status = 'maintenance' if maintenance else ''
@@ -510,7 +511,7 @@ class OrchestratorCli(OrchestratorClientMixin, MgrModule,
         if addr is not None:
             addr = unwrap_ipv6(addr)
 
-        s = HostSpec(hostname=hostname, addr=addr, labels=labels, status=_status)
+        s = HostSpec(hostname=hostname, addr=addr, labels=labels, status=_status, topological_labels=topological_labels)
 
         return self._apply_misc([s], False, Format.plain)
 
@@ -697,6 +698,17 @@ class OrchestratorCli(OrchestratorClientMixin, MgrModule,
     def _update_set_addr(self, hostname: str, addr: str) -> HandleCommandResult:
         """Update a host address"""
         completion = self.update_host_addr(hostname, addr)
+        raise_if_exception(completion)
+        return HandleCommandResult(stdout=completion.result_str())
+
+    @_cli_write_command('orch host set-topological-labels')
+    def _update_host_topological_labels(
+        self,
+        hostname: str,
+        topological_labels: Optional[List[str]]
+    ) -> HandleCommandResult:
+        """Update a host topological labels. If nothing is passed, labels will be cleared"""
+        completion = self.set_host_topological_labels(hostname, topological_labels)
         raise_if_exception(completion)
         return HandleCommandResult(stdout=completion.result_str())
 
@@ -2475,12 +2487,21 @@ Usage:
                        hosts: Optional[str] = None,
                        services: Optional[str] = None,
                        limit: Optional[int] = None,
+                       topological_labels: Optional[List[str]] = None,
                        ceph_version: Optional[str] = None) -> HandleCommandResult:
         """Initiate upgrade"""
         self._upgrade_check_image_name(image, ceph_version)
         dtypes = daemon_types.split(',') if daemon_types is not None else None
         service_names = services.split(',') if services is not None else None
-        completion = self.upgrade_start(image, ceph_version, dtypes, hosts, service_names, limit)
+        completion = self.upgrade_start(
+            image,
+            ceph_version,
+            dtypes,
+            hosts,
+            service_names,
+            limit,
+            topological_labels
+        )
         raise_if_exception(completion)
         return HandleCommandResult(stdout=completion.result_str())
 
