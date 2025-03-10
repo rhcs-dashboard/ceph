@@ -25,6 +25,7 @@ import { OrchestratorService } from '~/app/shared/api/orchestrator.service';
 import { AlertClass } from '~/app/shared/enum/health-icon.enum';
 import { SettingsService } from '~/app/shared/api/settings.service';
 import { HardwareService } from '~/app/shared/api/hardware.service';
+import { MgrModuleService } from '~/app/shared/api/mgr-module.service';
 
 @Component({
   selector: 'cd-dashboard-v3',
@@ -88,6 +89,7 @@ export class DashboardV3Component extends PrometheusListHelper implements OnInit
     private healthService: HealthService,
     private settingsService: SettingsService,
     public prometheusService: PrometheusService,
+    private mgrModuleService: MgrModuleService,
     private refreshIntervalService: RefreshIntervalService,
     public prometheusAlertService: PrometheusAlertService,
     private hardwareService: HardwareService
