@@ -191,8 +191,9 @@ export class RgwBucketService extends ApiClient {
     });
   }
 
-  delete(bucket: string) {
+  delete(bucket: string, purgeObjects = true) {
     return this.rgwDaemonService.request((params: HttpParams) => {
+      params = params.append('purge_objects', purgeObjects ? 'true' : 'false');
       return this.http.delete(`${this.url}/${bucket}`, { params: params });
     });
   }
