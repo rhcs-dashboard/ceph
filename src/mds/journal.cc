@@ -1292,6 +1292,7 @@ void EMetaBlob::replay(MDSRank *mds, LogSegment *logseg, int type, MDPeerUpdate 
 	dn->set_version(fb.dnv);
 	if (fb.is_dirty()) dn->_mark_dirty(logseg);
 	dout(10) << "EMetaBlob.replay added (full) " << *dn << dendl;
+        dn->set_alternate_name(mempool::mds_co::string(fb.alternate_name));
       } else {
 	dn->set_version(fb.dnv);
 	if (fb.is_dirty()) dn->_mark_dirty(logseg);
@@ -1299,6 +1300,7 @@ void EMetaBlob::replay(MDSRank *mds, LogSegment *logseg, int type, MDPeerUpdate 
 	dn->first = fb.dnfirst;
 	ceph_assert(dn->last == fb.dnlast);
       }
+      ceph_assert(dn->get_alternate_name() == fb.alternate_name);
       if (lump.is_importing())
 	dn->mark_auth();
 
@@ -1407,6 +1409,7 @@ void EMetaBlob::replay(MDSRank *mds, LogSegment *logseg, int type, MDPeerUpdate 
 	dn->first = rb.dnfirst;
 	ceph_assert(dn->last == rb.dnlast);
       }
+      ceph_assert(dn->get_alternate_name() == rb.alternate_name);
       if (lump.is_importing())
 	dn->mark_auth();
 
