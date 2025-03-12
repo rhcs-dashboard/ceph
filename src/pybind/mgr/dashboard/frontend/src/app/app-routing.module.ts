@@ -56,6 +56,7 @@ import { SmbTabsComponent } from './ceph/smb/smb-tabs/smb-tabs.component';
 import { SmbShareFormComponent } from './ceph/smb/smb-share-form/smb-share-form.component';
 import { SmbJoinAuthFormComponent } from './ceph/smb/smb-join-auth-form/smb-join-auth-form.component';
 import { SmbUsersgroupsFormComponent } from './ceph/smb/smb-usersgroups-form/smb-usersgroups-form.component';
+import { environment } from '~/environments/environment';
 
 @Injectable()
 export class PerformanceCounterBreadcrumbsResolver extends BreadcrumbsResolver {
@@ -550,6 +551,19 @@ const routes: Routes = [
     children: [{ path: '**', redirectTo: '/error' }]
   }
 ];
+
+if (environment.build === 'ibm') {
+  routes.forEach(route => {
+    if (route.children) {
+      route.children.forEach(childRoute => {
+        if (childRoute.path === 'cephfs') {
+            const smbIndex = childRoute.children.findIndex(child => child.path === 'smb');
+            childRoute.children.splice(smbIndex, 1);
+        }
+      });
+    }
+  });
+}
 
 @NgModule({
   imports: [
