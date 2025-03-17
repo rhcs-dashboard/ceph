@@ -1891,6 +1891,7 @@ class IngressSpec(ServiceSpec):
                  health_check_interval: Optional[str] = None,
                  use_tcp_mode_over_rgw: bool = False,
                  haproxy_qat_support: bool = False,
+                 generate_cert: Optional[bool] = False
                  ):
         assert service_type == 'ingress'
 
@@ -1927,6 +1928,7 @@ class IngressSpec(ServiceSpec):
         ) if health_check_interval else None
         self.use_tcp_mode_over_rgw = use_tcp_mode_over_rgw
         self.haproxy_qat_support = haproxy_qat_support
+        self.generate_cert = generate_cert
 
     def get_port_start(self) -> List[int]:
         ports = []
@@ -1964,6 +1966,12 @@ class IngressSpec(ServiceSpec):
                 raise SpecValidationError(
                     f'Cannot add ingress: Invalid health_check_interval specified. '
                     f'Valid units are: {valid_units}')
+        if self.generate_cert and not self.ssl:
+            raise SpecValidationError('"generate_cert" cannot be set without setting the "ssl" '
+                                      'field to true')
+        if self.generate_cert and any([self.ssl_cert, self.ssl_key]):
+            raise SpecValidationError('"generate_cert" field cannot be passed along with the '
+                                      '"ssl_cert" or "ssl_key" fields')
 
 
 yaml.add_representer(IngressSpec, ServiceSpec.yaml_representer)
