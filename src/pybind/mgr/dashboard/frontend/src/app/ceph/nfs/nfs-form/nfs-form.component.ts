@@ -282,10 +282,21 @@ export class NfsFormComponent extends CdForm implements OnInit {
       cluster_id: new UntypedFormControl('', {
         validators: [Validators.required]
       }),
+
+      // FSAL fields (common for RGW and CephFS)
       fsal: new CdFormGroup({
         name: new UntypedFormControl(this.storageBackend, {
           validators: [Validators.required]
         }),
+        // RGW-specific field
+        user_id: new UntypedFormControl('', {
+          validators: [
+            CdValidators.requiredIf({
+              name: 'RGW'
+            })
+          ]
+        }),
+        // CephFS-specific field
         fs_name: new UntypedFormControl('', {
           validators: [
             CdValidators.requiredIf({
@@ -294,6 +305,8 @@ export class NfsFormComponent extends CdForm implements OnInit {
           ]
         })
       }),
+
+      // CephFS-specific fields
       subvolume_group: new UntypedFormControl(this.defaultSubVolGroup),
       subvolume: new UntypedFormControl(''),
       path: new UntypedFormControl('', {
