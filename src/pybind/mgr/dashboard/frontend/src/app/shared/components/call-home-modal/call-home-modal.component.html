@@ -164,29 +164,34 @@
         </div>
       </div>
       </ng-container>
-    </div>
 
-    <!-- License agreement -->
-    <div class="form-group row">
-      <div class="cd-col-form-offset">
-        <div class="custom-control custom-checkbox">
-          <label class="custom-control-label"
-                 i18n>By enabling Call Home, you agree to allow IBM and its subsidiaries to store and use your contact information
-                 and certain call-home system information anywhere they do business worldwide as described in the Program license
-                 agreement and documentation. For more information, please refer to the Program license agreement and documentation.</label>
-          <div>
-            <input type="checkbox"
-                   class="custom-control-input"
-                   id="licenseAgrmt"
-                   name="licenseAgrmt"
-                   formControlName="licenseAgrmt">
-            <label class="custom-control-label mt-1"
-                   for="licenseAgrmt"
-                   i18n>I agree.</label>
+      <!-- License agreement -->
+      <div class="form-group row"
+          *ngIf="!isConfigured">
+        <div class="cd-col-form-offset">
+          <div class="custom-control custom-checkbox">
+            <label class="custom-control-label"
+                  i18n>By enabling Call Home, you agree to allow IBM and its subsidiaries to store and use your contact information
+                  and certain call-home system information anywhere they do business worldwide as described in the Program license
+                  agreement and documentation. For more information, please refer to the Program license agreement and documentation.</label>
+            <div>
+              <input type="checkbox"
+                    id="licenseAgrmt"
+                    name="licenseAgrmt"
+                    formControlName="licenseAgrmt">
+              <label class="custom-control-label mt-1 required"
+                    for="licenseAgrmt"
+                    i18n>I agree.</label>
+
+              <span class="invalid-feedback"
+                    *ngIf="callHomeForm.showError('licenseAgrmt', formDir, 'required')"
+                    i18n>You must agree before submitting.</span>
+            </div>
           </div>
         </div>
       </div>
     </div>
+
     <div class="modal-footer">
       <cd-form-button-panel submitText="Configure Call Home"
                             i18n-submitText

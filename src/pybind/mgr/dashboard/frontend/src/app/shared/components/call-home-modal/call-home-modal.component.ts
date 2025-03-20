@@ -73,7 +73,7 @@ export class CallHomeModalComponent extends CdForm implements OnInit {
       address: new FormControl(null),
       companyName: new FormControl(null),
       countryCode: new FormControl(null, [Validators.required]),
-      licenseAgrmt: new FormControl(false, [Validators.requiredTrue])
+      licenseAgrmt: new FormControl(null, [Validators.required])
     });
   }
 
@@ -90,6 +90,10 @@ export class CallHomeModalComponent extends CdForm implements OnInit {
   }
 
   submit() {
+    if (this.callHomeForm.errors) {
+      this.callHomeForm.setErrors({ cdSubmitButton: true });
+      return;
+    }
     const customerNumber = this.callHomeForm.getValue('customerNumber');
     const firstName = this.callHomeForm.getValue('firstName');
     const lastName = this.callHomeForm.getValue('lastName');
