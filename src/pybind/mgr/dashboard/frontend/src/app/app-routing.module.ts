@@ -552,7 +552,7 @@ const routes: Routes = [
   }
 ];
 
-if (environment.build === 'ibm') {
+if (environment.build !== 'ibm') {
   routes.forEach(route => {
     if (route.children) {
       route.children.forEach(childRoute => {
