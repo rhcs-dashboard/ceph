@@ -66,20 +66,6 @@ export interface ZoneGroup {
   placement_targets?: Target[];
 }
 
-export interface S3Details {
-  endpoint: string;
-  access_key: string;
-  storage_class?: string;
-  target_path: string;
-  target_storage_class: string;
-  region?: string;
-  secret?: string;
-  multipart_min_part_size: number;
-  multipart_sync_threshold: number;
-  host_style: boolean;
-  retain_head_object?: boolean;
-}
-
 export interface S3Glacier {
   glacier_restore_days: number;
   glacier_restore_tier_type: string;
