@@ -68,14 +68,16 @@ describe('RgwStorageClassFormComponent', () => {
               name: 'default-placement',
               tier_targets: [
                 {
+                  key: 'test',
                   val: {
-                    storage_class: 'CLOUDIBM',
                     tier_type: 'cloud-s3',
                     retain_head_object: true,
+                    storage_class: 'CLOUDIBM',
+                    allow_read_through: true,
                     s3: {
+                      storage_class: 'CLOUDIBM',
                       endpoint: 'https://s3.amazonaws.com',
                       access_key: 'ACCESSKEY',
-                      storage_class: 'STANDARD',
                       target_path: '/path/to/storage',
                       target_storage_class: 'STANDARD',
                       region: 'useastr1',
@@ -89,7 +91,6 @@ describe('RgwStorageClassFormComponent', () => {
               ]
             },
             {
-              name: 'placement1',
               tier_targets: [
                 {
                   val: {
@@ -112,13 +113,11 @@ describe('RgwStorageClassFormComponent', () => {
                 }
               ]
             }
-          ]
-        }
       ]
     };
     component.storageClassForm.get('zonegroup').setValue('zonegroup1');
     component.onZonegroupChange();
-    expect(component.placementTargets).toEqual(['default-placement', 'placement1']);
+    expect(component.placementTargets).toEqual(['default-placement']);
     expect(component.storageClassForm.get('placement_target').value).toBe('default-placement');
   });
 
