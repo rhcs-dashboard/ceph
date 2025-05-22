@@ -1,8 +1,7 @@
 import {
-  CLOUD_TIER,
-  GLACIER,
   Target,
   TierTarget,
+  TierType,
   ZoneGroup,
   ZoneGroupDetails
 } from '../models/rgw-storage-class.model';
@@ -21,7 +20,7 @@ export class BucketTieringUtils {
   }
 
   private static getTierTargets(tierTarget: TierTarget, zoneGroup: string, targetName: string) {
-    if (tierTarget.val.tier_type === GLACIER) {
+    if (tierTarget.val.tier_type === TierType.GLACIER) {
       return {
         zonegroup_name: zoneGroup,
         placement_target: targetName,
@@ -30,9 +29,12 @@ export class BucketTieringUtils {
         allow_read_through: tierTarget.val.allow_read_through,
         glacier_restore_days: tierTarget.val['s3-glacier'].glacier_restore_days,
         glacier_restore_tier_type: tierTarget.val['s3-glacier'].glacier_restore_tier_type,
-        tier_type: tierTarget.val.tier_type
+        restore_storage_class: tierTarget.val.restore_storage_class,
+        read_through_restore_days: tierTarget.val.read_through_restore_days,
+        tier_type: tierTarget.val.tier_type,
+        ...tierTarget.val.s3
       };
-    } else if (tierTarget.val.tier_type === CLOUD_TIER) {
+    } else if (tierTarget.val.tier_type === TierType.CLOUD_TIER) {
       return {
         zonegroup_name: zoneGroup,
         placement_target: targetName,
