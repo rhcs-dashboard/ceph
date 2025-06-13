@@ -2106,7 +2106,7 @@ int RGWLC::bucket_lc_post(int index, int max_lock_sec,
           << obj_names[index] << dendl;
     }
 clean:
-    lock->unlock();
+    lock->unlock(this, null_yield);
     ldpp_dout(this, 20) << "RGWLC::bucket_lc_post() unlock "
 			<< obj_names[index] << dendl;
     return 0;
@@ -2256,6 +2256,19 @@ time_t RGWLC::thread_stop_at()
   return time(nullptr) + interval;
 }
 
+// unique_lock expects an unlock() taking no arguments, but
+// LCSerializer::unlock() requires two. create an adapter that binds these
+// additional args
+struct LCLockAdapter {
+  rgw::sal::LCSerializer& serializer;
+  const DoutPrefixProvider* dpp = nullptr;
+  optional_yield y;
+
+  void unlock() {
+    serializer.unlock(dpp, y);
+  }
+};
+
 int RGWLC::process_bucket(int index, int max_lock_secs, LCWorker* worker,
 			  const std::string& bucket_entry_marker,
 			  bool once = false)
@@ -2283,8 +2296,8 @@ int RGWLC::process_bucket(int index, int max_lock_secs, LCWorker* worker,
   if (ret < 0)
     return 0;
 
-  std::unique_lock<rgw::sal::LCSerializer> lock(
-    *(serializer.get()), std::adopt_lock);
+  auto lock_adapter = LCLockAdapter{*serializer, this, null_yield};
+  std::unique_lock<LCLockAdapter> lock(lock_adapter, std::adopt_lock);
 
   rgw::sal::LCEntry entry;
   ret = sal_lc->get_entry(this, null_yield, obj_names[index],
@@ -2625,7 +2638,7 @@ int RGWLC::process(int index, int max_lock_secs, LCWorker* worker,
 
     /* drop lock so other instances can make progress while this
      * bucket is being processed */
-    lock->unlock();
+    lock->unlock(this, null_yield);
     ret = bucket_lc_process(entry.bucket, worker, thread_stop_at(), once);
     ldpp_dout(this, 5) << "RGWLC::process(): END entry 2: " << entry
       << " index: " << index << " worker ix: " << worker->ix << " ret: " << ret << dendl;
@@ -2671,7 +2684,7 @@ int RGWLC::process(int index, int max_lock_secs, LCWorker* worker,
     }
   } while(1 && !once && !going_down());
 
-  lock->unlock();
+  lock->unlock(this, null_yield);
   return 0;
 }
 
@@ -2840,7 +2853,7 @@ static int guard_lc_modify(const DoutPrefixProvider *dpp,
     }
     break;
   } while(true);
-  lock->unlock();
+  lock->unlock(dpp, null_yield);
   return ret;
 }
 

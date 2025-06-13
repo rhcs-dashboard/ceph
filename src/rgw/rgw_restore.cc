@@ -239,6 +239,19 @@ void *Restore::RestoreWorker::entry() {
 
 }
 
+// unique_lock expects an unlock() taking no arguments, but
+// RadosRestoreSerializer::unlock() requires two. create an adapter that binds these
+// additional args
+struct RestoreLockAdapter {
+  rgw::sal::RestoreSerializer& serializer;
+  const DoutPrefixProvider* dpp = nullptr;
+  optional_yield y;
+
+  void unlock() {
+    serializer.unlock(dpp, y);
+  }
+};
+
 int Restore::process(RestoreWorker* worker, optional_yield y)
 {
   int max_secs = cct->_conf->rgw_restore_lock_max_time;
@@ -294,7 +307,8 @@ int Restore::process(int index, int max_secs, optional_yield y)
   if (ret < 0)
     return 0;
 
-  std::unique_lock<rgw::sal::RestoreSerializer> lock(*(serializer.get()), std::adopt_lock);
+  auto lock_adapter = RestoreLockAdapter{*serializer, this, y};
+  std::unique_lock<RestoreLockAdapter> lock(lock_adapter, std::adopt_lock);
   std::string marker;
   std::string next_marker;
   bool truncated = false;

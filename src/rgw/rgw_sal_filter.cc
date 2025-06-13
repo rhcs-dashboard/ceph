@@ -1386,11 +1386,19 @@ int FilterMPSerializer::try_lock(const DoutPrefixProvider *dpp, utime_t dur,
 {
   return next->try_lock(dpp, dur, y);
 }
+int FilterMPSerializer::unlock(const DoutPrefixProvider* dpp, optional_yield y)
+{
+  return next->unlock(dpp, y);
+}
 
 int FilterLCSerializer::try_lock(const DoutPrefixProvider *dpp, utime_t dur,
 				 optional_yield y)
 {
   return next->try_lock(dpp, dur, y);
+}
+int FilterLCSerializer::unlock(const DoutPrefixProvider* dpp, optional_yield y)
+{
+  return next->unlock(dpp, y);
 }
 
 int FilterLifecycle::get_entry(const DoutPrefixProvider* dpp, optional_yield y,
@@ -1454,6 +1462,10 @@ int FilterRestoreSerializer::try_lock(const DoutPrefixProvider *dpp, utime_t dur
 				 optional_yield y)
 {
   return next->try_lock(dpp, dur, y);
+}
+int FilterRestoreSerializer::unlock(const DoutPrefixProvider* dpp, optional_yield y)
+{
+  return next->unlock(dpp, y);
 }
 
 std::unique_ptr<RestoreSerializer> FilterRestore::get_serializer(const std::string& lock_name,
