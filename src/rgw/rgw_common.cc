@@ -1471,9 +1471,10 @@ bool verify_bucket_permission(const DoutPrefixProvider* dpp,
 
   if (ps.identity->get_account()) {
     const bool account_root = (ps.identity->get_identity_type() == TYPE_ROOT);
-    if (!ps.identity->is_owner_of(s->bucket_owner.id)) {
+    const rgw_owner& bucket_owner = bucket_acl.get_owner().id;
+    if (!ps.identity->is_owner_of(bucket_owner)) {
       ldpp_dout(dpp, 4) << "cross-account request for bucket owner "
-          << s->bucket_owner.id << " != " << s->owner.id << dendl;
+          << bucket_owner << " != " << s->owner.id << dendl;
       // cross-account requests evaluate the identity-based policies separately
       // from the resource-based policies and require Allow from both
       return verify_bucket_permission(dpp, &ps, arn, account_root, {}, {}, {},
@@ -1653,7 +1654,7 @@ bool verify_object_permission(const DoutPrefixProvider* dpp, req_state * const s
     const bool account_root = (ps.identity->get_identity_type() == TYPE_ROOT);
 
     const rgw_owner& object_owner = !object_acl.get_owner().empty() ?
-        object_acl.get_owner().id : s->bucket_owner.id;
+        object_acl.get_owner().id : bucket_acl.get_owner().id;
     if (!ps.identity->is_owner_of(object_owner)) {
       ldpp_dout(dpp, 4) << "cross-account request for object owner "
           << object_owner << " != " << s->owner.id << dendl;
