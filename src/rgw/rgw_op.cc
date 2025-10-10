@@ -6239,8 +6239,8 @@ int RGWCopyObj::verify_permission(optional_yield y)
         rgw::IAM::s3GetObject :
         rgw::IAM::s3GetObjectVersion;
 
-    if (!verify_bucket_permission(this, s, ARN(s->src_object->get_obj()),
-                                  s->user_acl, src_bucket_acl,
+    if (!verify_object_permission(this, s, s->src_object->get_obj(),
+                                  s->user_acl, src_bucket_acl, src_acl,
                                   src_policy, s->iam_identity_policies,
                                   s->session_policies, action)) {
       return -EACCES;
