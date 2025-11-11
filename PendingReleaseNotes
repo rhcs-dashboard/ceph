@@ -332,6 +332,11 @@
   to buckets and objects, but now deletes account users, roles, groups, and oidc-providers
   too instead of failing with ENOTEMPTY.
 
+* OSD: A health warning is reported when BlueFS usage exceeds the
+  configured ratio of the main OSD data device size. This warning is
+  informational and can be muted with:
+  ``ceph health mute BLUESTORE_BLUEFS_OVERSIZED``
+
 >=20.0.0
 
 * RGW: Bucket Logging suppports creating log buckets in EC pools.

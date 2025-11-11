@@ -5957,6 +5957,15 @@ options:
   flags:
   - runtime
   with_legacy: true
+- name: bluestore_bluefs_warn_ratio
+  type: float
+  level: basic
+  desc: The ratio at which BlueFS usage relative to the main device raises a
+    health warning. Set to "1" to disable.
+  default: 0.06
+  with_legacy: false
+  flags:
+  - runtime
 - name: kstore_max_ops
   type: uint
   level: advanced
