@@ -689,7 +689,13 @@ class CephadmServe:
 
         ep = []
         protocol = 'https' if rgw_spec.ssl else 'http'
-        for s in self.mgr.cache.get_daemons_by_service(rgw_spec.service_name()):
+        daemons = self.mgr.cache.get_daemons_by_service(rgw_spec.service_name())
+        if not daemons:
+            self.log.debug(f'No rgw daemons found yet for \
+                service {rgw_spec.service_name()}, will retry')
+            return
+
+        for s in daemons:
             if s.ports:
                 for p in s.ports:
                     if s.hostname is not None:
@@ -713,6 +719,7 @@ class CephadmServe:
             self.mgr.set_health_warning('CEPHADM_RGW', 'Cannot update rgw endpoints, error: {err}', 1,
                                         [f'Cannot update rgw endpoints for daemon {rgw_spec.service_name()}, error: {err}'])
         else:
+            self.log.debug(f'Successfully updated rgw zone endpoints: {out}')
             self.mgr.remove_health_warning('CEPHADM_RGW')
 
     def _apply_service(self, spec: ServiceSpec) -> bool:
