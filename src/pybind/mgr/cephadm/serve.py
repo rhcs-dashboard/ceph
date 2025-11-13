@@ -703,6 +703,15 @@ class CephadmServe:
                         ep.append(f'{protocol}://{host_addr}:{p}')
                     else:
                         logger.error("Hostname is None for service: %s", s)
+
+        if not ep:
+            self.log.warning(
+                "Computed endpoints are empty for service %s; deferring zone update",
+                rgw_spec.service_name()
+            )
+            rgw_spec.update_endpoints = True
+            return
+
         zone_update_cmd = {
             'prefix': 'rgw zone modify',
             'realm_name': rgw_spec.rgw_realm,
