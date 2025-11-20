@@ -31,7 +31,6 @@ import { CephfsSubvolumeSnapshotsFormComponent } from './cephfs-subvolume-snapsh
 import { CephfsSnapshotscheduleFormComponent } from './cephfs-snapshotschedule-form/cephfs-snapshotschedule-form.component';
 import { CephfsMountDetailsComponent } from './cephfs-mount-details/cephfs-mount-details.component';
 import { CephfsAuthModalComponent } from './cephfs-auth-modal/cephfs-auth-modal.component';
-import { CephfsMirroringListComponent } from './cephfs-mirroring-list/cephfs-mirroring-list.component';
 import {
   ButtonModule,
   CheckboxModule,
@@ -50,7 +49,8 @@ import {
   SelectModule,
   TimePickerModule,
   TreeviewModule,
-  TabsModule
+  TabsModule,
+  TilesModule,
 } from 'carbon-components-angular';
 
 import AddIcon from '@carbon/icons/es/add/32';
@@ -60,6 +60,7 @@ import Trash from '@carbon/icons/es/trash-can/32';
 import { CephfsMirroringWizardComponent } from './cephfs-mirroring-wizard/cephfs-mirroring-wizard.component';
 import { CephfsMirroringFilesystemComponent } from './cephfs-mirroring-filesystem/cephfs-mirroring-filesystem.component';
 import { CephfsMirroringEntityComponent } from './cephfs-mirroring-entity/cephfs-mirroring-entity.component';
+import { CephfsMirroringListComponent } from './cephfs-mirroring-list/cephfs-mirroring-list.component';
 
 @NgModule({
   imports: [
@@ -92,7 +93,9 @@ import { CephfsMirroringEntityComponent } from './cephfs-mirroring-entity/cephfs
     IconModule,
     RadioModule,
     BaseChartDirective,
-    TabsModule
+    TabsModule,
+    TilesModule,
+    RadioModule
   ],
   declarations: [
     CephfsDetailComponent,
