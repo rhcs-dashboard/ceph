@@ -1,8 +1,8 @@
 export enum StepTitles {
-  ChooseMirrorPeerRole = 'Choose Mirror Peer Role',
-  SelectFilesystem = 'Select Filesystem',
-  CreateOrSelectEntity = 'Create or Select Entity',
-  GenerateBootstrapToken = 'Generate Bootstrap Token',
+  ChooseMirrorPeerRole = 'Choose mirror peer role',
+  SelectFilesystem = 'Select filesystem',
+  CreateOrSelectEntity = 'Create or select entity',
+  GenerateBootstrapToken = 'Generate bootstrap token',
   Review = 'Review'
 }
 
