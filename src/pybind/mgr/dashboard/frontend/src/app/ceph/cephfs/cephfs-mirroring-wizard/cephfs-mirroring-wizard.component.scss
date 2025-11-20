@@ -1,0 +1,42 @@
+@use '@carbon/layout';
+
+:host ::ng-deep cd-alert-panel.mirroring-alert cds-actionable-notification {
+  max-width: 77% !important;
+}
+
+.mirroring-list-item {
+  margin-bottom: layout.$spacing-06;
+  margin-top: layout.$spacing-03;
+}
+
+.mirroring-list {
+  margin-top: layout.$spacing-06;
+}
+
+.alert-title {
+  display: block;
+  margin-bottom: layout.$spacing-02;
+}
+
+.alert-description {
+  margin: 0 0 layout.$spacing-03 0;
+}
+
+.alert-subtitle {
+  display: block;
+  margin-bottom: layout.$spacing-01;
+  margin-top: layout.$spacing-06;
+}
+
+.alert-list {
+  list-style-type: disc;
+  margin-left: layout.$spacing-05;
+}
+
+.tile-margin {
+  margin-right: 14px;
+}
+
+.title-description {
+  margin-top: layout.$spacing-03;
+}
