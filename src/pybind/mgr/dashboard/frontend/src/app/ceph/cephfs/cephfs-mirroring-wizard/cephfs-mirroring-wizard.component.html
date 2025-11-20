@@ -1,0 +1,107 @@
+<div>
+  <h5 i18n>Create New CephFS Mirroring</h5>
+  <p i18n>Configure a new mirroring relationship between clusters</p>
+</div>
+
+<div cdsRow>
+  <div cdsCol [columnNumbers]="{ sm: 12, md: 3, lg: 2 }">
+    <cd-wizard [stepsTitle]="stepTitles" i18n-stepsTitle> </cd-wizard>
+  </div>
+
+  <div cdsCol [columnNumbers]="{ sm: 12, md: 9, lg: 14 }">
+    <div cdsGrid class="mirroring-bg">
+      <ng-container [ngSwitch]="currentStep?.stepIndex">
+        <div *ngSwitchCase="0">
+          <div cdsCol>
+            <h5 i18n>Choose Mirror Peer Role</h5>
+            <p i18n>
+              Select how the cluster will participate in the CephFS mirroring relationship.
+            </p>
+          </div>
+
+          <cds-radio-group name="clusterRole">
+            <div cdsCol [columnNumbers]="{ sm: 12, md: 8, lg: 8 }">
+              <cds-tile>
+                <cds-radio [value]="'source'">
+                  <div>
+                    <h6 i18n>Configure Local Peer</h6>
+                    <div i18n>
+                      This cluster will act as the initiating peer and send snapshots to a remote
+                      peer.
+                    </div>
+                    <ul class="mirroring-list">
+                      @for (item of sourceList; track $index) {
+                      <li class="mirroring-list-item">→ {{ item }}</li>
+                      }
+                    </ul>
+                  </div>
+                </cds-radio>
+              </cds-tile>
+            </div>
+
+            <div cdsCol [columnNumbers]="{ sm: 12, md: 8, lg: 8 }">
+              <cds-tile cds-mb="lg">
+                <cds-radio [value]="'target'">
+                  <div>
+                    <h6 i18n>Configure Remote Peer</h6>
+                    <div i18n>
+                      A remote cluster will act as the receiving peer and store replicated
+                      snapshots.
+                    </div>
+                    <ul cdsGap="sm" class="mirroring-list">
+                      @for (item of targetList; track $index) {
+                      <li class="mirroring-list-item">→ {{ item }}</li>
+                      }
+                    </ul>
+                  </div>
+                </cds-radio>
+              </cds-tile>
+            </div>
+          </cds-radio-group>
+          <cd-alert-panel type="info" spacingClass="mb-3" class="align-items-center">
+            <div>
+              <strong class="alert-title" i18n>About Remote Peer Setup</strong>
+              <p class="alert-description" i18n>
+                As a remote peer, this cluster prepares to receive mirrored data from an initiating
+                cluster. The setup includes environment validation, enabling filesystem mirroring,
+                creating required Ceph users, and generating a bootstrap token.
+              </p>
+              <strong class="alert-subtitle" i18n>What happens next:</strong>
+              <ul class="alert-list">
+                <li i18n>Environment validation</li>
+                <li i18n>Ceph user creation</li>
+                <li i18n>Filesystem mirroring activation</li>
+                <li i18n>Bootstrap token generation</li>
+              </ul>
+            </div>
+          </cd-alert-panel>
+        </div>
+
+        <div *ngSwitchCase="1">Test 1</div>
+
+        <div *ngSwitchCase="2">Test 2</div>
+        <div *ngSwitchCase="3">
+          <p>Test3</p>
+        </div>
+      </ng-container>
+    </div>
+  </div>
+</div>
+
+<cds-modal-footer class="tearsheet-footer">
+  <button cdsButton="ghost"
+          class="tearsheet-footer-cancel"
+          (click)="closeWizard()"
+          size="xl"
+          i18n>
+    Cancel
+  </button>
+  <button cdsButton="secondary"
+          size="xl"
+          (click)="onPrevious()"
+          i18n>Previous</button>
+  <button cdsButton="primary"
+          size="xl"
+          (click)="onNext()"
+          i18n>Next</button>
+</cds-modal-footer>
