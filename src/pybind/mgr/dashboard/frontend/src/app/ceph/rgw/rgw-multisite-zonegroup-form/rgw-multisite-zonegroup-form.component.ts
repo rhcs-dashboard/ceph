@@ -1,11 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import {
-  UntypedFormArray,
-  UntypedFormBuilder,
-  UntypedFormControl,
-  NgForm,
-  Validators
-} from '@angular/forms';
+import { Component, Inject, OnInit, Optional } from '@angular/core';
+import { UntypedFormControl, Validators, FormArray, FormControl } from '@angular/forms';
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
 import _ from 'lodash';
 import { RgwZonegroupService } from '~/app/shared/api/rgw-zonegroup.service';
@@ -16,32 +10,28 @@ import { CdValidators } from '~/app/shared/forms/cd-validators';
 import { NotificationService } from '~/app/shared/services/notification.service';
 import { RgwRealm, RgwZone, RgwZonegroup } from '../models/rgw-multisite';
 import { Icons } from '~/app/shared/enum/icons.enum';
-import { SelectOption } from '~/app/shared/components/select/select-option.model';
+import { BaseModal } from 'carbon-components-angular';
+import { CdFormBuilder } from '~/app/shared/forms/cd-form-builder';
+import { PlacementTarget, ZoneItem } from '../models/rgw-storage-class.model';
+import { ChangeDetectorRef } from '@angular/core';
+import { NgForm } from '@angular/forms';
 
 @Component({
   selector: 'cd-rgw-multisite-zonegroup-form',
   templateUrl: './rgw-multisite-zonegroup-form.component.html',
   styleUrls: ['./rgw-multisite-zonegroup-form.component.scss']
 })
-export class RgwMultisiteZonegroupFormComponent implements OnInit {
-  action: string;
+export class RgwMultisiteZonegroupFormComponent extends BaseModal implements OnInit {
   icons = Icons;
   multisiteZonegroupForm: CdFormGroup;
-  editing = false;
-  resource: string;
   realm: RgwRealm;
   zonegroup: RgwZonegroup;
-  info: any;
-  defaultsInfo: string[] = [];
-  multisiteInfo: object[] = [];
   realmList: RgwRealm[] = [];
   zonegroupList: RgwZonegroup[] = [];
   zonegroupNames: string[];
   isMaster = false;
-  placementTargets: UntypedFormArray;
   newZonegroupName: string;
-  zonegroupZoneNames: string[];
-  labelsOption: Array<SelectOption> = [];
+  zonegroupZoneNames: string[] = [];
   zoneList: RgwZone[] = [];
   allZoneNames: string[];
   zgZoneNames: string[];
@@ -51,17 +41,30 @@ export class RgwMultisiteZonegroupFormComponent implements OnInit {
   addedZones: string[];
   disableDefault = false;
   disableMaster = false;
+  masterHelperText: string;
+  docUrl: string;
+  INVALID_TEXTS = {
+    required: 'This field is required',
+    invalidURL: 'Please enter a valid URL.',
+    uniqueName: 'The chosen zone group name is already in use.'
+  };
+
+  allPossibleValues: { content: string; value: string; selected?: boolean }[] = [];
 
   constructor(
     public activeModal: NgbActiveModal,
     public actionLabels: ActionLabelsI18n,
+    private formBuilder: CdFormBuilder,
     public rgwZonegroupService: RgwZonegroupService,
     public notificationService: NotificationService,
-    private formBuilder: UntypedFormBuilder
+    private cd: ChangeDetectorRef,
+    @Optional() @Inject('action') public action: string,
+    @Optional() @Inject('resource') public resource: string,
+    @Optional() @Inject('info') public info: any,
+    @Optional() @Inject('multisiteInfo') public multisiteInfo: any[],
+    @Optional() @Inject('defaultsInfo') public defaultsInfo: Record<string, string>
   ) {
-    this.action = this.editing
-      ? this.actionLabels.EDIT + this.resource
-      : this.actionLabels.CREATE + this.resource;
+    super();
     this.createForm();
   }
 
@@ -85,8 +88,13 @@ export class RgwMultisiteZonegroupFormComponent implements OnInit {
       zonegroup_endpoints: new UntypedFormControl(null, {
         validators: [CdValidators.url, Validators.required]
       }),
-      placementTargets: this.formBuilder.array([])
+      zones: new UntypedFormControl([]),
+      placementTargets: new FormArray([])
     });
+  }
+
+  get placementTargets(): FormArray {
+    return this.multisiteZonegroupForm.get('placementTargets') as FormArray;
   }
 
   ngOnInit(): void {
@@ -94,7 +102,6 @@ export class RgwMultisiteZonegroupFormComponent implements OnInit {
       const fg = this.addPlacementTarget();
       fg.patchValue(placementTarget);
     });
-    this.placementTargets = this.multisiteZonegroupForm.get('placementTargets') as UntypedFormArray;
     this.realmList =
       this.multisiteInfo[0] !== undefined && this.multisiteInfo[0].hasOwnProperty('realms')
         ? this.multisiteInfo[0]['realms']
@@ -168,7 +175,6 @@ export class RgwMultisiteZonegroupFormComponent implements OnInit {
       if (this.info.data.is_master || this.disableMaster) {
         this.multisiteZonegroupForm.get('master_zonegroup').disable();
       }
-
       this.zonegroupZoneNames = this.info.data.zones.map((zone: { [x: string]: any }) => {
         return zone['name'];
       });
@@ -178,23 +184,34 @@ export class RgwMultisiteZonegroupFormComponent implements OnInit {
       this.zgZoneIds = this.info.data.zones.map((zone: { [x: string]: any }) => {
         return zone['id'];
       });
-      const uniqueZones = new Set(this.allZoneNames);
-      this.labelsOption = Array.from(uniqueZones).map((zone) => {
-        return { enabled: true, name: zone, selected: false, description: null };
-      });
 
-      this.info.data.placement_targets.forEach((target: object) => {
+      const existingZonesItems = this.zonegroupZoneNames.map((zone) => ({
+        content: zone,
+        value: zone,
+        selected: true
+      }));
+      const availableZonesItems = this.allZoneNames.map((zone) => ({
+        content: zone,
+        value: zone,
+        selected: false
+      }));
+      this.allPossibleValues = [...existingZonesItems, ...availableZonesItems];
+
+      this.multisiteZonegroupForm.get('zones').setValue(this.zonegroupZoneNames);
+
+      this.info.data.placement_targets.forEach((target: PlacementTarget) => {
         const fg = this.addPlacementTarget();
-        let data = {
-          placement_id: target['name'],
-          tags: target['tags'].join(','),
-          storage_class:
-            typeof target['storage_classes'] === 'string'
-              ? target['storage_classes']
-              : target['storage_classes'].join(',')
+        const data = {
+          placement_id: target.name,
+          tags: target.tags?.join(','),
+          storage_class: Array.isArray(target.storage_classes)
+            ? target.storage_classes.join(',')
+            : target.storage_classes
         };
         fg.patchValue(data);
       });
+    } else {
+      this.addPlacementTarget();
     }
   }
 
@@ -206,6 +223,7 @@ export class RgwMultisiteZonegroupFormComponent implements OnInit {
       this.zonegroup = new RgwZonegroup();
       this.zonegroup.name = values['zonegroupName'];
       this.zonegroup.endpoints = values['zonegroup_endpoints'];
+      this.zonegroup.placement_targets = [];
       this.rgwZonegroupService
         .create(this.realm, this.zonegroup, values['default_zonegroup'], values['master_zonegroup'])
         .subscribe(
@@ -214,7 +232,7 @@ export class RgwMultisiteZonegroupFormComponent implements OnInit {
               NotificationType.success,
               $localize`Zonegroup: '${values['zonegroupName']}' created successfully`
             );
-            this.activeModal.close();
+            this.closeModal();
           },
           () => {
             this.multisiteZonegroupForm.setErrors({ cdSubmitButton: true });
@@ -225,7 +243,7 @@ export class RgwMultisiteZonegroupFormComponent implements OnInit {
       const masterZoneName = this.info.data.zones.filter(
         (zone: any) => zone.id === this.info.data.master_zone
       );
-      this.isRemoveMasterZone = this.removedZones.includes(masterZoneName[0].name);
+      this.isRemoveMasterZone = this.removedZones.includes(masterZoneName[0]?.name);
       if (this.isRemoveMasterZone) {
         this.multisiteZonegroupForm.setErrors({ cdSubmitButton: true });
         return;
@@ -254,7 +272,7 @@ export class RgwMultisiteZonegroupFormComponent implements OnInit {
               NotificationType.success,
               $localize`Zonegroup: '${values['zonegroupName']}' updated successfully`
             );
-            this.activeModal.close();
+            this.closeModal();
           },
           () => {
             this.multisiteZonegroupForm.setErrors({ cdSubmitButton: true });
@@ -263,17 +281,19 @@ export class RgwMultisiteZonegroupFormComponent implements OnInit {
     }
   }
 
-  addPlacementTarget() {
-    this.placementTargets = this.multisiteZonegroupForm.get('placementTargets') as UntypedFormArray;
-    const fg = new CdFormGroup({
-      placement_id: new UntypedFormControl('', {
-        validators: [Validators.required]
-      }),
-      tags: new UntypedFormControl(''),
-      storage_class: new UntypedFormControl([])
+  public createPlacementTarget(): CdFormGroup {
+    const group = this.formBuilder.group({
+      placement_id: new FormControl('', this.action === this.actionLabels.EDIT ? Validators.required : null),
+      tags: new FormControl(''),
+      storage_class: new FormControl([])
     });
-    this.placementTargets.push(fg);
-    return fg;
+    return group;
+  }
+
+  addPlacementTarget(): CdFormGroup {
+    const group = this.createPlacementTarget();
+    this.placementTargets.push(group);
+    return group;
   }
 
   trackByFn(index: number) {
@@ -281,8 +301,10 @@ export class RgwMultisiteZonegroupFormComponent implements OnInit {
   }
 
   removePlacementTarget(index: number) {
-    this.placementTargets = this.multisiteZonegroupForm.get('placementTargets') as UntypedFormArray;
-    this.placementTargets.removeAt(index);
+    if (this.placementTargets.length > 1) {
+      this.placementTargets.removeAt(index);
+      this.cd.detectChanges();
+    }
   }
 
   showError(index: number, control: string, formDir: NgForm, x: string) {
@@ -291,5 +313,11 @@ export class RgwMultisiteZonegroupFormComponent implements OnInit {
       formDir,
       x
     );
+  }
+
+  onZoneSelection(event: ZoneItem[] | ZoneItem) {
+    if (Array.isArray(event)) {
+      this.zonegroupZoneNames = event.map((item) => item.value ?? item.content);
+    }
   }
 }
