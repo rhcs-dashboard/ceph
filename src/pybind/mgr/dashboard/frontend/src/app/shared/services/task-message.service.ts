@@ -704,6 +704,15 @@ export class TaskMessageService {
   }
 
   getErrorTitle(task: Task) {
+    // If the task is a FinishedTask and the backend returned a specific
+    // message about missing gateway groups, show a clearer, user-facing
+    // title instead of the generic "Failed to execute unknown task".
+    const finished = task as FinishedTask;
+    const detail = finished?.exception?.detail;
+    if (typeof detail === 'string' && detail.includes('Gateway group does not exist')) {
+      return $localize`Unable to fetch gateway group`;
+    }
+
     return this._getTaskTitle(task).failure(task.metadata);
   }
 

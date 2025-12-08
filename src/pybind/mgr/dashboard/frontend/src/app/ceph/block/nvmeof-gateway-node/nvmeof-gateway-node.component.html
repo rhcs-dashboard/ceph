@@ -1,0 +1,52 @@
+
+<cd-table
+  #table
+  [data]="hosts"
+  [columns]="columns"
+  columnMode="flex"
+  (fetchData)="getHosts($event)"
+  selectionType="multiClick"
+  [searchableObjects]="true"
+  [serverSide]="false"
+  [maxLimit]="25"
+  (updateSelection)="updateSelection($event)"
+>
+</cd-table>
+
+<ng-template
+  #addrTpl
+  let-value="data.value"
+>
+  <span>{{ value || '-' }}</span>
+
+</ng-template>
+
+<ng-template
+  #statusTpl
+  let-value="data.value"
+  let-row="data.row"
+>
+  <div
+    [cdsStack]="'horizontal'"
+    gap="4"
+  >
+  @if (value === HostStatus.AVAILABLE) {
+    <cd-icon type="success"></cd-icon>
+  }
+
+  <span class="cds-ml-3">{{ value | titlecase }}</span>
+  </div>
+
+</ng-template>
+
+<ng-template
+  #labelsTpl
+  let-value="data.value"
+>
+@if (value && value.length > 0) {
+  <cds-tag *ngFor="let label of value"
+           class="tag tag-dark">{{ label }}</cds-tag>
+} @else {
+  <span>-</span>
+}
+</ng-template>

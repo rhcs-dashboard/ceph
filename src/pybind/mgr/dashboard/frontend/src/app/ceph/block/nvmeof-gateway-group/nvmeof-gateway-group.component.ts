@@ -13,12 +13,15 @@ import { AuthStorageService } from '~/app/shared/services/auth-storage.service';
 import { Icons, IconSize } from '~/app/shared/enum/icons.enum';
 import { NvmeofGatewayGroup } from '~/app/shared/models/nvmeof';
 import { CephServiceSpec } from '~/app/shared/models/service.interface';
+import { URLBuilderService } from '~/app/shared/services/url-builder.service';
 
+const BASE_URL = 'block/nvmeof/gateways';
 @Component({
   selector: 'cd-nvmeof-gateway-group',
   templateUrl: './nvmeof-gateway-group.component.html',
   styleUrls: ['./nvmeof-gateway-group.component.scss'],
-  standalone: false
+  standalone: false,
+  providers: [{ provide: URLBuilderService, useValue: new URLBuilderService(BASE_URL) }]
 })
 export class NvmeofGatewayGroupComponent implements OnInit {
   @ViewChild(TableComponent, { static: true })
@@ -48,7 +51,8 @@ export class NvmeofGatewayGroupComponent implements OnInit {
   constructor(
     public actionLabels: ActionLabelsI18n,
     private authStorageService: AuthStorageService,
-    private nvmeofService: NvmeofService
+    private nvmeofService: NvmeofService,
+    private urlBuilder: URLBuilderService
   ) {}
 
   ngOnInit(): void {
@@ -74,6 +78,15 @@ export class NvmeofGatewayGroupComponent implements OnInit {
         cellTemplate: this.dateTpl
       }
     ];
+    const createAction: CdTableAction = {
+      permission: 'create',
+      icon: Icons.add,
+      routerLink: () => this.urlBuilder.getCreate(),
+      name: this.actionLabels.CREATE,
+      canBePrimary: (selection: CdTableSelection) => !selection.hasSelection
+    };
+
+    this.tableActions = [createAction];
 
     this.gatewayGroup$ = this.subject.pipe(
       switchMap(() =>
