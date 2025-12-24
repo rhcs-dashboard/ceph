@@ -28,6 +28,12 @@
   estimates. This feature is enabled by default for relevant commands including
   scan_extents, scan_inodes, and other state-changing operations.
   Related Tracker: https://tracker.ceph.com/issues/63191
+* RBD: Fixed incorrect behavior of the "start-time" argument for mirror
+  snapshot and trash purge schedules, where it previously offset the schedule
+  anchor instead of defining it. The argument now requires an ISO 8601
+  date-time. The `schedule ls` output displays the start time in UTC, including
+  the date and time in the format "%Y-%m-%d %H:%M:00". The `schedule status`
+  output now displays the next schedule time in UTC.
 
 >=20.0.0
 
