@@ -1,5 +1,7 @@
-import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Component, OnInit, TemplateRef, ViewChild } from '@angular/core';
+import { Router } from '@angular/router';
+import { forkJoin, of } from 'rxjs';
+import { catchError, map, switchMap } from 'rxjs/operators';
 
 import { ActionLabelsI18n, URLVerbs } from '~/app/shared/constants/app.constants';
 import { CdTableSelection } from '~/app/shared/models/cd-table-selection';
@@ -8,16 +10,15 @@ import { Permissions } from '~/app/shared/models/permissions';
 import { AuthStorageService } from '~/app/shared/services/auth-storage.service';
 import { ListWithDetails } from '~/app/shared/classes/list-with-details.class';
 import { CdTableAction } from '~/app/shared/models/cd-table-action';
+import { CdTableColumn } from '~/app/shared/models/cd-table-column';
 import { Icons } from '~/app/shared/enum/icons.enum';
 import { DeleteConfirmationModalComponent } from '~/app/shared/components/delete-confirmation-modal/delete-confirmation-modal.component';
 import { FinishedTask } from '~/app/shared/models/finished-task';
 import { TaskWrapperService } from '~/app/shared/services/task-wrapper.service';
-import { NvmeofService, GroupsComboboxItem } from '~/app/shared/api/nvmeof.service';
+import { NvmeofService, GatewayGroup } from '~/app/shared/api/nvmeof.service';
 import { ModalCdsService } from '~/app/shared/services/modal-cds.service';
-import { CephServiceSpec } from '~/app/shared/models/service.interface';
 
 const BASE_URL = 'block/nvmeof/subsystems';
-const DEFAULT_PLACEHOLDER = $localize`Enter group name`;
 
 @Component({
   selector: 'cd-nvmeof-subsystems',
@@ -26,16 +27,17 @@ const DEFAULT_PLACEHOLDER = $localize`Enter group name`;
   standalone: false
 })
 export class NvmeofSubsystemsComponent extends ListWithDetails implements OnInit {
+  @ViewChild('authenticationTpl', { static: true })
+  authenticationTpl: TemplateRef<any>;
+
+  @ViewChild('encryptionTpl', { static: true })
+  encryptionTpl: TemplateRef<any>;
+
   subsystems: NvmeofSubsystem[] = [];
-  subsystemsColumns: any;
+  subsystemsColumns: CdTableColumn[] = [];
   permissions: Permissions;
   selection = new CdTableSelection();
   tableActions: CdTableAction[];
-  subsystemDetails: any[];
-  gwGroups: GroupsComboboxItem[] = [];
-  group: string = null;
-  gwGroupsEmpty: boolean = false;
-  gwGroupPlaceholder: string = DEFAULT_PLACEHOLDER;
 
   constructor(
     private nvmeofService: NvmeofService,
@@ -43,30 +45,40 @@ export class NvmeofSubsystemsComponent extends ListWithDetails implements OnInit
     public actionLabels: ActionLabelsI18n,
     private router: Router,
     private modalService: ModalCdsService,
-    private taskWrapper: TaskWrapperService,
-    private route: ActivatedRoute
+    private taskWrapper: TaskWrapperService
   ) {
     super();
     this.permissions = this.authStorageService.getPermissions();
   }
 
   ngOnInit() {
-    this.route.queryParams.subscribe((params) => {
-      if (params?.['group']) this.onGroupSelection({ content: params?.['group'] });
-    });
-    this.setGatewayGroups();
     this.subsystemsColumns = [
       {
-        name: $localize`NQN`,
-        prop: 'nqn'
+        name: $localize`Subsystem NQN`,
+        prop: 'nqn',
+        flexGrow: 2
       },
       {
-        name: $localize`# Namespaces`,
+        name: $localize`Initiators`,
+        prop: 'initiator_count'
+      },
+      {
+        name: $localize`Gateway group`,
+        prop: 'gw_group'
+      },
+      {
+        name: $localize`Namespaces`,
         prop: 'namespace_count'
       },
       {
-        name: $localize`# Maximum Allowed Namespaces`,
-        prop: 'max_namespaces'
+        name: $localize`Authentication`,
+        prop: 'authentication',
+        cellTemplate: this.authenticationTpl
+      },
+      {
+        name: $localize`Traffic encryption`,
+        prop: 'encryption',
+        cellTemplate: this.encryptionTpl
       }
     ];
     this.tableActions = [
@@ -74,12 +86,8 @@ export class NvmeofSubsystemsComponent extends ListWithDetails implements OnInit
         name: this.actionLabels.CREATE,
         permission: 'create',
         icon: Icons.add,
-        click: () =>
-          this.router.navigate([BASE_URL, { outlets: { modal: [URLVerbs.CREATE] } }], {
-            queryParams: { group: this.group }
-          }),
-        canBePrimary: (selection: CdTableSelection) => !selection.hasSelection,
-        disable: () => !this.group
+        click: () => this.router.navigate([BASE_URL, { outlets: { modal: [URLVerbs.CREATE] } }]),
+        canBePrimary: (selection: CdTableSelection) => !selection.hasSelection
       },
       {
         name: this.actionLabels.DELETE,
@@ -90,22 +98,50 @@ export class NvmeofSubsystemsComponent extends ListWithDetails implements OnInit
     ];
   }
 
-  // Subsystems
   updateSelection(selection: CdTableSelection) {
     this.selection = selection;
   }
 
   getSubsystems() {
-    if (this.group) {
-      this.nvmeofService
-        .listSubsystems(this.group)
-        .subscribe((subsystems: NvmeofSubsystem[] | NvmeofSubsystem) => {
-          if (Array.isArray(subsystems)) this.subsystems = subsystems;
-          else this.subsystems = [subsystems];
-        });
-    } else {
-      this.subsystems = [];
-    }
+    this.nvmeofService
+      .listGatewayGroups()
+      .pipe(
+        switchMap((gatewayGroups: GatewayGroup[][]) => {
+          const groups = gatewayGroups?.[0] ?? [];
+          if (groups.length === 0) {
+            return of([]);
+          }
+          return forkJoin(
+            groups.map((group: GatewayGroup) =>
+              this.nvmeofService.listSubsystems(group.spec?.group).pipe(
+                catchError(() => of([])),
+                switchMap((subsystems: NvmeofSubsystem[] | NvmeofSubsystem) => {
+                  const subsystemArray = Array.isArray(subsystems) ? subsystems : [subsystems];
+                  // For each subsystem, get initiators count
+                  if (subsystemArray.length === 0) {
+                    return of([]);
+                  }
+                  return forkJoin(
+                    subsystemArray.map((sub: NvmeofSubsystem) =>
+                      this.nvmeofService.getInitiators(sub.nqn, group.spec?.group).pipe(
+                        catchError(() => of([])),
+                        map((initiators: any) => ({
+                          ...sub,
+                          gw_group: group.spec?.group,
+                          initiator_count: Array.isArray(initiators) ? initiators.length : 0
+                        }))
+                      )
+                    )
+                  );
+                })
+              )
+            )
+          ).pipe(map((results: any[][]) => results.flat()));
+        })
+      )
+      .subscribe((subsystems: any[]) => {
+        this.subsystems = subsystems;
+      });
   }
 
   deleteSubsystemModal() {
@@ -117,37 +153,8 @@ export class NvmeofSubsystemsComponent extends ListWithDetails implements OnInit
       submitActionObservable: () =>
         this.taskWrapper.wrapTaskAroundCall({
           task: new FinishedTask('nvmeof/subsystem/delete', { nqn: subsystem.nqn }),
-          call: this.nvmeofService.deleteSubsystem(subsystem.nqn, this.group)
+          call: this.nvmeofService.deleteSubsystem(subsystem.nqn, subsystem.gw_group)
         })
-    });
-  }
-
-  // Gateway groups
-  onGroupSelection(selected: GroupsComboboxItem) {
-    selected.selected = true;
-    this.group = selected.content;
-    this.getSubsystems();
-  }
-
-  onGroupClear() {
-    this.group = null;
-    this.getSubsystems();
-  }
-
-  setGatewayGroups() {
-    this.nvmeofService.listGatewayGroups().subscribe((response: CephServiceSpec[][]) => {
-      if (response?.[0]?.length) {
-        this.gwGroups = this.nvmeofService.formatGwGroupsList(response);
-      } else this.gwGroups = [];
-      // Select first group if no group is selected
-      if (!this.group && this.gwGroups.length) {
-        this.onGroupSelection(this.gwGroups[0]);
-        this.gwGroupsEmpty = false;
-        this.gwGroupPlaceholder = DEFAULT_PLACEHOLDER;
-      } else {
-        this.gwGroupsEmpty = true;
-        this.gwGroupPlaceholder = $localize`No groups available`;
-      }
     });
   }
 }
