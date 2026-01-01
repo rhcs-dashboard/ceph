@@ -57,4 +57,24 @@
   </div>
 </ng-template>
 
+<ng-template
+  #deleteTpl
+  let-subsystem="subsystem"
+>
+
+  <h2
+    class="cds--type-heading-03 cds-mb-3"
+    cdsModalHeaderHeading
+    i18n
+  >
+    Confirm delete
+  </h2>
+
+  <p class="cds--type-body-01 cds-pt-3"
+     i18n>
+    Deleting <strong>{{subsystem.nqn}}</strong> will remove all associated configurations and resources. Dependent services may stop working. This action cannot be undone.
+  </p>
+
+</ng-template>
+
 <router-outlet name="modal"></router-outlet>

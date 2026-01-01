@@ -1,7 +1,10 @@
 import { Component, OnInit, TemplateRef, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
-import { catchError, map, switchMap } from 'rxjs/operators';
+import { catchError, map, switchMap, tap } from 'rxjs/operators';
+
+import { NotificationType } from '~/app/shared/enum/notification-type.enum';
+import { NotificationService } from '~/app/shared/services/notification.service';
 
 import { ActionLabelsI18n, URLVerbs } from '~/app/shared/constants/app.constants';
 import { CdTableSelection } from '~/app/shared/models/cd-table-selection';
@@ -13,10 +16,12 @@ import { CdTableAction } from '~/app/shared/models/cd-table-action';
 import { CdTableColumn } from '~/app/shared/models/cd-table-column';
 import { Icons } from '~/app/shared/enum/icons.enum';
 import { DeleteConfirmationModalComponent } from '~/app/shared/components/delete-confirmation-modal/delete-confirmation-modal.component';
+import { TableComponent } from '~/app/shared/datatable/table/table.component';
 import { FinishedTask } from '~/app/shared/models/finished-task';
 import { TaskWrapperService } from '~/app/shared/services/task-wrapper.service';
 import { NvmeofService, GatewayGroup } from '~/app/shared/api/nvmeof.service';
 import { ModalCdsService } from '~/app/shared/services/modal-cds.service';
+import { DeletionImpact } from '~/app/shared/enum/delete-confirmation-modal-impact.enum';
 
 const BASE_URL = 'block/nvmeof/subsystems';
 
@@ -27,11 +32,17 @@ const BASE_URL = 'block/nvmeof/subsystems';
   standalone: false
 })
 export class NvmeofSubsystemsComponent extends ListWithDetails implements OnInit {
+  @ViewChild('table', { static: true })
+  table: TableComponent;
+
   @ViewChild('authenticationTpl', { static: true })
   authenticationTpl: TemplateRef<any>;
 
   @ViewChild('encryptionTpl', { static: true })
   encryptionTpl: TemplateRef<any>;
+
+  @ViewChild('deleteTpl', { static: true })
+  deleteTpl: TemplateRef<any>;
 
   subsystems: NvmeofSubsystem[] = [];
   subsystemsColumns: CdTableColumn[] = [];
@@ -45,7 +56,8 @@ export class NvmeofSubsystemsComponent extends ListWithDetails implements OnInit
     public actionLabels: ActionLabelsI18n,
     private router: Router,
     private modalService: ModalCdsService,
-    private taskWrapper: TaskWrapperService
+    private taskWrapper: TaskWrapperService,
+    private notificationService: NotificationService
   ) {
     super();
     this.permissions = this.authStorageService.getPermissions();
@@ -147,14 +159,33 @@ export class NvmeofSubsystemsComponent extends ListWithDetails implements OnInit
   deleteSubsystemModal() {
     const subsystem = this.selection.first();
     this.modalService.show(DeleteConfirmationModalComponent, {
-      itemDescription: 'Subsystem',
+      impact: DeletionImpact.high,
+      itemDescription: $localize`Subsystem`,
       itemNames: [subsystem.nqn],
-      actionDescription: 'delete',
+      bodyTemplate: this.deleteTpl,
+      bodyContext: {
+        inputLabel: $localize`Type ${subsystem.nqn} to confirm`,
+        inputPlaceholder: $localize`Name of resource`
+      },
       submitActionObservable: () =>
-        this.taskWrapper.wrapTaskAroundCall({
-          task: new FinishedTask('nvmeof/subsystem/delete', { nqn: subsystem.nqn }),
-          call: this.nvmeofService.deleteSubsystem(subsystem.nqn, subsystem.gw_group)
-        })
+        this.taskWrapper
+          .wrapTaskAroundCall({
+            task: new FinishedTask('nvmeof/subsystem/delete', { nqn: subsystem.nqn }),
+            call: this.nvmeofService.deleteSubsystem(subsystem.nqn, subsystem.gw_group)
+          })
+          .pipe(
+            tap(() => {
+              this.table.refreshBtn();
+            }),
+            catchError((error) => {
+              this.table.refreshBtn();
+              this.notificationService.show(
+                NotificationType.error,
+                $localize`Failed to delete subsystem ${subsystem.nqn}${error.message}`
+              );
+              return of(null);
+            })
+          )
     });
   }
 }
