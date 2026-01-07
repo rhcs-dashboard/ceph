@@ -1,12 +1,14 @@
 export enum StepTitles {
-  ChooseClusterRole = 'Choose Cluster Role',
+  ChooseMirrorPeerRole = 'Choose Mirror Peer Role',
   SelectFilesystem = 'Select Filesystem',
-  ImportBootstrapToken = 'Import Bootstrap Token',
+  CreateOrSelectEntity = 'Create or Select Entity',
+  GenerateBootstrapToken = 'Generate Bootstrap Token',
   Review = 'Review'
 }
 
 export const STEP_TITLES_MIRRORING_CONFIGURED = [
-  StepTitles.ChooseClusterRole,
+  StepTitles.ChooseMirrorPeerRole,
   StepTitles.SelectFilesystem,
-  StepTitles.ImportBootstrapToken
+  StepTitles.CreateOrSelectEntity,
+  StepTitles.GenerateBootstrapToken
 ];

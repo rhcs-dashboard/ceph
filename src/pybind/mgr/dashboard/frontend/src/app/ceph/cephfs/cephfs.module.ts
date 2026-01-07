@@ -59,6 +59,7 @@ import Close from '@carbon/icons/es/close/32';
 import Trash from '@carbon/icons/es/trash-can/32';
 import { CephfsMirroringListComponent } from './cephfs-mirroring-list/cephfs-mirroring-list.component';
 import { CephfsMirroringWizardComponent } from './cephfs-mirroring-wizard/cephfs-mirroring-wizard.component';
+import { CephfsMirroringFilesystemComponent } from './cephfs-mirroring-filesystem/cephfs-mirroring-filesystem.component';
 
 @NgModule({
   imports: [
@@ -114,7 +115,8 @@ import { CephfsMirroringWizardComponent } from './cephfs-mirroring-wizard/cephfs
     CephfsMountDetailsComponent,
     CephfsAuthModalComponent,
     CephfsMirroringListComponent,
-    CephfsMirroringWizardComponent
+    CephfsMirroringWizardComponent,
+    CephfsMirroringFilesystemComponent
   ],
   providers: [provideCharts(withDefaultRegisterables())]
 })

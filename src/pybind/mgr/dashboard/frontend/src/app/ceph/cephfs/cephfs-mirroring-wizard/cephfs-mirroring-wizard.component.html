@@ -1,69 +1,123 @@
 <div>
-  <p>Configure a new mirroring relationship between clusters</p>
+  <p i18n>Configure a new mirroring relationship between clusters</p>
 </div>
+
 <div cdsRow>
   <div cdsCol
-       [columnNumbers]="{ lg: 2, md: 3, sm: 4 }">
-    <cd-wizard [stepsTitle]="stepTitles"></cd-wizard>
+       [columnNumbers]="{ sm: 12, md: 3, lg: 2 }">
+    <cd-wizard [stepsTitle]="stepTitles"
+               i18n-stepsTitle> </cd-wizard>
   </div>
-  <div cdsCol
-       [columnNumbers]="{ lg: 14, md: 13, sm: 12 }"
-       class="mirroring-main">
-    <div class="mirroring-bg">
-      <div class="mirroring-header">
-      <h5>Choose Cluster Role</h5>
-      <p>Select how the cluster will participate in the mirroring setup.</p>
-      </div>
-      <cds-radio-group name="clusterRole"
-                       value="source">
-        <div cdsRow>
-          <div cdsCol
-               [columnNumbers]="{ lg: 6, md: 6, sm: 12 }"
-               class="mirroring-tile-col">
-            <cds-tile class="mirroring-tile">
-              <cds-radio value="source">
-                <div>
-                  <h6>Configure as Local Cluster (Source)</h6>
-                  <div>
-                    This cluster will send snapshots and replicate data to remote clusters for
-                    backup and disaster recovery.
-                  </div>
 
-                  <ul class="mirroring-list">
-                    <li class="mirroring-list-item"
-                        *ngFor="let item of sourceList">
-                      &#8594; {{ item }}
-                    </li>
-                  </ul>
-                </div>
-              </cds-radio>
-            </cds-tile>
+  <div cdsCol
+       [columnNumbers]="{ sm: 12, md: 9, lg: 14 }">
+    <div cdsGrid
+         class="mirroring-bg">
+      <ng-container [ngSwitch]="currentStep?.stepIndex">
+        <div *ngSwitchCase="0">
+          <div cdsCol>
+            <h5 i18n>Choose Mirror Peer Role</h5>
+            <p i18n>
+              Select how the cluster will participate in the CephFS mirroring relationship.
+            </p>
           </div>
-          <div cdsCol
-               [columnNumbers]="{ lg: 6, md: 6, sm: 12 }"
-               class="mirroring-tile-col">
-            <cds-tile class="mirroring-tile">
-              <cds-radio value="target">
-                <div>
-                  <h6>Configure as Remote Cluster (Target)</h6>
+
+          <cds-radio-group name="clusterRole"
+                           [(ngModel)]="selectedRole">
+            <div cdsCol
+                 [columnNumbers]="{ sm: 12, md: 8, lg: 8 }">
+              <cds-tile>
+                <cds-radio value="source">
                   <div>
-                    This cluster will receive replication data and generate a token for connection
-                    with source clusters.
+                    <h6 i18n>Configure Local Peer</h6>
+                    <div i18n>
+                      This cluster will act as the initiating peer and send snapshots to a remote
+                      peer.
+                    </div>
+                    <ul class="mirroring-list">
+                      <li *ngFor="let item of sourceList"
+                          class="mirroring-list-item">
+                        → {{ item }}
+                      </li>
+                    </ul>
                   </div>
-                  <ul class="mirroring-list">
-                    <li class="mirroring-list-item"
-                        *ngFor="let item of targetList">
-                      &#8594; {{ item }}
-                    </li>
-                  </ul>
-                </div>
-              </cds-radio>
-            </cds-tile>
-          </div>
+                </cds-radio>
+              </cds-tile>
+            </div>
+
+            <div cdsCol
+                 [columnNumbers]="{ sm: 12, md: 8, lg: 8 }">
+              <cds-tile cds-mb="lg">
+                <cds-radio value="target">
+                  <div>
+                    <h6 i18n>Configure Remote Peer</h6>
+                    <div i18n>
+                      A remote cluster will act as the receiving peer and store replicated
+                      snapshots.
+                    </div>
+                    <ul cdsGap="sm"
+                        class="mirroring-list">
+                      <li *ngFor="let item of targetList"
+                          class="mirroring-list-item">
+                        → {{ item }}
+                      </li>
+                    </ul>
+                  </div>
+                </cds-radio>
+              </cds-tile>
+            </div>
+          </cds-radio-group>
+
+          <cd-alert-panel type="info"
+                          spacingClass="mb-3"
+                          i18n
+                          class="align-items-center">
+            <div>
+              <strong class="alert-title">About Remote Peer Setup</strong>
+              <p class="alert-description">
+                As a remote peer, this cluster prepares to receive mirrored data from an initiating
+                cluster. The setup includes environment validation, enabling filesystem mirroring,
+                creating required Ceph users, and generating a bootstrap token.
+              </p>
+              <strong class="alert-subtitle">What happens next:</strong>
+              <ul class="alert-list">
+                <li>Environment validation</li>
+                <li>Ceph user creation</li>
+                <li>Filesystem mirroring activation</li>
+                <li>Bootstrap token generation</li>
+              </ul>
+            </div>
+          </cd-alert-panel>
         </div>
-      </cds-radio-group>
+
+        <div *ngSwitchCase="1">
+          <cd-cephfs-mirroring-filesystem [selectedFilesystem$]="selectedFilesystem$">
+          </cd-cephfs-mirroring-filesystem>
+        </div>
+
+        <div *ngSwitchCase="2">Test 2</div>
+        <div *ngSwitchCase="3">
+          <p>Test3</p>
+        </div>
+      </ng-container>
     </div>
   </div>
 </div>
 
-
+<cds-modal-footer class="tearsheet-footer">
+  <button cdsButton="ghost"
+          class="tearsheet-footer-cancel"
+          (click)="closeWizard()"
+          size="xl"
+          i18n>
+    Cancel
+  </button>
+  <button cdsButton="secondary"
+          size="xl"
+          (click)="onPrevious()"
+          i18n>Previous</button>
+  <button cdsButton="primary"
+          size="xl"
+          (click)="onNext()"
+          i18n>Next</button>
+</cds-modal-footer>
