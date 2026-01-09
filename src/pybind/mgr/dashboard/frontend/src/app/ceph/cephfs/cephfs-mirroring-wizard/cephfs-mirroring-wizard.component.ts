@@ -1,10 +1,9 @@
 import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
-import { Router } from '@angular/router';
 import { Step } from 'carbon-components-angular';
-import { STEP_TITLES_MIRRORING_CONFIGURED } from './cephfs-mirroring-wizard-step.enum';
-import { Icons } from '~/app/shared/enum/icons.enum';
-import { WizardStepsService } from '~/app/shared/services/wizard-steps.service';
+import { Router } from '@angular/router';
 import { BehaviorSubject } from 'rxjs';
+import { STEP_TITLES_MIRRORING_CONFIGURED } from './cephfs-mirroring-wizard-step.enum';
+import { WizardStepsService } from '~/app/shared/services/wizard-steps.service';
 import { WizardStepModel } from '~/app/shared/models/wizard-steps';
 import { FormBuilder, FormGroup } from '@angular/forms';
 
@@ -15,37 +14,37 @@ import { FormBuilder, FormGroup } from '@angular/forms';
   styleUrls: ['./cephfs-mirroring-wizard.component.scss']
 })
 export class CephfsMirroringWizardComponent implements OnInit {
-  private wizardStepsService = inject(WizardStepsService);
-  private cdr = inject(ChangeDetectorRef);
-  private fb = inject(FormBuilder);
-  private router = inject(Router);
-
   stepTitles: Step[] = [];
   currentStep: WizardStepModel | null = null;
   currentStepIndex: number = 0;
   selectedRole: string = 'source';
-  icons = Icons;
-  selectedFilesystem$: BehaviorSubject<any> = new BehaviorSubject<any>(null);
   steps: any;
   lastStep: number = null;
   isWizardOpen: boolean = true;
-  title: string = $localize`Create new CephFS mirroring`;
+    selectedFilesystem$: BehaviorSubject<any> = new BehaviorSubject<any>(null);
+  selectedEntity$: BehaviorSubject<any> = new BehaviorSubject<any>(null);
+  title: string = $localize`Create New CephFS Mirroring`;
   description: string = $localize`Configure a new mirroring relationship between clusters`;
   form: FormGroup;
 
   sourceChecked: boolean = false;
   targetChecked: boolean = false;
 
+  private wizardStepsService = inject(WizardStepsService);
+  private cdr = inject(ChangeDetectorRef);
+  private fb = inject(FormBuilder);
+  private router = inject(Router);
+
   sourceList: string[] = [
-    'Sends data to remote clusters',
-    'Requires bootstrap token from target',
-    'Manages snapshot schedules'
+    $localize`Sends data to remote clusters`,
+    $localize`Requires bootstrap token from target`,
+    $localize`Manages snapshot schedules`
   ];
 
   targetList: string[] = [
-    'Receives data from source clusters',
-    'Generates bootstrap token',
-    'Stores replicated snapshots'
+    $localize`Receives data from source clusters`,
+    $localize`Generates bootstrap token`,
+    $localize`Stores replicated snapshots`
   ];
 
   constructor() {
@@ -78,6 +77,11 @@ export class CephfsMirroringWizardComponent implements OnInit {
       this.currentStepIndex = step?.stepIndex || 0;
       this.cdr.detectChanges();
     });
+
+    // Initialize radio buttons (default to source)
+    this.sourceChecked = true;
+    this.targetChecked = false;
+    this.form.patchValue({ clusterRole1: 'source', clusterRole2: null });
   }
 
   initializeSteps(): WizardStepModel[] {
@@ -104,28 +108,21 @@ export class CephfsMirroringWizardComponent implements OnInit {
     this.currentStep = this.steps[event.index];
   }
 
-  onPrevious() {
-    if (this.currentStep && this.currentStep.stepIndex !== 0) {
-      this.currentStep = { ...this.currentStep, stepIndex: this.currentStep.stepIndex - 1 };
-    }
+  onRoleChange() {
+    this.sourceChecked = true;
+    this.targetChecked = false;
+    this.form.patchValue({ clusterRole1: 'source', clusterRole2: null });
   }
 
-  onNext() {
-    if (this.currentStep && !this.steps[this.currentStep.stepIndex].invalid) {
-      this.currentStep = { ...this.currentStep, stepIndex: this.currentStep.stepIndex + 1 }; // Adjust stepIndex if needed
-    }
+  onRole2Change() {
+    this.sourceChecked = false;
+    this.targetChecked = true;
+    this.form.patchValue({ clusterRole1: null, clusterRole2: 'target' });
   }
 
-  updateSelectedFilesystem(filesystem: any) {
-    this.selectedFilesystem$.next(filesystem);
-  }
-
-  closeWizard() {
-    this.isWizardOpen = false;
-  }
   onSubmit() {}
 
-  onCancel(){
+  onCancel() {
     this.router.navigate(['/cephfs/mirroring']);
   }
 }
