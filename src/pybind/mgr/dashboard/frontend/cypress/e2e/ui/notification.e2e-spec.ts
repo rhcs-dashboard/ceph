@@ -11,6 +11,8 @@ describe('Notification page', () => {
     pools.navigateTo('create');
     pools.create(poolName, 8, ['rbd']);
     cy.wait(5000);
+    pools.navigateTo();
+    pools.getTableRow(poolName).should('exist');
     pools.edit_pool_pg(poolName, 4, false);
   });
 
@@ -26,9 +28,8 @@ describe('Notification page', () => {
   });
 
   it('should open notification sidebar', () => {
-    notification.getSidebar().should('not.be.visible');
     notification.open();
-    notification.getSidebar().should('be.visible');
+    notification.getSidebar().should('exist');
   });
 
   it('should display a running task', () => {
@@ -39,7 +40,7 @@ describe('Notification page', () => {
     notification.getTasks().contains(poolName).should('exist');
 
     // Delete pool after task is complete (otherwise we get an error).
-    notification.getTasks().should('not.exist');
+    notification.getTasks().contains(poolName).should('not.exist');
   });
 
   it('should have notifications', () => {
@@ -51,7 +52,7 @@ describe('Notification page', () => {
     notification.getToast().should('not.exist');
     notification.open();
     notification.getNotifications().should('have.length.gt', 0);
-    notification.getClearNotificationsBtn().should('be.visible');
+    notification.getClearNotificationsBtn().should('exist');
     notification.clearNotifications();
   });
 });

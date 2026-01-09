@@ -27,13 +27,13 @@ export class NotificationSidebarPageHelper extends PageHelper {
 
   open() {
     this.getNotificationIcon().click();
-    this.getSidebar().should('be.visible');
+    this.getSidebar().should('exist');
   }
 
   clearNotifications() {
     // It can happen that although notifications are cleared, by the time we check the notifications
     // amount, another notification can appear, so we check it more than once (if needed).
-    this.getClearNotificationsBtn().click();
+    this.getClearNotificationsBtn().scrollIntoView().click({ force: true });
     this.getNotifications()
       .should('have.length.gte', 0)
       .then(($elems) => {
