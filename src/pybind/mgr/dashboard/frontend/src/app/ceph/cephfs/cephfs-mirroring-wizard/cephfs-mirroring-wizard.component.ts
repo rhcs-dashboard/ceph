@@ -19,6 +19,7 @@ export class CephfsMirroringWizardComponent implements OnInit {
   selectedRole: string = 'source';
   icons = Icons;
   selectedFilesystem$: BehaviorSubject<any> = new BehaviorSubject<any>(null);
+  selectedEntity$: BehaviorSubject<any> = new BehaviorSubject<any>(null);
 
   sourceList: string[] = [
     'Sends data to remote clusters',

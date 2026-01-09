@@ -46,6 +46,7 @@ import {
   ModalModule,
   NumberModule,
   PlaceholderModule,
+  RadioModule,
   SelectModule,
   TimePickerModule,
   TreeviewModule,
@@ -56,12 +57,9 @@ import AddIcon from '@carbon/icons/es/add/32';
 import LaunchIcon from '@carbon/icons/es/launch/32';
 import Close from '@carbon/icons/es/close/32';
 import Trash from '@carbon/icons/es/trash-can/32';
-<<<<<<< HEAD
-=======
-import { CephfsMirroringListComponent } from './cephfs-mirroring-list/cephfs-mirroring-list.component';
 import { CephfsMirroringWizardComponent } from './cephfs-mirroring-wizard/cephfs-mirroring-wizard.component';
 import { CephfsMirroringFilesystemComponent } from './cephfs-mirroring-filesystem/cephfs-mirroring-filesystem.component';
->>>>>>> 9c0e8e91440 (mgr/dashboard: Ceohfs Mirroring - Filesystem Selection)
+import { CephfsMirroringEntityComponent } from './cephfs-mirroring-entity/cephfs-mirroring-entity.component';
 
 @NgModule({
   imports: [
@@ -92,6 +90,7 @@ import { CephfsMirroringFilesystemComponent } from './cephfs-mirroring-filesyste
     LayoutModule,
     ComboBoxModule,
     IconModule,
+    RadioModule,
     BaseChartDirective,
     TabsModule
   ],
@@ -114,13 +113,10 @@ import { CephfsMirroringFilesystemComponent } from './cephfs-mirroring-filesyste
     CephfsSubvolumeSnapshotsFormComponent,
     CephfsMountDetailsComponent,
     CephfsAuthModalComponent,
-<<<<<<< HEAD
-    CephfsMirroringListComponent
-=======
     CephfsMirroringListComponent,
     CephfsMirroringWizardComponent,
-    CephfsMirroringFilesystemComponent
->>>>>>> 9c0e8e91440 (mgr/dashboard: Ceohfs Mirroring - Filesystem Selection)
+    CephfsMirroringFilesystemComponent,
+    CephfsMirroringEntityComponent
   ],
   providers: [provideCharts(withDefaultRegisterables())]
 })

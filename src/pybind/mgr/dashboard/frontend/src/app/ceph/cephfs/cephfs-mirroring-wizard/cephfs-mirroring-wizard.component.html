@@ -95,7 +95,11 @@
           </cd-cephfs-mirroring-filesystem>
         </div>
 
-        <div *ngSwitchCase="2">Test 2</div>
+        <div *ngSwitchCase="2">
+          <cd-cephfs-mirroring-entity [selectedFilesystem$]="selectedFilesystem$"
+                                      [selectedEntity$]="selectedEntity$">
+          </cd-cephfs-mirroring-entity>
+        </div>
         <div *ngSwitchCase="3">
           <p>Test3</p>
         </div>
