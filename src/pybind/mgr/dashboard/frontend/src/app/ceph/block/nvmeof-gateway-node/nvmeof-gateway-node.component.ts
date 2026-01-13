@@ -7,7 +7,7 @@ import {
   TemplateRef,
   ViewChild
 } from '@angular/core';
-import { forkJoin, Subject } from 'rxjs';
+import { forkJoin, Subject, Subscription } from 'rxjs';
 import { map, mergeMap, takeUntil } from 'rxjs/operators';
 
 import { HostService } from '~/app/shared/api/host.service';
@@ -71,6 +71,7 @@ export class NvmeofGatewayNodeComponent implements OnInit, OnDestroy {
   count = 5;
   orchStatus: OrchestratorStatus;
   private destroy$ = new Subject<void>();
+  private sub = new Subscription();
 
   constructor(
     private authStorageService: AuthStorageService,
@@ -82,6 +83,24 @@ export class NvmeofGatewayNodeComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+
+    this.tableActions = [
+      {
+        permission: 'create',
+        icon: Icons.add,
+        click: () => this.addGateway(),
+        name: $localize`Add`,
+        canBePrimary: (selection: CdTableSelection) => !selection.hasSelection
+      },
+      {
+        permission: 'delete',
+        icon: Icons.destroy,
+        click: () => this.removeGateway(),
+        name: $localize`Remove`,
+        disable: (selection: CdTableSelection) => !selection.hasSelection
+      }
+    ];
+
     this.columns = [
       {
         name: $localize`Hostname`,
@@ -110,14 +129,27 @@ export class NvmeofGatewayNodeComponent implements OnInit, OnDestroy {
     ];
   }
 
+  addGateway(): void {
+    // TODO: Logic to open add gateway modal
+  }
+
+  removeGateway(): void {
+    // TODO: Logic to remove gateway
+  }
+
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this.sub.unsubscribe();
   }
 
   updateSelection(selection: CdTableSelection): void {
     this.selection = selection;
     this.selectionChange.emit(selection);
+  }
+
+  getSelectedHosts(): Host[] {
+    return this.selection.selected;
   }
 
   getSelectedHostnames(): string[] {
@@ -136,16 +168,18 @@ export class NvmeofGatewayNodeComponent implements OnInit, OnDestroy {
     }
     this.isLoadingHosts = true;
 
-    forkJoin([this.buildUsedHostsObservable(), this.buildHostListObservable()])
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(
-        ([usedHostnames, hostList]: [Set<string>, Host[]]) =>
-          this.processHostResults(usedHostnames, hostList),
-        () => {
-          this.isLoadingHosts = false;
-          context.error();
-        }
-      );
+    this.sub.add(
+      forkJoin([this.buildUsedHostsObservable(), this.buildHostListObservable()])
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: ([usedHostnames, hostList]: [Set<string>, Host[]]) =>
+            this.processHostResults(usedHostnames, hostList),
+          error: () => {
+            this.isLoadingHosts = false;
+            context.error();
+          }
+        })
+    );
   }
 
   private buildUsedHostsObservable() {
