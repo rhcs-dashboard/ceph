@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { Component, Input, OnChanges, OnInit, TemplateRef, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 
@@ -24,6 +23,7 @@ import {
   CephServiceCertificate,
   CephServiceSpec
 } from '~/app/shared/models/service.interface';
+import { CdDatePipe } from '~/app/shared/pipes/cd-date.pipe';
 import { RelativeDatePipe } from '~/app/shared/pipes/relative-date.pipe';
 import { AuthStorageService } from '~/app/shared/services/auth-storage.service';
 import { TaskWrapperService } from '~/app/shared/services/task-wrapper.service';
@@ -40,7 +40,10 @@ const BASE_URL = 'services';
   selector: 'cd-services',
   templateUrl: './services.component.html',
   styleUrls: ['./services.component.scss'],
-  providers: [DatePipe, { provide: URLBuilderService, useValue: new URLBuilderService(BASE_URL) }],
+  providers: [
+    CdDatePipe,
+    { provide: URLBuilderService, useValue: new URLBuilderService(BASE_URL) }
+  ],
   standalone: false
 })
 export class ServicesComponent extends ListWithDetails implements OnChanges, OnInit {
@@ -94,7 +97,7 @@ export class ServicesComponent extends ListWithDetails implements OnChanges, OnI
     private router: Router,
     private settingsService: SettingsService,
     private cdsModalService: ModalCdsService,
-    private datePipe: DatePipe
+    private cdDatePipe: CdDatePipe
   ) {
     super();
     this.permissions = this.authStorageService.getPermissions();
@@ -124,18 +127,20 @@ export class ServicesComponent extends ListWithDetails implements OnChanges, OnI
     ];
   }
 
-  openModal(edit = false) {
+  openModal(edit = false, payload?: { serviceName?: string; serviceType?: string } | string) {
+    const serviceNameFromPayload = typeof payload === 'string' ? payload : payload?.serviceName;
+    const serviceTypeFromPayload = typeof payload === 'string' ? undefined : payload?.serviceType;
+
+    const targetServiceName = serviceNameFromPayload ?? this.selection.first()?.service_name;
+    const targetServiceType = serviceTypeFromPayload ?? this.selection.first()?.service_type;
+
     if (this.routedModal) {
       edit
         ? this.router.navigate([
             BASE_URL,
             {
               outlets: {
-                modal: [
-                  URLVerbs.EDIT,
-                  this.selection.first().service_type,
-                  this.selection.first().service_name
-                ]
+                modal: [URLVerbs.EDIT, targetServiceType, targetServiceName]
               }
             }
           ])
@@ -144,8 +149,8 @@ export class ServicesComponent extends ListWithDetails implements OnChanges, OnI
       let initialState = {};
       edit
         ? (initialState = {
-            serviceName: this.selection.first()?.service_name,
-            serviceType: this.selection?.first()?.service_type,
+            serviceName: targetServiceName,
+            serviceType: targetServiceType,
             hiddenServices: this.hiddenServices,
             editing: edit
           })
@@ -321,7 +326,7 @@ export class ServicesComponent extends ListWithDetails implements OnChanges, OnI
     }
 
     const formattedDate = cert.expiry_date
-      ? this.datePipe.transform(cert.expiry_date, 'dd MMM y')
+      ? this.cdDatePipe.transform(cert.expiry_date, 'DD MMM y')
       : null;
 
     switch (cert.status) {
