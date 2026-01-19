@@ -19,7 +19,9 @@
 
   <main class="nvme-main">
   @if (selectedTab === 'gateways') {
-    <cd-nvmeof-gateway-node></cd-nvmeof-gateway-node>
+    <cd-nvmeof-gateway-node
+        [groupName]="groupName">
+    </cd-nvmeof-gateway-node>
   }
   @if (selectedTab === 'subsystems') {
     <cd-nvmeof-gateway-subsystem

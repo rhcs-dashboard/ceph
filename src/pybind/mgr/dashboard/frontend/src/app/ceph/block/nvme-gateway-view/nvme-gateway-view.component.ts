@@ -1,6 +1,7 @@
 import { Component, OnInit, ViewEncapsulation } from '@angular/core';
 import { ActivatedRoute, ParamMap } from '@angular/router';
 import { Observable, of } from 'rxjs';
+
 import { NvmeofSubsystem } from '~/app/shared/models/nvmeof';
 
 @Component({
@@ -11,9 +12,10 @@ import { NvmeofSubsystem } from '~/app/shared/models/nvmeof';
   standalone: false
 })
 export class NvmeGatewayViewComponent implements OnInit {
-  groupName: string;
+  groupName!: string;
   subsystems$: Observable<NvmeofSubsystem[]> = of([]);
   selectedTab: string | null = 'gateways';
+
   constructor(private route: ActivatedRoute) {}
 
   ngOnInit() {

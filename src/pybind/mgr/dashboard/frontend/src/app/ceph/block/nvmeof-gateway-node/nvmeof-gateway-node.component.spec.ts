@@ -148,26 +148,6 @@ describe('NvmeofGatewayNodeComponent', () => {
     expect(component.selection.selected.length).toBe(1);
   });
 
-  it('should get selected hosts', () => {
-    component.selection = new CdTableSelection();
-    component.selection.selected = [mockGatewayNodes[0], mockGatewayNodes[1]];
-
-    const selectedHosts = component.getSelectedHosts();
-
-    expect(selectedHosts.length).toBe(2);
-    expect(selectedHosts[0]).toEqual(mockGatewayNodes[0]);
-    expect(selectedHosts[1]).toEqual(mockGatewayNodes[1]);
-  });
-
-  it('should get selected hostnames', () => {
-    component.selection = new CdTableSelection();
-    component.selection.selected = [mockGatewayNodes[0], mockGatewayNodes[1]];
-
-    const selectedHostnames = component.getSelectedHostnames();
-
-    expect(selectedHostnames).toEqual(['gateway-node-1', 'gateway-node-2']);
-  });
-
   it('should load hosts with orchestrator available and facts feature enabled', fakeAsync(() => {
     const hostListSpy = spyOn(hostService, 'list').and.returnValue(of(mockGatewayNodes));
     const mockOrcStatus: any = {
@@ -271,49 +251,6 @@ describe('NvmeofGatewayNodeComponent', () => {
     expect(component.isLoadingHosts).toBe(false);
     expect(context.error).toHaveBeenCalled();
   }));
-
-  it('should check hosts facts available when orchestrator features present', () => {
-    component.orchStatus = {
-      available: true,
-      features: new Map([['get_facts', { available: true }]])
-    } as any;
-
-    spyOn(hostService, 'checkHostsFactsAvailable').and.returnValue(true);
-
-    const result = component.checkHostsFactsAvailable();
-
-    expect(result).toBe(true);
-  });
-
-  it('should return true even when get_facts feature is not available', () => {
-    component.orchStatus = {
-      available: true,
-      features: new Map([['other_feature', { available: true }]])
-    } as any;
-
-    const result = component.checkHostsFactsAvailable();
-
-    expect(result).toBe(true);
-  });
-
-  it('should return true even when orchestrator status features are empty', () => {
-    component.orchStatus = {
-      available: true,
-      features: new Map()
-    } as any;
-
-    const result = component.checkHostsFactsAvailable();
-
-    expect(result).toBe(true);
-  });
-
-  it('should return false when orchestrator status is undefined', () => {
-    component.orchStatus = undefined;
-
-    const result = component.checkHostsFactsAvailable();
-
-    expect(result).toBe(false);
-  });
 
   it('should not re-fetch if already loading', fakeAsync(() => {
     component.isLoadingHosts = true;

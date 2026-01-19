@@ -85,6 +85,7 @@ import { NvmeofGatewayNodeComponent } from './nvmeof-gateway-node/nvmeof-gateway
 
 import { NvmeofGatewaySubsystemComponent } from './nvmeof-gateway-subsystem/nvmeof-gateway-subsystem.component';
 import { NvmeGatewayViewComponent } from './nvme-gateway-view/nvme-gateway-view.component';
+import { NvmeofGatewayNodeAddModalComponent } from './nvmeof-gateway-node/nvmeof-gateway-node-add-modal/nvmeof-gateway-node-add-modal.component';
 import { NvmeGatewayViewBreadcrumbResolver } from './nvme-gateway-view/nvme-gateway-view-breadcrumb.resolver';
 
 @NgModule({
@@ -157,7 +158,8 @@ import { NvmeGatewayViewBreadcrumbResolver } from './nvme-gateway-view/nvme-gate
     NvmeofGatewayNodeComponent,
     NvmeofGroupFormComponent,
     NvmeGatewayViewComponent,
-    NvmeofGatewaySubsystemComponent
+    NvmeofGatewaySubsystemComponent,
+    NvmeofGatewayNodeAddModalComponent
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   exports: [RbdConfigurationListComponent, RbdConfigurationFormComponent]
@@ -323,7 +325,9 @@ const routes: Routes = [
       {
         path: `gateways/${URLVerbs.VIEW}/:group`,
         component: NvmeGatewayViewComponent,
-        data: { breadcrumbs: `${ActionLabels.VIEW}${URLVerbs.GATEWAY_GROUP}` },
+        data: {
+          breadcrumbs: `${ActionLabels.VIEW}${URLVerbs.GATEWAY_GROUP}`
+        },
         children: [
           {
             path: '',
