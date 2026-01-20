@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <utility>
 
 #include <fmt/format.h>
 #include <seastar/core/future.hh>
@@ -21,7 +22,6 @@ using crimson::osd::OSD;
 using crimson::osd::PG;
 using namespace crimson::common;
 using ceph::common::cmd_getval;
-
 
 namespace crimson::admin::pg {
 
@@ -88,13 +88,33 @@ private:
   OSD& osd;
 };
 
+class PGOldFormCommand final : public AdminSocketHook {
+public:
+  explicit PGOldFormCommand(crimson::osd::OSD&) :
+    AdminSocketHook{"pg",
+                    "name=pgid,type=CephPgid "
+                    "name=cmd,type=CephChoices,strings=query|log|scrub|deep-scrub|list_unfound|mark_unfound_lost "
+                    "name=arg,type=CephString,req=false",
+                    "old-form wrapper for pg subcommands (query, log, scrub, deep-scrub, list_unfound, mark_unfound_lost)"}
+  {}
+
+  seastar::future<tell_result_t> call(const cmdmap_t&,
+                                      std::string_view,
+                                      ceph::bufferlist&&) const final
+  {
+    // This hook exists only for schema advertisement via get_command_descriptions.
+    // parse_cmd() always rewrites prefix away from "pg" before dispatch.
+    std::unreachable();
+  }
+};
+
 class QueryCommand final : public PGCommand {
 public:
   // TODO: const correctness of osd
   explicit QueryCommand(crimson::osd::OSD& osd) :
     PGCommand{osd,
               "query",
-              "",
+              "name=pgid,type=CephPgid",
               "show details of a specific pg"}
   {}
 private:
@@ -196,6 +216,9 @@ std::unique_ptr<AdminSocketHook> make_asok_hook(Args&&... args)
 {
   return std::make_unique<Hook>(std::forward<Args>(args)...);
 }
+
+template std::unique_ptr<AdminSocketHook>
+make_asok_hook<crimson::admin::pg::PGOldFormCommand>(crimson::osd::OSD& osd);
 
 template std::unique_ptr<AdminSocketHook>
 make_asok_hook<crimson::admin::pg::QueryCommand>(crimson::osd::OSD& osd);
