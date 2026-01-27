@@ -88,6 +88,33 @@ private:
   OSD& osd;
 };
 
+class LogCommand final : public PGCommand {
+public:
+  explicit LogCommand(crimson::osd::OSD& osd) :
+    PGCommand{osd,
+              "log",
+              "name=pgid,type=CephPgid",
+              "dump pg_log of a specific pg"}
+  {}
+private:
+  seastar::future<tell_result_t>
+  do_command(Ref<PG> pg,
+             const cmdmap_t&,
+             std::string_view format,
+             ceph::bufferlist&&) const final
+  {
+    std::unique_ptr<Formatter> f{Formatter::create(format,
+                                                   "json-pretty",
+                                                   "json-pretty")};
+    f->open_object_section("op_log");
+    f->open_object_section("pg_log_t");
+    pg->get_peering_state().get_pg_log().get_log().dump(f.get());
+    f->close_section();
+    f->close_section();
+    return seastar::make_ready_future<tell_result_t>(std::move(f));
+  }
+};
+
 class PGOldFormCommand final : public AdminSocketHook {
 public:
   explicit PGOldFormCommand(crimson::osd::OSD&) :
@@ -134,6 +161,89 @@ private:
   }
 };
 
+class ListUnfoundCommand final : public PGCommand {
+public:
+  explicit ListUnfoundCommand(crimson::osd::OSD& osd) :
+    PGCommand{osd,
+              "list_unfound",
+              "name=pgid,type=CephPgid"
+              " name=offset,type=CephString,req=false",
+              "list unfound objects on this pg, perhaps starting at an offset given in JSON"}
+  {}
+private:
+  seastar::future<tell_result_t>
+  do_command(Ref<PG> pg,
+             const cmdmap_t& cmdmap,
+             std::string_view format,
+             ceph::bufferlist&&) const final
+  {
+    std::unique_ptr<Formatter> f{
+      Formatter::create(format, "json-pretty", "json-pretty")
+    };
+
+    hobject_t offset;
+    std::string offset_json;
+    bool show_offset = false;
+    if (cmd_getval(cmdmap, "offset", offset_json)) {
+      json_spirit::Value v;
+      try {
+        if (!json_spirit::read(offset_json, v)) {
+          throw std::runtime_error("bad json");
+        }
+        offset.decode(v);
+      } catch (std::runtime_error& e) {
+        return seastar::make_ready_future<tell_result_t>(tell_result_t{
+          -EINVAL, fmt::format("error parsing offset: {}", e.what())});
+      }
+      show_offset = true;
+    }
+
+    f->open_object_section("missing");
+    if (show_offset) {
+      f->open_object_section("offset");
+      offset.dump(f.get());
+      f->close_section();
+    }
+
+    const auto& missing_loc = pg->get_peering_state().get_missing_loc();
+    const auto& needs_recovery_map = missing_loc.get_needs_recovery();
+
+    f->dump_int("num_missing", needs_recovery_map.size());
+    f->dump_int("num_unfound", missing_loc.num_unfound());
+
+    auto it = needs_recovery_map.upper_bound(offset);
+    f->open_array_section("objects");
+
+    int32_t num = 0;
+    const auto max_records = pg->get_cct()->_conf->osd_command_max_records;
+    for (; it != needs_recovery_map.end() && num < max_records; ++it) {
+      if (!missing_loc.is_unfound(it->first)) {
+        continue;
+      }
+      f->open_object_section("object");
+      f->open_object_section("oid");
+      it->first.dump(f.get());
+      f->close_section();
+      it->second.dump(f.get());
+      f->open_array_section("locations");
+      for (auto&& r : missing_loc.get_locations(it->first)) {
+        f->dump_stream("shard") << r;
+      }
+      f->close_section();
+      f->close_section();
+      ++num;
+    }
+    f->close_section();
+
+    PeeringState::QueryUnfound q(f.get());
+    pg->get_peering_state().handle_event(q, nullptr);
+
+    f->dump_bool("more", it != needs_recovery_map.end());
+    f->close_section();
+    return seastar::make_ready_future<tell_result_t>(std::move(f));
+  }
+};
+
 class MarkUnfoundLostCommand final : public PGCommand {
 public:
   explicit MarkUnfoundLostCommand(crimson::osd::OSD& osd) :
@@ -173,11 +283,12 @@ public:
 template <bool deep>
 class ScrubCommand : public PGCommand {
 public:
-  explicit ScrubCommand(crimson::osd::OSD& osd) :
+  explicit ScrubCommand(crimson::osd::OSD& osd,
+                        std::string_view name) :
     PGCommand{
       osd,
-      deep ? "deep_scrub" : "scrub",
-      "",
+      name,
+      "name=pgid,type=CephPgid",
       deep ? "deep scrub pg" : "scrub pg"}
   {}
 
@@ -224,11 +335,21 @@ template std::unique_ptr<AdminSocketHook>
 make_asok_hook<crimson::admin::pg::QueryCommand>(crimson::osd::OSD& osd);
 
 template std::unique_ptr<AdminSocketHook>
+make_asok_hook<crimson::admin::pg::LogCommand>(crimson::osd::OSD& osd);
+
+template std::unique_ptr<AdminSocketHook>
+make_asok_hook<crimson::admin::pg::ListUnfoundCommand>(crimson::osd::OSD& osd);
+
+template std::unique_ptr<AdminSocketHook>
 make_asok_hook<crimson::admin::pg::MarkUnfoundLostCommand>(crimson::osd::OSD& osd);
 
 template std::unique_ptr<AdminSocketHook>
-make_asok_hook<crimson::admin::pg::ScrubCommand<true>>(crimson::osd::OSD& osd);
+make_asok_hook<crimson::admin::pg::ScrubCommand<true>,
+               crimson::osd::OSD&, std::string_view>(crimson::osd::OSD& osd,
+                                                    std::string_view&& name);
 template std::unique_ptr<AdminSocketHook>
-make_asok_hook<crimson::admin::pg::ScrubCommand<false>>(crimson::osd::OSD& osd);
+make_asok_hook<crimson::admin::pg::ScrubCommand<false>,
+               crimson::osd::OSD&, std::string_view>(crimson::osd::OSD& osd,
+                                                    std::string_view&& name);
 
 } // namespace crimson::admin

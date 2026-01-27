@@ -833,9 +833,15 @@ seastar::future<> OSD::start_asok_admin()
     // PG commands
     asok->register_command(make_asok_hook<pg::PGOldFormCommand>(*this));
     asok->register_command(make_asok_hook<pg::QueryCommand>(*this));
+    asok->register_command(make_asok_hook<pg::LogCommand>(*this));
+    asok->register_command(make_asok_hook<pg::ListUnfoundCommand>(*this));
     asok->register_command(make_asok_hook<pg::MarkUnfoundLostCommand>(*this));
-    asok->register_command(make_asok_hook<pg::ScrubCommand<true>>(*this));
-    asok->register_command(make_asok_hook<pg::ScrubCommand<false>>(*this));
+    asok->register_command(make_asok_hook<pg::ScrubCommand<true>>(*this,
+                                                                  std::string_view{"deep_scrub"}));
+    asok->register_command(make_asok_hook<pg::ScrubCommand<true>>(*this,
+                                                                  std::string_view{"deep-scrub"}));
+    asok->register_command(make_asok_hook<pg::ScrubCommand<false>>(*this,
+                                                                   std::string_view{"scrub"}));
     // ops commands
     asok->register_command(
       make_asok_hook<DumpInFlightOpsHook>(
