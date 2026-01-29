@@ -12,7 +12,6 @@ import { URLBuilderService } from '~/app/shared/services/url-builder.service';
 import { Daemon, MirroringRow } from '~/app/shared/models/cephfs.model';
 import { Icons } from '~/app/shared/enum/icons.enum';
 import { AuthStorageService } from '~/app/shared/services/auth-storage.service';
-import { CdForm } from '~/app/shared/forms/cd-form';
 import { Permission } from '~/app/shared/models/permissions';
 
 export const MIRRORING_PATH = 'cephfs/mirroring';
@@ -23,7 +22,7 @@ export const MIRRORING_PATH = 'cephfs/mirroring';
   standalone: false,
   providers: [{ provide: URLBuilderService, useValue: new URLBuilderService(MIRRORING_PATH) }]
 })
-export class CephfsMirroringListComponent extends CdForm implements OnInit {
+export class CephfsMirroringListComponent implements OnInit {
   @ViewChild('table', { static: true }) table: TableComponent;
 
   columns: CdTableColumn[];
@@ -40,7 +39,6 @@ export class CephfsMirroringListComponent extends CdForm implements OnInit {
     private cephfsService: CephfsService,
     private urlBuilder: URLBuilderService
   ) {
-    super();
     this.permission = this.authStorageService.getPermissions().cephfs;
   }
 
