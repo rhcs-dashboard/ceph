@@ -4,6 +4,28 @@ from libc.stdint cimport *
 from types cimport timespec
 
 
+cdef extern from *:
+    """
+    // Mock dirent struct and DIRENT_D_OFF macro for BUILD_DOC
+    struct dirent {
+        long int d_ino;
+        unsigned short int d_reclen;
+        unsigned char d_type;
+        char d_name[256];
+    };
+    #define DIRENT_D_OFF(d) 0UL
+    """
+    # dirent struct for mock (matches declaration in c_cephfs.pxd)
+    cdef struct dirent:
+        long int d_ino
+        unsigned short int d_reclen
+        unsigned char d_type
+        char d_name[256]
+
+    # Macro to get d_off portably (always returns 0 in mock)
+    unsigned long DIRENT_D_OFF(dirent *d)
+
+
 cdef:
     cdef struct statx "ceph_statx":
         uint32_t    stx_mask
@@ -46,7 +68,8 @@ cdef nogil:
         int dummy
 
     cdef struct ceph_snapdiff_entry_t:
-        int dummy
+        dirent dir_entry
+        uint64_t snapid
 
     ctypedef void* rados_t
 
