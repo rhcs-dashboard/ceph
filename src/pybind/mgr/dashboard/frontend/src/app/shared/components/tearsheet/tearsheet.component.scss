@@ -36,7 +36,7 @@
 // HEADER
 .tearsheet-header {
   fill: var(--cds-icon-primary);
-  background-color: var(--cds-layer-01);
+  background-color: var(--cds-background);
   padding: var(--cds-spacing-06) var(--cds-spacing-07);
   border-block-end: 1px solid var(--cds-border-subtle-01);
 
@@ -62,44 +62,48 @@
   padding: 0;
   margin: 0;
   height: 100%;
+}
 
-  .tearsheet-influencer {
-    background-color: var(--cds-layer-01);
-    padding: var(--cds-spacing-06) var(--cds-spacing-07);
-    overflow-block: auto;
-    overflow-y: auto;
-    border-inline-end: 1px solid var(--cds-border-subtle-01);
-    margin: 0;
+.tearsheet-left-influencer {
+  background-color: var(--cds-background);
+  padding: var(--cds-spacing-06) var(--cds-spacing-07);
+  overflow-block: auto;
+  overflow-y: auto;
+  border-inline-end: 1px solid var(--cds-border-subtle-01);
+  margin: 0;
+}
+
+.tearsheet-right-influencer {
+  background-color: var(--cds-background);
+  padding: var(--cds-spacing-05) var(--cds-spacing-05);
+}
+
+.tearsheet-main {
+  margin: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  > div {
+    flex: 1;
   }
+}
 
-  .tearsheet-main {
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
+.tearsheet-content {
+  background-color: var(--cds-layer-01);
+  margin: 0;
+  padding: var(--cds-spacing-06) var(--cds-spacing-07);
+  overflow-y: auto;
 
-    .tearsheet-content {
-      background-color: var(--cds-background);
-      margin: 0;
-      padding: var(--cds-spacing-06) var(--cds-spacing-07);
-      flex: 1;
-      overflow-y: auto;
-
-      &--full {
-        padding-left: 0;
-      }
-    }
+  &--full {
+    padding-left: 0;
   }
 }
 
 //FOOTER
 .tearsheet-footer {
   border-top: 1px solid var(--cds-border-subtle);
-  background: var(--cds-background);
-
-  &-cancel {
-    margin-left: var(--cds-spacing-05);
-  }
+  background-color: var(--cds-layer-01);
 
   &-submit {
     display: flex;

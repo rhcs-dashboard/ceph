@@ -126,5 +126,6 @@ export const ICON_TYPE = {
   notificationOff: 'notification--off',
   notificationNew: 'notification--new',
   success: 'success',
-  warning: 'warning'
+  warning: 'warning',
+  add: 'add'
 } as const;
