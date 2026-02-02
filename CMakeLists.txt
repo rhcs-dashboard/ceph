@@ -274,12 +274,12 @@ endif()
 
 include(CMakeDependentOption)
 
-CMAKE_DEPENDENT_OPTION(WITH_LIBURING "Enable io_uring bluestore backend" ON
-  "WITH_BLUESTORE;HAVE_LIBAIO" OFF)
+CMAKE_DEPENDENT_OPTION(WITH_LIBURING "Enable io_uring for bluestore backend or crimson" ON
+  "HAVE_LIBAIO" OFF)
 set(HAVE_LIBURING ${WITH_LIBURING})
 
 CMAKE_DEPENDENT_OPTION(WITH_SYSTEM_LIBURING "Require and build with system liburing" OFF
-  "HAVE_LIBAIO;WITH_BLUESTORE" OFF)
+  "HAVE_LIBAIO" OFF)
 
 if(WITH_LIBURING)
   if(WITH_SYSTEM_LIBURING)
