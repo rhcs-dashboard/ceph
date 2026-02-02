@@ -254,6 +254,8 @@ if(WITH_BLUESTORE)
   endif()
 endif()
 
+option(WITH_CRIMSON "Build Crimson components" OFF)
+
 # libcryptsetup is only available on linux
 if(WITH_RBD AND LINUX)
   find_package(libcryptsetup 2.0.5 REQUIRED)
@@ -737,8 +739,6 @@ option(WITH_SYSTEM_ROCKSDB "require and build with system rocksdb" OFF)
 if (WITH_SYSTEM_ROCKSDB)
   find_package(RocksDB 5.14 REQUIRED)
 endif()
-
-option(WITH_CRIMSON "Build Crimson components" OFF)
 
 # Boost
 option(WITH_SYSTEM_BOOST "require and build with system Boost" OFF)
