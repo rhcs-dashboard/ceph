@@ -1920,6 +1920,7 @@ private:
     auto old_length = extent->get_loaded_length();
     load_ranges_t to_read = extent->load_ranges(offset, length);
     auto new_length = extent->get_loaded_length();
+    bool extent_fully_loaded = extent->is_fully_loaded();
     assert(new_length > old_length);
     pinboard->increase_cached_size(*extent, new_length - old_length, p_src);
     return seastar::do_with(to_read.ranges, [extent, this, FNAME](auto &read_ranges) {
@@ -1935,12 +1936,13 @@ private:
           read_range.ptr);
       });
     }).safe_then(
-      [this, FNAME, extent=std::move(extent), offset, length, pin_crc]() mutable {
+      [this, FNAME, extent=std::move(extent), offset, length,
+      pin_crc, extent_fully_loaded]() mutable {
         ceph_assert(extent->state == CachedExtent::extent_state_t::EXIST_CLEAN
           || extent->state == CachedExtent::extent_state_t::CLEAN
           || !extent->is_valid());
         if (extent->is_valid()) {
-          if (extent->is_fully_loaded()) {
+          if (extent_fully_loaded) {
             // crc will be checked against LBA leaf entry for logical extents,
             // or check against in-extent crc for physical extents.
             if (epm.get_checksum_needed(extent->get_paddr())) {
