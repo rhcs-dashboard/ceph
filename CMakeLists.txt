@@ -245,16 +245,20 @@ endif()
 
 option(WITH_BLUESTORE "Bluestore OSD backend" ON)
 if(WITH_BLUESTORE)
-  if(LINUX)
-    find_package(aio)
-    set(HAVE_LIBAIO ${AIO_FOUND})
-  elseif(FREEBSD)
+  if(FREEBSD)
     # POSIX AIO is integrated into FreeBSD kernel, and exposed by libc.
     set(HAVE_POSIXAIO ON)
   endif()
 endif()
 
 option(WITH_CRIMSON "Build Crimson components" OFF)
+
+if(WITH_BLUESTORE OR WITH_CRIMSON)
+  if(LINUX)
+    find_package(aio)
+    set(HAVE_LIBAIO ${AIO_FOUND})
+  endif()
+endif()
 
 # libcryptsetup is only available on linux
 if(WITH_RBD AND LINUX)
