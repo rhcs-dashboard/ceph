@@ -133,6 +133,18 @@
                       i18n>Enable security label</cds-checkbox>
       </div>
 
+      <!-- Snapshot Directory Access -->
+      <div class="form-item"
+           *ngIf="storageBackend === 'CEPH'">
+        <cds-checkbox formControlName="snapdir_access"
+                      name="snapdir_access"
+                      id="snapdir_access"
+                      i18n>Enable snapshot directory access</cds-checkbox>
+        <p class="cds--type-body-compact-01 cds-mt-2" i18n>
+          Allow NFS users to access CephFS snapshot directories. When disabled, .snap directories will be hidden from NFS users.
+        </p>
+      </div>
+
       <div class="form-item"
            *ngIf="nfsForm.getValue('security_label')">
         <cds-text-label for="sec_label_xattr"

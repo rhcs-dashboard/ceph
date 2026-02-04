@@ -359,6 +359,13 @@ export class NfsFormComponent extends CdForm implements OnInit {
         'security.selinux',
         CdValidators.requiredIf({ security_label: true, 'fsal.name': 'CEPH' })
       ),
+      snapdir_access: new UntypedFormControl(true, {
+        validators: [
+          CdValidators.requiredIf({
+            'fsal.name': 'CEPH'
+          })
+        ]
+      }),
 
       // RGW-specific fields
       rgw_export_type: new UntypedFormControl(
@@ -373,6 +380,7 @@ export class NfsFormComponent extends CdForm implements OnInit {
   resolveModel(res: any) {
     if (res.fsal.name === 'CEPH') {
       res.sec_label_xattr = res.fsal.sec_label_xattr;
+      res.snapdir_access = res.fsal.snapdir_access !== false;
     }
 
     res.protocolNfsv4 = res.protocols.indexOf(4) !== -1;
@@ -715,6 +723,11 @@ export class NfsFormComponent extends CdForm implements OnInit {
       requestModel.fsal.sec_label_xattr = requestModel.sec_label_xattr;
     }
     delete requestModel.sec_label_xattr;
+
+    if (requestModel.fsal.name === 'CEPH') {
+      requestModel.fsal.snapdir_access = requestModel.snapdir_access;
+    }
+    delete requestModel.snapdir_access;
 
     return requestModel;
   }
