@@ -281,7 +281,7 @@ options:
 	--osds-per-host: populate crush_location as each host holds the specified number of osds if set
 	--require-osd-and-client-version: if supplied, do set-require-min-compat-client and require-osd-release to specified value
 	--use-crush-tunables: if supplied, set tunables to specified value
-       --reactor-backend: configre seastar reactor backend options like io_uring or linux-aio
+	--reactor-backend: configre seastar reactor backend options like io_uring or linux-aio
 \n
 EOF
 
