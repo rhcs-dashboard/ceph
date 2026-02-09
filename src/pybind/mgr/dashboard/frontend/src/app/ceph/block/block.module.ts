@@ -75,8 +75,7 @@ import {
   LayoutModule,
   ContainedListModule,
   LayerModule,
-  ThemeModule,
-  LayoutModule
+  ThemeModule
 } from 'carbon-components-angular';
 
 // Icons
