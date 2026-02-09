@@ -4,12 +4,10 @@
 #pragma once
 
 #include "crimson/os/seastore/btree/btree_types.h"
-#include "crimson/os/seastore/backref/backref_tree_node.h"
 
 namespace crimson::os::seastore {
 
 class BackrefMapping {
-  using BackrefCursorRef = backref::BackrefCursorRef;
   BackrefCursorRef cursor;
 
   BackrefMapping(BackrefCursorRef cursor)
@@ -53,10 +51,6 @@ public:
   extent_types_t get_type() const {
     assert(cursor);
     return cursor->get_type();
-  }
-
-  void renew_cursor(Transaction &t) {
-    cursor.reset(cursor->renew_cursor(t));
   }
 };
 
