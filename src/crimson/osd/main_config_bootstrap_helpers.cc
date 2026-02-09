@@ -204,20 +204,6 @@ _get_early_config(int argc, const char *argv[])
             }
           }
         }
-        if (auto found = std::find_if(
-              std::begin(ret.early_args),
-              std::end(ret.early_args),
-              [](auto& arg) { return arg == "--reactor-backend"; });
-            found == std::end(ret.early_args)) {
-          auto backend = crimson::common::get_conf<std::string>("crimson_reactor_backend");
-          #ifndef SEASTAR_IO_URING
-            if (backend == "io_uring") {
-              ceph_abort_msgf("reactor_backend=io_uring requested but build "
-                              "does not support io_uring");
-            }
-          #endif
-       }
-
 	if (auto found = std::find_if(
 	      std::begin(early_args),
 	      std::end(early_args),
