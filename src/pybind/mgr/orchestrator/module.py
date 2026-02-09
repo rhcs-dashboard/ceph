@@ -1473,7 +1473,8 @@ class OrchestratorCli(OrchestratorClientMixin, MgrModule):
                    no_overwrite: bool = False,
                    method: Optional[OSDMethod] = None,
                    inbuf: Optional[str] = None,  # deprecated. Was deprecated before Quincy
-                   osd_type: Optional[OSDType] = None
+                   osd_type: Optional[OSDType] = None,
+                   objectstore: str = 'bluestore'
                    ) -> HandleCommandResult:
         """
         Create OSD daemon(s) on all available devices
@@ -1517,7 +1518,8 @@ class OrchestratorCli(OrchestratorClientMixin, MgrModule):
                     unmanaged=unmanaged,
                     preview_only=dry_run,
                     method=method,
-                    osd_type=osd_type
+                    osd_type=osd_type,
+                    objectstore=objectstore
                 )
             ]
             return self._apply_misc(dg_specs, dry_run, format, no_overwrite)
@@ -1529,7 +1531,8 @@ class OrchestratorCli(OrchestratorClientMixin, MgrModule):
                         svc_arg: Optional[str] = None,
                         method: Optional[OSDMethod] = None,
                         skip_validation: bool = False,
-                        osd_type: Optional[OSDType] = None) -> HandleCommandResult:
+                        osd_type: Optional[OSDType] = None,
+                        objectstore: str = 'bluestore') -> HandleCommandResult:
         """Create OSD daemon(s) on specified host and device(s) (e.g., ceph orch daemon add osd myhost:/dev/sdb)"""
         # Create one or more OSDs"""
 
@@ -1579,6 +1582,7 @@ Usage:
                 placement=PlacementSpec(host_pattern=host_name),
                 method=method,
                 osd_type=osd_type,
+                objectstore=objectstore,
                 **drive_group_spec,
             )
         except (TypeError, KeyError, ValueError) as e:
