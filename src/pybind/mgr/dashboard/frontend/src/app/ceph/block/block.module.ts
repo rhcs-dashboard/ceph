@@ -51,7 +51,7 @@ import { NvmeofGatewayGroupComponent } from './nvmeof-gateway-group/nvmeof-gatew
 import { NvmeofSubsystemsStepOneComponent } from './nvmeof-subsystems-form/nvmeof-subsystem-step-1/nvmeof-subsystem-step-1.component';
 import { NvmeofSubsystemsStepThreeComponent } from './nvmeof-subsystems-form/nvmeof-subsystem-step-3/nvmeof-subsystem-step-3.component';
 import { NvmeofGatewayNodeComponent } from './nvmeof-gateway-node/nvmeof-gateway-node.component';
-import { NvmeofGroupFormComponent } from './nvmeof-group-form /nvmeof-group-form.component';
+import { NvmeofGroupFormComponent } from './nvmeof-group-form/nvmeof-group-form.component';
 
 import {
   ButtonModule,
