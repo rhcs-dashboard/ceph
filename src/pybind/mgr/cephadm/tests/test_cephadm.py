@@ -1314,6 +1314,27 @@ class TestCephadm(object):
     @pytest.mark.parametrize(
         "devices, preview, exp_commands",
         [
+            # no preview and only one disk, seastore objectstore
+            (['/dev/sda'], False, ["lvm batch --no-auto /dev/sda --objectstore seastore --osd-type crimson --yes --no-systemd"]),
+            # no preview and multiple disks, seastore objectstore
+            (['/dev/sda', '/dev/sdb'], False,
+             ["CEPH_VOLUME_OSDSPEC_AFFINITY=test.spec lvm batch --no-auto /dev/sda /dev/sdb --objectstore seastore --osd-type crimson --yes --no-systemd"]),
+        ]
+    )
+    @mock.patch("cephadm.serve.CephadmServe._run_cephadm", _run_cephadm('{}'))
+    def test_driveselection_to_ceph_volume_seastore(self, cephadm_module, devices, preview, exp_commands):
+        with with_host(cephadm_module, 'test'):
+            dg = DriveGroupSpec(service_id='test.spec', placement=PlacementSpec(
+                host_pattern='test'), data_devices=DeviceSelection(paths=devices),
+                objectstore='seastore', osd_type='crimson')
+            ds = DriveSelection(dg, Devices([Device(path) for path in devices]))
+            out = cephadm_module.osd_service.driveselection_to_ceph_volume(ds, [], preview)
+            assert all(any(cmd in exp_cmd for exp_cmd in exp_commands)
+                       for cmd in out), f'Expected cmds from f{out} in {exp_commands}'
+
+    @pytest.mark.parametrize(
+        "devices, preview, exp_commands",
+        [
             # one data device, no preview
             (['/dev/sda'], False, ["raw prepare --bluestore --data /dev/sda"]),
             # multiple data devices, no preview
