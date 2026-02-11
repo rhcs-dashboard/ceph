@@ -64,8 +64,10 @@ function _common_test() {
        rados -p test put obj-${j} /etc/passwd
     done
 
-    # Mark out all OSDs for this pool
-    ceph osd out $(ceph pg dump pgs --format=json | jq '.pg_stats[0].up[]')
+
+    # Wait for PG to be visible and mark out all OSDs for this pool
+    local pg_up_osds=$(wait_for_pg_data '.pg_stats[0].up[]') || return 1
+    ceph osd out $pg_up_osds
     if [ "$moreobjects" != "0" ]; then
       for j in $(seq 1 $moreobjects)
       do
@@ -97,7 +99,7 @@ function _common_test() {
       fi
     done
 
-    newprimary=$(ceph pg dump pgs --format=json | jq '.pg_stats[0].up_primary')
+    newprimary=$(wait_for_pg_data '.pg_stats[0].up_primary') || return 1
     kill_daemons
 
     ERRORS=0
