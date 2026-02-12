@@ -89,6 +89,7 @@ export enum Icons {
   connect = 'connect',
   checkmarkOutline = 'checkmark--outline',
   circleDash = 'circle-dash',
+  datastore = 'datastore',
   /* Icons for special effect */
   size16 = '16',
   size20 = '20',
