@@ -557,6 +557,7 @@ else:
             parameters={
                 "nqn": Param(str, "NVMeoF subsystem NQN"),
                 "rbd_image_name": Param(str, "RBD image name"),
+                "rados_namespace": Param(str, "RADOS namespace name", True, None),
                 "rbd_pool": Param(str, "RBD pool name"),
                 "nsid": Param(str, "Create RBD image", True, None),
                 "create_image": Param(bool, "Create RBD image"),
@@ -599,6 +600,7 @@ else:
             read_only: Optional[bool] = False,
             gw_group: Optional[str] = None,
             server_address: Optional[str] = None,
+            rados_namespace: Optional[str] = None,
         ):
             return NVMeoFClient(
                 gw_group=gw_group,
@@ -608,6 +610,7 @@ else:
                     subsystem_nqn=nqn,
                     nsid=int(nsid) if nsid else None,
                     rbd_image_name=rbd_image_name,
+                    rados_namespace_name=rados_namespace,
                     rbd_pool_name=rbd_pool,
                     block_size=block_size,
                     create_image=create_image,
@@ -629,6 +632,7 @@ else:
             parameters={
                 "nqn": Param(str, "NVMeoF subsystem NQN"),
                 "rbd_pool": Param(str, "RBD pool name"),
+                "rados_namespace": Param(str, "RADOS namespace name", True, None),
                 "rbd_image_name": Param(str, "RBD image name"),
                 "create_image": Param(bool, "Create RBD image"),
                 "size": Param(str, "Deprecated. Use `rbd_image_size` instead", True, None),
@@ -670,6 +674,8 @@ else:
             read_only: Optional[bool] = False,
             gw_group: Optional[str] = None,
             server_address: Optional[str] = None,
+            rados_namespace: Optional[str] = None,
+
         ):
             if size and rbd_image_size:
                 raise DashboardException(
@@ -692,6 +698,7 @@ else:
                     subsystem_nqn=nqn,
                     nsid=int(nsid) if nsid else None,
                     rbd_image_name=rbd_image_name,
+                    rados_namespace_name=rados_namespace,
                     rbd_pool_name=rbd_pool,
                     block_size=block_size,
                     create_image=create_image,
