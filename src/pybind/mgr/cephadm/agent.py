@@ -13,7 +13,7 @@ import ssl
 import threading
 import time
 
-from orchestrator import DaemonDescriptionStatus
+from orchestrator import DaemonDescriptionStatus, OrchestratorError
 from orchestrator._interface import daemon_type_to_service
 from ceph.utils import datetime_now, http_req
 from ceph.deployment.inventory import Devices
@@ -418,7 +418,7 @@ class NodeProxyEndpoint:
         """
         try:
             results = self.mgr.node_proxy_cache.fullreport(**kw)
-        except KeyError:
+        except (KeyError, OrchestratorError):
             raise cherrypy.HTTPError(404, f"{kw.get('hostname')} not found.")
         return results
 
@@ -442,7 +442,7 @@ class NodeProxyEndpoint:
         """
         try:
             results = self.mgr.node_proxy_cache.criticals(**kw)
-        except KeyError:
+        except (KeyError, OrchestratorError):
             raise cherrypy.HTTPError(404, f"{kw.get('hostname')} not found.")
         return results
 
@@ -466,7 +466,7 @@ class NodeProxyEndpoint:
         """
         try:
             results = self.mgr.node_proxy_cache.summary(**kw)
-        except KeyError:
+        except (KeyError, OrchestratorError):
             raise cherrypy.HTTPError(404, f"{kw.get('hostname')} not found.")
         return results
 
@@ -491,7 +491,7 @@ class NodeProxyEndpoint:
         """
         try:
             results = self.mgr.node_proxy_cache.common('memory', **kw)
-        except KeyError:
+        except (KeyError, OrchestratorError):
             raise cherrypy.HTTPError(404, f"{kw.get('hostname')} not found.")
         return results
 
@@ -516,7 +516,7 @@ class NodeProxyEndpoint:
         """
         try:
             results = self.mgr.node_proxy_cache.common('network', **kw)
-        except KeyError:
+        except (KeyError, OrchestratorError):
             raise cherrypy.HTTPError(404, f"{kw.get('hostname')} not found.")
         return results
 
@@ -541,7 +541,7 @@ class NodeProxyEndpoint:
         """
         try:
             results = self.mgr.node_proxy_cache.common('processors', **kw)
-        except KeyError:
+        except (KeyError, OrchestratorError):
             raise cherrypy.HTTPError(404, f"{kw.get('hostname')} not found.")
         return results
 
@@ -566,7 +566,7 @@ class NodeProxyEndpoint:
         """
         try:
             results = self.mgr.node_proxy_cache.common('storage', **kw)
-        except KeyError:
+        except (KeyError, OrchestratorError):
             raise cherrypy.HTTPError(404, f"{kw.get('hostname')} not found.")
         return results
 
@@ -591,7 +591,7 @@ class NodeProxyEndpoint:
         """
         try:
             results = self.mgr.node_proxy_cache.common('power', **kw)
-        except KeyError:
+        except (KeyError, OrchestratorError):
             raise cherrypy.HTTPError(404, f"{kw.get('hostname')} not found.")
         return results
 
@@ -616,7 +616,7 @@ class NodeProxyEndpoint:
         """
         try:
             results = self.mgr.node_proxy_cache.common('fans', **kw)
-        except KeyError:
+        except (KeyError, OrchestratorError):
             raise cherrypy.HTTPError(404, f"{kw.get('hostname')} not found.")
         return results
 
@@ -640,7 +640,7 @@ class NodeProxyEndpoint:
         """
         try:
             results = self.mgr.node_proxy_cache.firmwares(**kw)
-        except KeyError:
+        except (KeyError, OrchestratorError):
             raise cherrypy.HTTPError(404, f"{kw.get('hostname')} not found.")
         return results
 
