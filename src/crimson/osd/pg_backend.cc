@@ -1198,16 +1198,16 @@ PGBackend::get_attr_ierrorator::future<> PGBackend::get_xattrs(
   return get_attrs_maybe_from_cache().safe_then(
     [&delta_stats, &osd_op](auto&& attrs) {
     std::vector<std::pair<std::string, bufferlist>> user_xattrs;
-    ceph::bufferlist bl;
+    uint64_t total_len = 0;
     for (auto& [key, val] : attrs) {
       if (key.size() > 1 && key[0] == '_') {
-	bl.append(std::move(val));
-	user_xattrs.emplace_back(key.substr(1), std::move(bl));
+	total_len += val.length();
+	user_xattrs.emplace_back(key.substr(1), std::move(val));
       }
     }
     ceph::encode(user_xattrs, osd_op.outdata);
     delta_stats.num_rd++;
-    delta_stats.num_rd_kb += shift_round_up(bl.length(), 10);
+    delta_stats.num_rd_kb += shift_round_up(total_len, 10);
     return get_attr_errorator::now();
   });
 }
