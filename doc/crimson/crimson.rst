@@ -82,6 +82,18 @@ If the above file is named ``osd-spec.yaml``, it can be used to deploy OSDs like
 
 .. _crimson-cpu-allocation:
 
+Enabling io_uring
+=================
+
+Seastar backend can beneift significantly from Linux's io_uring interface, providing lower latency and higher throughput.
+io_uring is the defualt reactor backend (see `crimson_reactor_backend` option).
+On some conservative distributions, io_uring may be disabled, preventing Crimson from using it.
+If this configuration change is acceptable in your environment, you may enable io_uring support by running:
+
+.. prompt:: bash #
+    sudo sysctl -w kernel.io_uring_disabled=0
+
+
 Crimson CPU allocation
 ======================
 
