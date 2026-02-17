@@ -475,7 +475,7 @@ def test_raw_ceph_volume_command_0():
                               _mk_device(rotational=False) +  # db
                               _mk_device(rotational=False)  # db
                               )
-    exp_cmds = ['raw prepare --bluestore --data /dev/sda --block.db /dev/sdc', 'raw prepare --bluestore --data /dev/sdb --block.db /dev/sdd']
+    exp_cmds = ['raw prepare --bluestore --data /dev/sda --block.db /dev/sdc --osd-type classic', 'raw prepare --bluestore --data /dev/sdb --block.db /dev/sdd --osd-type classic']
     sel = drive_selection.DriveSelection(spec, inventory)
     cmds = translate.to_ceph_volume(sel, []).run()
     assert all(cmd in exp_cmds for cmd in cmds), f'Expected {exp_cmds} to match {cmds}'
@@ -528,9 +528,9 @@ def test_raw_ceph_volume_command_2(test_input5):
     drive = drive_selection.DriveSelection(spec, spec.data_devices.paths)
     cmds = translate.to_ceph_volume(drive, []).run()
 
-    assert cmds[0] == 'raw prepare --bluestore --data /dev/sda --block.db /dev/sdd --crush-device-class hdd'
-    assert cmds[1] == 'raw prepare --bluestore --data /dev/sdb --block.db /dev/sde --crush-device-class hdd'
-    assert cmds[2] == 'raw prepare --bluestore --data /dev/sdc --block.db /dev/sdf --crush-device-class hdd'
+    assert cmds[0] == 'raw prepare --bluestore --data /dev/sda --block.db /dev/sdd --crush-device-class hdd --osd-type classic'
+    assert cmds[1] == 'raw prepare --bluestore --data /dev/sdb --block.db /dev/sde --crush-device-class hdd --osd-type classic'
+    assert cmds[2] == 'raw prepare --bluestore --data /dev/sdc --block.db /dev/sdf --crush-device-class hdd --osd-type classic'
 
 
 @pytest.mark.parametrize("test_input6",
@@ -565,9 +565,9 @@ def test_raw_ceph_volume_command_3(test_input6):
     drive = drive_selection.DriveSelection(spec, spec.data_devices.paths)
     cmds = translate.to_ceph_volume(drive, []).run()
 
-    assert cmds[0] == 'raw prepare --bluestore --data /dev/sda --block.db /dev/sdd --crush-device-class hdd'
-    assert cmds[1] == 'raw prepare --bluestore --data /dev/sdb --block.db /dev/sde --crush-device-class hdd'
-    assert cmds[2] == 'raw prepare --bluestore --data /dev/sdc --block.db /dev/sdf --crush-device-class ssd'
+    assert cmds[0] == 'raw prepare --bluestore --data /dev/sda --block.db /dev/sdd --crush-device-class hdd --osd-type classic'
+    assert cmds[1] == 'raw prepare --bluestore --data /dev/sdb --block.db /dev/sde --crush-device-class hdd --osd-type classic'
+    assert cmds[2] == 'raw prepare --bluestore --data /dev/sdc --block.db /dev/sdf --crush-device-class ssd --osd-type classic'
 
 
 @pytest.mark.parametrize("test_input7",
@@ -607,9 +607,9 @@ def test_raw_ceph_volume_command_4(test_input7):
     drive = drive_selection.DriveSelection(spec, spec.data_devices.paths)
     cmds = translate.to_ceph_volume(drive, []).run()
 
-    assert cmds[0] == 'raw prepare --bluestore --data /dev/sda --block.db /dev/sdd --block.wal /dev/sdg --crush-device-class hdd'
-    assert cmds[1] == 'raw prepare --bluestore --data /dev/sdb --block.db /dev/sdf --block.wal /dev/sdi --crush-device-class nvme'
-    assert cmds[2] == 'raw prepare --bluestore --data /dev/sdc --block.db /dev/sde --block.wal /dev/sdh --crush-device-class ssd'
+    assert cmds[0] == 'raw prepare --bluestore --data /dev/sda --block.db /dev/sdd --block.wal /dev/sdg --crush-device-class hdd --osd-type classic'
+    assert cmds[1] == 'raw prepare --bluestore --data /dev/sdb --block.db /dev/sdf --block.wal /dev/sdi --crush-device-class nvme --osd-type classic'
+    assert cmds[2] == 'raw prepare --bluestore --data /dev/sdc --block.db /dev/sde --block.wal /dev/sdh --crush-device-class ssd --osd-type classic'
 
 
 def test_drive_group_osd_type_invalid():
