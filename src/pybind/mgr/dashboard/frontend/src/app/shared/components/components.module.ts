@@ -208,8 +208,7 @@ import { SidebarLayoutComponent } from './sidebar-layout/sidebar-layout.componen
     TearsheetComponent,
     TearsheetStepComponent,
     PageHeaderComponent,
-    SidebarLayoutComponent,
-    PageHeaderComponent
+    SidebarLayoutComponent
   ],
   providers: [provideCharts(withDefaultRegisterables())],
   exports: [
@@ -256,8 +255,7 @@ import { SidebarLayoutComponent } from './sidebar-layout/sidebar-layout.componen
     TearsheetComponent,
     TearsheetStepComponent,
     PageHeaderComponent,
-    SidebarLayoutComponent,
-    PageHeaderComponent
+    SidebarLayoutComponent
   ]
 })
 export class ComponentsModule {
