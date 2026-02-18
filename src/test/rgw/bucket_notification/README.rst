@@ -22,8 +22,8 @@ we would need the following configuration file::
 				version = v1
 
 				[s3 main]
-				access_key = 1234567890
-				secret_key = pencil
+				access_key = 0987654321
+				secret_key = crayon
 
 Add boto3 extension to the standard client: https://github.com/ceph/ceph/tree/main/examples/rgw/boto3#introduction.
 

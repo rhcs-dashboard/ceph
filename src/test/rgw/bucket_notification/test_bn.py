@@ -11,6 +11,7 @@ import os
 import io
 import string
 import sys
+from botocore.client import Config
 from botocore.exceptions import ClientError
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from random import randint
@@ -1960,7 +1961,8 @@ def lifecycle(endpoint_type, conn, number_of_objects, topic_events, create_threa
     client = boto3.client('s3',
                           endpoint_url='http://'+conn.host+':'+str(conn.port),
                           aws_access_key_id=conn.aws_access_key_id,
-                          aws_secret_access_key=conn.aws_secret_access_key)
+                          aws_secret_access_key=conn.aws_secret_access_key,
+                          config=Config(s3={'addressing_style': 'path'}))
     yesterday = datetime.date.today() - datetime.timedelta(days=1)
     response = client.put_bucket_lifecycle_configuration(Bucket=bucket_name,
                                                          LifecycleConfiguration={'Rules': rules_creator(yesterday, obj_prefix)}
@@ -2330,6 +2332,7 @@ def test_post_object_upload_amqp():
                          aws_access_key_id=get_access_key(),
                          aws_secret_access_key=get_secret_key(),
                          endpoint_url=endpoint,
+                         config=Config(s3={'addressing_style': 'path'})
                         )
 
     bucket_name = gen_bucket_name()
@@ -5617,7 +5620,7 @@ def persistent_notification_shard_config_change(endpoint_type, conn, new_num_sha
     default_num_shards = 11
     rgw_client = f'client.rgw.{get_config_port()}'
     if (old_num_shards != default_num_shards):
-        set_rgw_config_option(rgw_client, 'rgw_bucket_persistent_notif_num_shards', old_num_shards)
+        set_rgw_config_option(rgw_client, 'rgw_bucket_persistent_notif_num_shards', old_num_shards, get_config_cluster())
 
     bucket_name = gen_bucket_name()
     bucket = conn.create_bucket(bucket_name)
@@ -5663,7 +5666,7 @@ def persistent_notification_shard_config_change(endpoint_type, conn, new_num_sha
     create_object_and_verify_events(bucket, 'foo', topic_name, receiver, expected_keys, deletions=True)
 
     ## change config value for num_shards to new_num_shards
-    set_rgw_config_option(rgw_client, 'rgw_bucket_persistent_notif_num_shards', new_num_shards)
+    set_rgw_config_option(rgw_client, 'rgw_bucket_persistent_notif_num_shards', new_num_shards, get_config_cluster())
     
     ## create objects in the bucket (async)
     expected_keys = []
@@ -5678,7 +5681,7 @@ def persistent_notification_shard_config_change(endpoint_type, conn, new_num_sha
 
     ##revert config value for num_shards to default
     if (new_num_shards != default_num_shards):
-        set_rgw_config_option(rgw_client, 'rgw_bucket_persistent_notif_num_shards', default_num_shards)
+        set_rgw_config_option(rgw_client, 'rgw_bucket_persistent_notif_num_shards', default_num_shards, get_config_cluster())
 
 
 def create_object_and_verify_events(bucket, key_name, topic_name, receiver, expected_keys, deletions=False):
