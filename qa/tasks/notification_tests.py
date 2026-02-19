@@ -220,19 +220,19 @@ def run_tests(ctx, config):
     for client, client_config in config.items():
         (remote,) = ctx.cluster.only(client).remotes.keys()
 
-        attr = ["basic_test"]
+        markers = ["basic_test"]
 
         if 'extra_attr' in client_config:
-            attr = client_config.get('extra_attr')
+            markers = client_config.get('extra_attr')
 
         args = [
             'BNTESTS_CONF={tdir}/ceph/src/test/rgw/bucket_notification/bn-tests.{client}.conf'.format(tdir=testdir, client=client),
             '{tdir}/ceph/src/test/rgw/bucket_notification/virtualenv/bin/python'.format(tdir=testdir),
-            '-m', 'nose',
+            '-m', 'pytest',
             '-s',
             '{tdir}/ceph/src/test/rgw/bucket_notification/test_bn.py'.format(tdir=testdir),
             '-v',
-            '-a', ','.join(attr),
+            '-m', ' or '.join(markers),
             ]
 
         remote.run(
