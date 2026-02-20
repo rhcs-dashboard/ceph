@@ -219,7 +219,8 @@ class S3Connection:
             aws_secret_access_key=aws_secret_access_key,
             config=Config(
                 retries={'max_attempts': self.num_retries},
-                s3={'addressing_style': 'path'}
+                s3={'addressing_style': 'path'},
+                max_pool_connections=50
             )
         )
 
@@ -228,7 +229,10 @@ class S3Connection:
             endpoint_url=self.endpoint_url,
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key,
-            config=Config(s3={'addressing_style': 'path'})
+            config=Config(
+                s3={'addressing_style': 'path'},
+                max_pool_connections=50
+            )
         )
 
         # For SSL connections
