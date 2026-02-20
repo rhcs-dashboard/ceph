@@ -108,7 +108,6 @@ import WarningFilledIcon from '@carbon/icons/es/warning--filled/16';
 import NotificationFilledIcon from '@carbon/icons/es/notification--filled/16';
 import { Close16 } from '@carbon/icons';
 import { TearsheetStepComponent } from './tearsheet-step/tearsheet-step.component';
-import { ProductiveCardComponent } from './productive-card/productive-card.component';
 import { PageHeaderComponent } from './page-header/page-header.component';
 import { SidebarLayoutComponent } from './sidebar-layout/sidebar-layout.component';
 
@@ -208,7 +207,6 @@ import { SidebarLayoutComponent } from './sidebar-layout/sidebar-layout.componen
     ToastComponent,
     TearsheetComponent,
     TearsheetStepComponent,
-    ProductiveCardComponent,
     PageHeaderComponent,
     SidebarLayoutComponent
   ],
@@ -256,7 +254,6 @@ import { SidebarLayoutComponent } from './sidebar-layout/sidebar-layout.componen
     ToastComponent,
     TearsheetComponent,
     TearsheetStepComponent,
-    ProductiveCardComponent,
     PageHeaderComponent,
     SidebarLayoutComponent
   ]

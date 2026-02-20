@@ -20,13 +20,13 @@
        [narrow]="true">
     <div cdsCol
          class="cds-mb-5"
-         [columnNumbers]="{lg: 11}">
-      <cds-tile>Storage card</cds-tile>
-    </div>
-    <div cdsCol
-         class="cds-mb-5"
-         [columnNumbers]="{lg: 5}">
-      <cds-tile>Docs card</cds-tile>
+         [columnNumbers]="{lg: 16}">
+      @if (healthData$ | async; as healthData) {
+      <cd-overview-storage-card
+        [total]="healthData.pgmap.bytes_total"
+        [used]="healthData.pgmap.bytes_used">
+      </cd-overview-storage-card>
+      }
     </div>
   </div>
   <div cdsRow>
