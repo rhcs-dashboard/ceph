@@ -163,7 +163,35 @@ Native backends perform I/O operations using the **Seastar reactor**. These are 
 
 .. describe:: seastore
 
-   SeaStore is the primary native object store for Crimson OSD. It is built with the Seastar framework and adheres to its asynchronous, shard-based architecture.
+   SeaStore is the primary native object store for Crimson OSD, though it is not the default as the support is in early stages. 
+   It is built with the Seastar framework and adheres to its asynchronous, shard-based architecture.
+
+.. note::
+   The Orchastrator's ``apply osd --method`` command does not currently support deploying
+   Crimson OSDs with SeaStore directly on the physical device with ``--method raw``.
+   Use the default ``lvm`` method instead.
+
+   When :ref:`deploying OSDs <cephadm-deploy-osds>`, use the ``--objectstore`` flag to specify the object store type. 
+   The default value is ``bluestore``. To deploy a Crimson OSD with SeaStore, set this flag to ``seastore``.
+
+   .. prompt:: bash #
+
+      ceph orch apply osd --osd-type crimson --objectstore seastore ...
+
+   Alternatively, you can also set the ``objectstore`` to ``seastore`` in the :ref:`OSD Service Specification <drivegroups>` file
+   like so: 
+
+   .. code-block:: yaml 
+
+      service_type: osd
+      service_id: default_drive_group  
+      placement:
+        host_pattern: '*'              
+      spec:
+        data_devices:                 
+          all: true  
+        osd_type: crimson   
+        objectstore: seastore # objectstore should be set to seastore      
 
 .. describe:: cyanstore
 
@@ -178,7 +206,7 @@ These backends allow Crimson to interact with legacy or external object store im
 
 .. describe:: bluestore
 
-   The default object store used by the classic ``ceph-osd``. It provides robust, production-grade storage capabilities.
+   The default object store. It provides robust, production-grade storage capabilities.
 
    The ``crimson_bluestore_num_threads`` option needs to be set according to the CPU set available.
    This defines the number of threads dedicated to serving the BlueStore ObjectStore on each OSD.

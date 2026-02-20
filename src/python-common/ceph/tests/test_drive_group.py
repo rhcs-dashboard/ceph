@@ -612,6 +612,54 @@ def test_raw_ceph_volume_command_4(test_input7):
     assert cmds[2] == 'raw prepare --bluestore --data /dev/sdc --block.db /dev/sde --block.wal /dev/sdh --crush-device-class ssd --osd-type classic'
 
 
+def test_ceph_volume_command_seastore():
+    spec = DriveGroupSpec(placement=PlacementSpec(host_pattern='*'),
+                          service_id='foobar',
+                          data_devices=DeviceSelection(all=True),
+                          objectstore='seastore',
+                          osd_type='crimson',
+                          )
+    spec.validate()
+    inventory = _mk_inventory(_mk_device()*2)
+    sel = drive_selection.DriveSelection(spec, inventory)
+    cmds = translate.to_ceph_volume(sel, []).run()
+    assert all(cmd == 'lvm batch --no-auto /dev/sda /dev/sdb --objectstore seastore --osd-type crimson --yes --no-systemd' for cmd in cmds), f'Expected {cmd} in {cmds}'
+
+
+def test_drive_group_objectstore_invalid():
+    spec = DriveGroupSpec(
+        placement=PlacementSpec(host_pattern='*'),
+        service_id='foobar',
+        data_devices=DeviceSelection(all=True),
+        objectstore='invalid',
+    )
+    with pytest.raises(DriveGroupValidationError, match='is not supported'):
+        spec.validate()
+
+
+def test_drive_group_seastore_requires_crimson():
+    spec = DriveGroupSpec(
+        placement=PlacementSpec(host_pattern='*'),
+        service_id='foobar',
+        data_devices=DeviceSelection(all=True),
+        objectstore='seastore',
+        osd_type='classic',
+    )
+    with pytest.raises(DriveGroupValidationError, match='seastore only supports osd type crimson'):
+        spec.validate()
+
+
+def test_drive_group_seastore_with_crimson_valid():
+    spec = DriveGroupSpec(
+        placement=PlacementSpec(host_pattern='*'),
+        service_id='foobar',
+        data_devices=DeviceSelection(all=True),
+        objectstore='seastore',
+        osd_type='crimson',
+    )
+    spec.validate()
+
+
 def test_drive_group_osd_type_invalid():
     spec = DriveGroupSpec(
         placement=PlacementSpec(host_pattern='*'),
