@@ -227,13 +227,20 @@ def run_tests(ctx, config):
 
         args = [
             'BNTESTS_CONF={tdir}/ceph/src/test/rgw/bucket_notification/bn-tests.{client}.conf'.format(tdir=testdir, client=client),
+            ]
+
+        kafka_dir = getattr(ctx, 'kafka_dir', None)
+        if kafka_dir:
+            args.append('KAFKA_DIR={kafka_dir}'.format(kafka_dir=kafka_dir))
+
+        args.extend([
             '{tdir}/ceph/src/test/rgw/bucket_notification/virtualenv/bin/python'.format(tdir=testdir),
             '-m', 'pytest',
             '-s',
             '{tdir}/ceph/src/test/rgw/bucket_notification/test_bn.py'.format(tdir=testdir),
             '-v',
             '-m', ' or '.join(markers),
-            ]
+            ])
 
         remote.run(
             args=args,
