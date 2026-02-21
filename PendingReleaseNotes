@@ -34,6 +34,19 @@
   date-time. The `schedule ls` output displays the start time in UTC, including
   the date and time in the format "%Y-%m-%d %H:%M:00". The `schedule status`
   output now displays the next schedule time in UTC.
+* CephFS Mirroring:  Now utilizes a multi-threaded architecture to improve synchronization
+  performance. The workload is split into two distinct thread pools: a crawler thread pool, which
+  manages snapshot crawl and a data synchronization thread pool, which handles concurrent file
+  transfers. Users can fine-tune these operations using configuration parameters:
+  cephfs_mirror_max_concurrent_directory_syncs (controlling the number of concurrent snapshots being crawled)
+  and cephfs_mirror_max_datasync_threads (controlling the total threads available for data sync).
+  For more information, see https://tracker.ceph.com/issues/73452
+* CephFS Mirroring: Improved incremental synchronization behavior in CephFS mirroring. Previously,
+  block-level delta synchronization was used for all files regardless of size. With this change,
+  blockdiff is applied only to files larger than a configurable threshold, while smaller files are
+  synchronized using full copy, as blockdiff is not efficient for small files. The threshold is
+  controlled by the new configuration option cephfs_mirror_blockdiff_min_file_size (default: 16_M).
+  For more information, see https://tracker.ceph.com/issues/73452
 
 >=20.0.0
 
