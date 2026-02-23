@@ -119,11 +119,6 @@ export class NvmeofSubsystemsComponent extends ListWithDetails implements OnInit
         name: $localize`Authentication`,
         prop: 'authentication',
         cellTemplate: this.authenticationTpl
-      },
-      {
-        name: $localize`Traffic encryption`,
-        prop: 'encryption',
-        cellTemplate: this.encryptionTpl
       }
     ];
 
