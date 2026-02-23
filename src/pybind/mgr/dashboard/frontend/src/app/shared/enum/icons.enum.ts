@@ -87,6 +87,8 @@ export enum Icons {
   userAccessLocked = 'user--access-locked', // User access locked
   chevronDown = 'chevron--down',
   connect = 'connect',
+  checkmarkOutline = 'checkmark--outline',
+  circleDash = 'circle-dash',
   /* Icons for special effect */
   size16 = '16',
   size20 = '20',
