@@ -106,7 +106,14 @@ import ErrorFilledIcon from '@carbon/icons/es/error--filled/16';
 import InformationFilledIcon from '@carbon/icons/es/information--filled/16';
 import WarningFilledIcon from '@carbon/icons/es/warning--filled/16';
 import NotificationFilledIcon from '@carbon/icons/es/notification--filled/16';
-import { Close16 } from '@carbon/icons';
+import DataViewAlt16 from '@carbon/icons/es/data--view--alt/16';
+import DataCenter16 from '@carbon/icons/es/data--center/16';
+import Upgrade16 from '@carbon/icons/es/upgrade/16';
+import Close16 from '@carbon/icons/es/close/16';
+import WarningAltFilled16 from '@carbon/icons/es/warning--alt--filled/16';
+import Help16 from '@carbon/icons/es/help/16';
+import IncidentReporter16 from '@carbon/icons/es/incident-reporter/16';
+
 import { TearsheetStepComponent } from './tearsheet-step/tearsheet-step.component';
 import { PageHeaderComponent } from './page-header/page-header.component';
 import { SidebarLayoutComponent } from './sidebar-layout/sidebar-layout.component';
@@ -271,7 +278,13 @@ export class ComponentsModule {
       InformationFilledIcon,
       WarningFilledIcon,
       NotificationFilledIcon,
-      Close16
+      Close16,
+      DataViewAlt16,
+      DataCenter16,
+      Upgrade16,
+      WarningAltFilled16,
+      Help16,
+      IncidentReporter16
     ]);
   }
 }
