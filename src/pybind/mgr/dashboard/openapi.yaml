@@ -820,6 +820,8 @@ paths:
                 schedule_interval:
                   default: ''
                   type: string
+                schedule_level:
+                  type: string
                 size:
                   type: integer
               type: object
