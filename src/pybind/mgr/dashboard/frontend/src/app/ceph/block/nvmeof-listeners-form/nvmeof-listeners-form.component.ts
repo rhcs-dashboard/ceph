@@ -63,6 +63,10 @@ export class NvmeofListenersFormComponent implements OnInit {
       .subscribe({
         error: () => {
           this.isSubmitLoading = false;
+          this.router.navigate([{ outlets: { modal: null } }], {
+            relativeTo: this.route.parent,
+            queryParamsHandling: 'preserve'
+          });
         },
         complete: () => {
           this.isSubmitLoading = false;
