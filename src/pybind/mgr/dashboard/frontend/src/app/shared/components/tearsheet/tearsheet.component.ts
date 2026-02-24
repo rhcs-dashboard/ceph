@@ -68,7 +68,7 @@ export class TearsheetComponent implements OnInit, AfterViewInit, OnDestroy {
 
   @Output() submitRequested = new EventEmitter<void>();
   @Output() closeRequested = new EventEmitter<void>();
-  @Output() stepChanged = new EventEmitter<number>();
+  @Output() stepChanged = new EventEmitter<{ current: number }>();
 
   @ContentChildren(TearsheetStepComponent)
   stepContents!: QueryList<TearsheetStepComponent>;
@@ -83,6 +83,11 @@ export class TearsheetComponent implements OnInit, AfterViewInit, OnDestroy {
 
   get showRightInfluencer(): boolean {
     return this.stepContents?.toArray()[this.currentStep]?.showRightInfluencer;
+  }
+
+  getStepValue<T = any>(index: number): T | null {
+    const wrapper = this.stepContents?.toArray()?.[index];
+    return wrapper?.stepComponent?.formGroup?.value ?? null;
   }
 
   currentStep: number = 0;
@@ -110,7 +115,7 @@ export class TearsheetComponent implements OnInit, AfterViewInit, OnDestroy {
 
   onStepSelect(event: { step: Step; index: number }) {
     this.currentStep = event.index;
-    this.stepChanged.emit(this.currentStep);
+    this.stepChanged.emit({ current: this.currentStep });
   }
 
   closeTearsheet() {
@@ -134,7 +139,7 @@ export class TearsheetComponent implements OnInit, AfterViewInit, OnDestroy {
   onPrevious() {
     if (this.currentStep !== 0) {
       this.currentStep = this.currentStep - 1;
-      this.stepChanged.emit(this.currentStep);
+      this.stepChanged.emit({ current: this.currentStep });
     }
   }
 
@@ -143,7 +148,7 @@ export class TearsheetComponent implements OnInit, AfterViewInit, OnDestroy {
     formEl?.dispatchEvent(new Event('submit', { bubbles: true }));
     if (this.currentStep !== this.lastStep && !this.steps[this.currentStep].invalid) {
       this.currentStep = this.currentStep + 1;
-      this.stepChanged.emit(this.currentStep);
+      this.stepChanged.emit({ current: this.currentStep });
     }
   }
 
@@ -179,19 +184,29 @@ export class TearsheetComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit() {
-    if (!this.stepContents?.length) return;
+    const setup = () => {
+      // keep lastStep in sync with steps input
+      this.lastStep = this.steps.length - 1;
 
-    this.stepContents.forEach((wrapper, index) => {
-      const form = wrapper.stepComponent?.formGroup;
-      if (!form) return;
+      // clamp currentStep so template lookup never goes out of range
+      if (this.currentStep > this.lastStep) {
+        this.currentStep = this.lastStep;
+      }
 
-      // initial state
-      this._updateStepInvalid(index, form.invalid);
+      // subscribe to each form statusChanges
+      this.stepContents.forEach((wrapper, index) => {
+        const form = wrapper.stepComponent?.formGroup;
+        if (!form) return;
 
-      form.statusChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
-        this._updateStepInvalid(index, form.invalid);
+        form.statusChanges
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe(() => this._updateStepInvalid(index, form.invalid));
       });
-    });
+    };
+
+    setup();
+
+    this.stepContents.changes.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => setup());
   }
 
   ngOnDestroy() {
