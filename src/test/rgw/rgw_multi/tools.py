@@ -19,14 +19,6 @@ def get_attrs(k, attrs):
 
     return d
 
-def append_query_arg(s, n, v):
-    if not v:
-        return s
-    nv = '{n}={v}'.format(n=n, v=v)
-    if not s:
-        return nv
-    return '{s}&{nv}'.format(s=s, nv=nv)
-
 class KeyJSONEncoder(boto.s3.key.Key):
     @staticmethod
     def default(k, versioned=False):
