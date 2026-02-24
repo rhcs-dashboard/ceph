@@ -1,13 +1,27 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  Input,
+  OnInit,
+  ViewEncapsulation,
+  inject
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { combineLatest } from 'rxjs';
 
 import { PrometheusAlertService } from '~/app/shared/services/prometheus-alert.service';
-import { ButtonModule, GridModule, LinkModule, TilesModule } from 'carbon-components-angular';
+import {
+  ButtonModule,
+  GridModule,
+  LayoutModule,
+  LinkModule,
+  TilesModule
+} from 'carbon-components-angular';
 import { RouterModule } from '@angular/router';
 import { ProductiveCardComponent } from '~/app/shared/components/productive-card/productive-card.component';
 import { ComponentsModule } from '~/app/shared/components/components.module';
 import { map, shareReplay, startWith } from 'rxjs/operators';
+import { PipesModule } from '~/app/shared/pipes/pipes.module';
 
 const AlertIcon = {
   error: 'error',
@@ -26,13 +40,17 @@ const AlertIcon = {
     RouterModule,
     ProductiveCardComponent,
     ButtonModule,
-    LinkModule
+    LinkModule,
+    LayoutModule,
+    PipesModule
   ],
   templateUrl: './overview-alerts-card.component.html',
   styleUrl: './overview-alerts-card.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  encapsulation: ViewEncapsulation.None
 })
 export class OverviewAlertsCardComponent implements OnInit {
+  @Input() compact = true;
   private readonly prometheusAlertService = inject(PrometheusAlertService);
 
   ngOnInit(): void {

@@ -8193,11 +8193,20 @@ paths:
                       num_mons:
                         description: Number of monitors
                         type: integer
+                      quorum:
+                        description: List of monitors in quorum
+                        items:
+                          type: integer
+                        type: array
                     required: &id054
                     - num_mons
+                    - quorum
                     type: object
                   num_hosts:
                     description: Count of hosts
+                    type: integer
+                  num_hosts_available:
+                    description: Count of available hosts
                     type: integer
                   num_iscsi_gateways:
                     description: Iscsi gateways status
@@ -8280,6 +8289,7 @@ paths:
                 - num_rgw_gateways
                 - num_iscsi_gateways
                 - num_hosts
+                - num_hosts_available
                 type: object
             application/vnd.ceph.api.v1.0+json:
               schema:
@@ -8355,10 +8365,18 @@ paths:
                       num_mons:
                         description: Number of monitors
                         type: integer
+                      quorum:
+                        description: List of monitors in quorum
+                        items:
+                          type: integer
+                        type: array
                     required: *id054
                     type: object
                   num_hosts:
                     description: Count of hosts
+                    type: integer
+                  num_hosts_available:
+                    description: Count of available hosts
                     type: integer
                   num_iscsi_gateways:
                     description: Iscsi gateways status

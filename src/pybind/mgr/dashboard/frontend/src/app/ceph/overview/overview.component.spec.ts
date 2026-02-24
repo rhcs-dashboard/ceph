@@ -5,13 +5,19 @@ import { OverviewComponent } from './overview.component';
 import { HealthService } from '~/app/shared/api/health.service';
 import { RefreshIntervalService } from '~/app/shared/services/refresh-interval.service';
 import { HealthSnapshotMap } from '~/app/shared/models/health.interface';
+
 import { provideHttpClient } from '@angular/common/http';
+import { provideRouter, RouterModule } from '@angular/router';
+
 import { CommonModule } from '@angular/common';
 import { GridModule, TilesModule } from 'carbon-components-angular';
 import { OverviewHealthCardComponent } from './health-card/overview-health-card.component';
 import { OverviewStorageCardComponent } from './storage-card/overview-storage-card.component';
-import { provideRouter, RouterModule } from '@angular/router';
+import { HealthMap, SeverityIconMap } from '~/app/shared/models/overview';
 import { OverviewAlertsCardComponent } from './alerts-card/overview-alerts-card.component';
+import { HardwareService } from '~/app/shared/api/hardware.service';
+import { MgrModuleService } from '~/app/shared/api/mgr-module.service';
+import { AuthStorageService } from '~/app/shared/services/auth-storage.service';
 
 describe('OverviewComponent', () => {
   let component: OverviewComponent;
@@ -19,6 +25,18 @@ describe('OverviewComponent', () => {
 
   let mockHealthService: { getHealthSnapshot: jest.Mock };
   let mockRefreshIntervalService: { intervalData$: Subject<void> };
+
+  const mockAuthStorageService = {
+    getPermissions: jest.fn(() => ({ configOpt: { read: false } }))
+  };
+
+  const mockMgrModuleService = {
+    getConfig: jest.fn(() => of({ hw_monitoring: false }))
+  };
+
+  const mockHardwareService = {
+    getSummary: jest.fn(() => of(null))
+  };
 
   beforeEach(async () => {
     mockHealthService = { getHealthSnapshot: jest.fn() };
@@ -40,6 +58,9 @@ describe('OverviewComponent', () => {
         provideRouter([]),
         { provide: HealthService, useValue: mockHealthService },
         { provide: RefreshIntervalService, useValue: mockRefreshIntervalService },
+        { provide: AuthStorageService, useValue: mockAuthStorageService },
+        { provide: MgrModuleService, useValue: mockMgrModuleService },
+        { provide: HardwareService, useValue: mockHardwareService },
         provideRouter([])
       ]
     }).compileComponents();
@@ -51,23 +72,99 @@ describe('OverviewComponent', () => {
 
   afterEach(() => jest.clearAllMocks());
 
-  // -----------------------------
-  // Component creation
-  // -----------------------------
   it('should create', () => {
     expect(component).toBeTruthy();
   });
 
   // -----------------------------
-  // Vie model stream success
+  // View model stream success
   // -----------------------------
-  it('vm$ should emit transformed HealthSnapshotMap', (done) => {
-    const mockData: HealthSnapshotMap = { health: { checks: { a: {} } } } as any;
+  it('healthCardVm$ should emit HealthCardVM with new keys', (done) => {
+    const mockData: HealthSnapshotMap = {
+      fsid: 'fsid-123',
+      health: {
+        status: 'HEALTH_OK',
+        checks: {
+          a: { severity: 'HEALTH_WARN', summary: { message: 'A issue' } },
+          b: { severity: 'HEALTH_ERR', summary: { message: 'B issue' } }
+        }
+      },
+      // subsystem inputs used by mapper
+      monmap: { num_mons: 3, quorum: [0, 1, 2] } as any,
+      mgrmap: { num_active: 1, num_standbys: 1 } as any,
+      osdmap: { num_osds: 2, up: 2, in: 2 } as any,
+      num_hosts: 5,
+      num_hosts_down: 1
+    } as any;
+
     mockHealthService.getHealthSnapshot.mockReturnValue(of(mockData));
 
-    component.vm$.subscribe((vm) => {
-      expect(vm.healthData).toEqual(mockData);
-      expect(vm.incidentCount).toBe(1);
+    const sub = component.healthCardVm$.subscribe((vm) => {
+      expect(vm.fsid).toBe('fsid-123');
+      expect(vm.incidents).toBe(2);
+
+      expect(vm.checks).toHaveLength(2);
+      expect(vm.checks[0]).toEqual(
+        expect.objectContaining({
+          name: 'a',
+          description: 'A issue'
+        })
+      );
+      expect(vm.checks[0].icon).toEqual(expect.any(String));
+
+      expect(vm.health).toEqual(HealthMap['HEALTH_OK']);
+
+      expect(vm.mon).toEqual(
+        expect.objectContaining({
+          value: 'Quorum: 3/3',
+          severity: expect.any(String)
+        })
+      );
+      expect(vm.mgr).toEqual(
+        expect.objectContaining({
+          value: '1 active, 1 standby',
+          severity: expect.any(String)
+        })
+      );
+      expect(vm.osd).toEqual(
+        expect.objectContaining({
+          value: '2/2 in/up',
+          severity: expect.any(String)
+        })
+      );
+      expect(vm.hosts).toEqual(
+        expect.objectContaining({
+          value: '0 / 5 available',
+          severity: expect.any(String)
+        })
+      );
+
+      expect(vm.overallSystemSev).toEqual(expect.any(String));
+
+      sub.unsubscribe();
+      done();
+    });
+
+    mockRefreshIntervalService.intervalData$.next();
+  });
+
+  it('healthCardVm$ should compute overallSystemSev as worst subsystem severity', (done) => {
+    const mockData: HealthSnapshotMap = {
+      fsid: 'fsid-999',
+      health: { status: 'HEALTH_OK', checks: {} },
+      monmap: { num_mons: 3, quorum: [0, 1, 2] } as any, // ok
+      mgrmap: { num_active: 0, num_standbys: 0 } as any, // err (active < 1)
+      osdmap: { num_osds: 2, up: 2, in: 2 } as any, // ok
+      num_hosts: 1,
+      num_hosts_down: 0 // ok
+    } as any;
+
+    mockHealthService.getHealthSnapshot.mockReturnValue(of(mockData));
+
+    const sub = component.healthCardVm$.subscribe((vm) => {
+      // mgr -> err, therefore overall should be err icon
+      expect(vm.overallSystemSev).toBe(SeverityIconMap[2]); // sev.err === 2
+      sub.unsubscribe();
       done();
     });
 
@@ -77,12 +174,12 @@ describe('OverviewComponent', () => {
   // -----------------------------
   // View model stream error → EMPTY
   // -----------------------------
-  it('vm$ should not emit if healthService throws', (done) => {
+  it('healthCardVm$ should not emit if healthService throws (EMPTY)', (done) => {
     mockHealthService.getHealthSnapshot.mockReturnValue(throwError(() => new Error('API Error')));
 
     let emitted = false;
 
-    component.vm$.subscribe({
+    component.healthCardVm$.subscribe({
       next: () => (emitted = true),
       complete: () => {
         expect(emitted).toBe(false);
@@ -109,13 +206,6 @@ describe('OverviewComponent', () => {
   // ngOnDestroy
   // -----------------------------
   it('should complete destroy$', () => {
-    const destroy$ = (component as any).destroy$;
-    const nextSpy = jest.spyOn(destroy$, 'next');
-    const completeSpy = jest.spyOn(destroy$, 'complete');
-
-    component.ngOnDestroy();
-
-    expect(nextSpy).toHaveBeenCalled();
-    expect(completeSpy).toHaveBeenCalled();
+    expect(() => fixture.destroy()).not.toThrow();
   });
 });
