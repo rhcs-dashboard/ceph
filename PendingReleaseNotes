@@ -15,6 +15,9 @@
   adjusting FEATURE_TOGGLE_DASHBOARD.
 * DASHBOARD: RGW Service form updated to take input regarding QAT compression.
   - QAT compression is an optional field which can be set to 'Hardware' or 'Software' by selecting options from provided dropdwon. If 'None' is selected, compression is removed altogether.
+* Monitoring: Added new Prometheus alerts for certificate management:
+  - CephCertificateError: Fires when a Ceph certificate has expired (critical severity).
+  - CephCertificateWarning: Fires when a Ceph certificate is about to expire (warning severity).
 * CephFS: The `peer_add` command is deprecated in favor of the `peer_bootstrap` command.
 * RADOS: When objects are read during deep scrubs, the data is read in strides,
   and the scrubbing process is delayed between each read in order to avoid monopolizing
