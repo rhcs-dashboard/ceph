@@ -1,9 +1,20 @@
-import { Component, OnInit, Output, EventEmitter, Input, inject } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  OnChanges,
+  SimpleChanges,
+  Output,
+  EventEmitter,
+  Input,
+  inject,
+  ViewChild
+} from '@angular/core';
 import { BehaviorSubject, Observable, of } from 'rxjs';
 import { catchError, map, switchMap, defaultIfEmpty } from 'rxjs/operators';
 
 import { CdTableColumn } from '~/app/shared/models/cd-table-column';
 import { CdTableSelection } from '~/app/shared/models/cd-table-selection';
+import { TableComponent } from '~/app/shared/datatable/table/table.component';
 import { CdTableFetchDataContext } from '~/app/shared/models/cd-table-fetch-data-context';
 import { CephfsService } from '~/app/shared/api/cephfs.service';
 import { ClusterService } from '~/app/shared/api/cluster.service';
@@ -23,7 +34,8 @@ import { CephAuthUser } from '~/app/shared/models/cluster.model';
   styleUrls: ['./cephfs-mirroring-entity.component.scss'],
   standalone: false
 })
-export class CephfsMirroringEntityComponent extends CdForm implements OnInit {
+export class CephfsMirroringEntityComponent extends CdForm implements OnInit, OnChanges {
+  @ViewChild('table') table: TableComponent;
   columns: CdTableColumn[];
   selection = new CdTableSelection();
 
@@ -54,6 +66,12 @@ export class CephfsMirroringEntityComponent extends CdForm implements OnInit {
   private clusterService = inject(ClusterService);
   private taskWrapperService = inject(TaskWrapperService);
   private formBuilder = inject(CdFormBuilder);
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['selectedFilesystem'] && !changes['selectedFilesystem'].firstChange) {
+      this.resetSelection();
+    }
+  }
 
   ngOnInit(): void {
     const noClientPrefix: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
@@ -200,7 +218,20 @@ export class CephfsMirroringEntityComponent extends CdForm implements OnInit {
   updateSelection(selection: CdTableSelection) {
     this.selection = selection;
     const selectedRow = selection?.first();
-    this.entitySelected.emit(selectedRow ? selectedRow.entity : null);
+    if (!selectedRow) {
+      this.selection.selected = [];
+      this.entitySelected.emit(null);
+      return;
+    }
+    this.entitySelected.emit(selectedRow.entity);
+  }
+
+  resetSelection() {
+    if (this.table) {
+      this.table.model.selectAll(false);
+    }
+    this.selection = new CdTableSelection();
+    this.entitySelected.emit(null);
   }
 
   onCreateEntitySelected() {
@@ -213,6 +244,7 @@ export class CephfsMirroringEntityComponent extends CdForm implements OnInit {
     this.isCreatingNewEntity = false;
     this.showSelectRequirementsWarning = true;
     this.showSelectEntityInfo = true;
+    this.resetSelection();
   }
 
   onDismissCreateRequirementsWarning() {

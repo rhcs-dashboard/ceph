@@ -1147,8 +1147,6 @@ export class TableComponent implements AfterViewInit, OnInit, OnChanges, OnDestr
   onDeselect(deselectedRowIndex: number) {
     this.model.selectRow(deselectedRowIndex, false);
     if (this.selectionType === 'single' || this.selectionType === 'singleRadio') {
-      this.selection.selected = [];
-      this.updateSelection.emit(this.selection);
       return;
     }
     this._toggleSelection(deselectedRowIndex, false);
