@@ -2871,11 +2871,7 @@ TEST_F(PeeringStateTest, PartialWritePeeringToActiveClean) {
   {
     std::map<shard_id_t,std::pair<eversion_t, eversion_t>> expected_pwlc;
     expected_pwlc[shard_id_t(1)] = std::pair(eversion_t(), expected);
-#ifndef ISSUE_74218
-    epoch_t expected_pwlc_epoch = 2;
-#else
     epoch_t expected_pwlc_epoch = osdmap->get_epoch();
-#endif
     verify_pwlc(expected_pwlc_epoch, expected_pwlc);
   }
 }
@@ -2910,11 +2906,7 @@ TEST_F(PeeringStateTest, PartialWriteNotCompletePeeringToActiveClean) {
   {
     std::map<shard_id_t,std::pair<eversion_t, eversion_t>> expected_pwlc;
     expected_pwlc[shard_id_t(1)] = std::pair(eversion_t(), expected);
-#ifndef ISSUE_74218
-    epoch_t expected_pwlc_epoch = 2;
-#else
     epoch_t expected_pwlc_epoch = osdmap->get_epoch();
-#endif
     verify_pwlc(expected_pwlc_epoch, expected_pwlc);
   }
 }
