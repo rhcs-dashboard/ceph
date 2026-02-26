@@ -16,6 +16,7 @@
     </button>
   </ng-template>
   <!-- TOTAL COUNT -->
+  @if (vm?.total) {
   <div>
     <span class="cds--type-heading-07">{{ vm.total }}</span>
     <cd-icon [type]="vm.icon"></cd-icon>
@@ -26,7 +27,6 @@
     i18n>
     {{ vm.statusText }}
   </small>
-
   <!-- SUB TOTAL COUNTS -->
   <div class="cds-mt-6">
   @if (vm.badges.length) {
@@ -36,22 +36,29 @@
         class="overview-alerts-card-badge"
         [class.overview-alerts-card-badge-with-border--right]="!last && compact"
         [class.overview-alerts-card-badge-with-border--bottom]="!compact">
-        <cd-icon [type]="b.icon"></cd-icon>
         <a
           cdsLink
-          class="cds-ml-3"
           [routerLink]="['/monitoring/active-alerts']"
           [queryParams]="{ severity: b.key }">
+          <cd-icon [type]="b.icon"></cd-icon>
+          <span class="cds-ml-3">
           @if(compact) {
           {{ b.count }}
           } @else {
            {{b.key | upperFirst}} ({{ b.count }})
           }
+          </span>
         </a>
       </span>
       }
     </div>
   }
   </div>
+  }@else {
+  <cds-skeleton-placeholder></cds-skeleton-placeholder>
+  <div class="cds-mt-3">
+    <cds-skeleton-text [lines]="1"></cds-skeleton-text>
+  </div>
+  }
 }
 </cd-productive-card>
