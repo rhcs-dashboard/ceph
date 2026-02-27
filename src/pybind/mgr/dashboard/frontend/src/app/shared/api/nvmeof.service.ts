@@ -4,8 +4,8 @@ import { HttpClient } from '@angular/common/http';
 import _ from 'lodash';
 import { Observable, forkJoin, of as observableOf } from 'rxjs';
 import { catchError, map, mapTo, mergeMap } from 'rxjs/operators';
-import { NvmeofSubsystemNamespace } from '../models/nvmeof';
 import { CephServiceSpec } from '../models/service.interface';
+import { ListenerItem } from '../models/nvmeof';
 import { HostService } from './host.service';
 import { OrchestratorService } from './orchestrator.service';
 import { HostStatus } from '../enum/host-status.enum';
@@ -37,8 +37,8 @@ export type NamespaceCreateRequest = NvmeofRequest & {
   rbd_pool: string;
   rbd_image_size?: number;
   no_auto_visible?: boolean;
-  create_image: boolean;
   block_size?: number;
+  create_image: boolean;
 };
 
 export type NamespaceUpdateRequest = NvmeofRequest & {
@@ -109,6 +109,35 @@ export class NvmeofService {
         })
       )
     });
+  }
+
+  getHostsForGroup(groupName: string): Observable<Host[]> {
+    return forkJoin({
+      gwGroups: this.listGatewayGroups(),
+      allHosts: this.hostService.getAllHosts()
+    }).pipe(
+      map(({ gwGroups, allHosts }) => {
+        const group = gwGroups?.[0]?.find(
+          (gwGroup: CephServiceSpec) => gwGroup?.spec?.group === groupName
+        );
+        const placement = group?.placement || { hosts: [], label: [] };
+        const { hosts, label } = placement;
+
+        if (hosts?.length) {
+          return allHosts.filter((host: Host) => hosts.includes(host.hostname));
+        } else if (label?.length) {
+          if (typeof label === 'string') {
+            return allHosts.filter((host: Host) => host?.labels?.includes(label));
+          }
+          return allHosts.filter(
+            (host: Host) =>
+              host?.labels?.length === label?.length &&
+              _.isEqual([...host.labels].sort(), [...label].sort())
+          );
+        }
+        return [];
+      })
+    );
   }
 
   // formats the gateway groups to be consumed for combobox item
@@ -182,10 +211,20 @@ export class NvmeofService {
     return this.http.get(`${API_PATH}/subsystem/${subsystemNQN}/host?gw_group=${group}`);
   }
 
-  addSubsystemInitiators(subsystemNQN: string, request: InitiatorRequest) {
+  addInitiators(subsystemNQN: string, request: InitiatorRequest) {
     return this.http.post(`${UI_API_PATH}/subsystem/${subsystemNQN}/host`, request, {
       observe: 'response'
     });
+  }
+
+  addNamespaceInitiators(nsid: number | string, request: NamespaceInitiatorRequest) {
+    return this.http.post(
+      `${UI_API_PATH}/subsystem/${request.subsystem_nqn}/namespace/${nsid}/host`,
+      request,
+      {
+        observe: 'response'
+      }
+    );
   }
 
   updateHostKey(subsystemNQN: string, request: InitiatorRequest) {
@@ -198,24 +237,9 @@ export class NvmeofService {
     );
   }
 
-  addNamespaceInitiators(nsid: string, request: NamespaceInitiatorRequest) {
-    return this.http.post(`${UI_API_PATH}/namespace/${nsid}/host`, request, {
-      observe: 'response'
-    });
-  }
-
-  removeSubsystemInitiators(subsystemNQN: string, request: InitiatorRequest) {
+  removeInitiators(subsystemNQN: string, request: InitiatorRequest) {
     return this.http.delete(
       `${UI_API_PATH}/subsystem/${subsystemNQN}/host/${request.host_nqn}/${request.gw_group}`,
-      {
-        observe: 'response'
-      }
-    );
-  }
-
-  removeNamespaceInitiators(nsid: string, request: NamespaceInitiatorRequest) {
-    return this.http.delete(
-      `${UI_API_PATH}/namespace/${nsid}/host/${request.subsystem_nqn}/${request.host_nqn}/${request.gw_group}`,
       {
         observe: 'response'
       }
@@ -231,6 +255,18 @@ export class NvmeofService {
     return this.http.post(`${API_PATH}/subsystem/${subsystemNQN}/listener`, request, {
       observe: 'response'
     });
+  }
+
+  createListeners(subsystemNQN: string, gwGroup: string, listeners: ListenerItem[]) {
+    const listenerCalls = listeners.map((listener: ListenerItem) =>
+      this.createListener(subsystemNQN, {
+        gw_group: gwGroup,
+        host_name: listener.content,
+        traddr: listener.addr,
+        trsvcid: 4420
+      })
+    );
+    return forkJoin(listenerCalls);
   }
 
   deleteListener(
@@ -250,11 +286,6 @@ export class NvmeofService {
           force: 'true'
         }
       }
-    );
-  }
-  listSubsystemNamespaces(subsystemNQN: string) {
-    return this.http.get<NvmeofSubsystemNamespace[]>(
-      `${API_PATH}/subsystem/${subsystemNQN}/namespace`
     );
   }
 

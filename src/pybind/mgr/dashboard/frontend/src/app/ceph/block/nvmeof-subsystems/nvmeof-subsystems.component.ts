@@ -1,11 +1,4 @@
-import {
-  Component,
-  OnDestroy,
-  OnInit,
-  TemplateRef,
-  ViewChild,
-  ChangeDetectorRef
-} from '@angular/core';
+import { Component, OnDestroy, OnInit, TemplateRef, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ActionLabelsI18n, URLVerbs } from '~/app/shared/constants/app.constants';
 import { CdTableSelection } from '~/app/shared/models/cd-table-selection';
@@ -31,7 +24,6 @@ import { CephServiceSpec } from '~/app/shared/models/service.interface';
 import { BehaviorSubject, forkJoin, Observable, of, Subject } from 'rxjs';
 import { catchError, map, switchMap, takeUntil, tap } from 'rxjs/operators';
 import { DeletionImpact } from '~/app/shared/enum/delete-confirmation-modal-impact.enum';
-import { TableComponent } from '~/app/shared/datatable/table/table.component';
 
 const BASE_URL = 'block/nvmeof/subsystems';
 const DEFAULT_PLACEHOLDER = $localize`Enter group name`;
@@ -54,8 +46,6 @@ export class NvmeofSubsystemsComponent extends ListWithDetails implements OnInit
 
   @ViewChild('customTableItemTemplate', { static: true })
   customTableItemTemplate: TemplateRef<any>;
-
-  @ViewChild('table') table: TableComponent;
 
   subsystems: (NvmeofSubsystem & { gw_group?: string; initiator_count?: number })[] = [];
   pendingNqn: string = null;
@@ -82,8 +72,7 @@ export class NvmeofSubsystemsComponent extends ListWithDetails implements OnInit
     private router: Router,
     private route: ActivatedRoute,
     private modalService: ModalCdsService,
-    private taskWrapper: TaskWrapperService,
-    private cdRef: ChangeDetectorRef
+    private taskWrapper: TaskWrapperService
   ) {
     super();
     this.permissions = this.authStorageService.getPermissions();
@@ -91,7 +80,6 @@ export class NvmeofSubsystemsComponent extends ListWithDetails implements OnInit
 
   ngOnInit() {
     this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe((params) => {
-      if (params?.['nqn']) this.pendingNqn = params['nqn'];
       if (params?.['group']) this.onGroupSelection({ content: params?.['group'] });
     });
     this.setGatewayGroups();
@@ -161,7 +149,6 @@ export class NvmeofSubsystemsComponent extends ListWithDetails implements OnInit
       }),
       tap((subs) => {
         this.subsystems = subs;
-        this.expandPendingSubsystem();
       }),
       takeUntil(this.destroy$)
     );
@@ -230,6 +217,8 @@ export class NvmeofSubsystemsComponent extends ListWithDetails implements OnInit
 
   updateGroupSelectionState() {
     if (this.gwGroups.length) {
+      this.gwGroupsEmpty = false;
+      this.gwGroupPlaceholder = DEFAULT_PLACEHOLDER;
       if (!this.group) {
         this.onGroupSelection(this.gwGroups[0]);
       } else {
@@ -238,8 +227,6 @@ export class NvmeofSubsystemsComponent extends ListWithDetails implements OnInit
           selected: g.content === this.group
         }));
       }
-      this.gwGroupsEmpty = false;
-      this.gwGroupPlaceholder = DEFAULT_PLACEHOLDER;
     } else {
       this.gwGroupsEmpty = true;
       this.gwGroupPlaceholder = $localize`No groups available`;
@@ -258,19 +245,6 @@ export class NvmeofSubsystemsComponent extends ListWithDetails implements OnInit
       error?.preventDefault?.();
     }
     this.context?.error?.(error);
-  }
-
-  private expandPendingSubsystem() {
-    if (!this.pendingNqn) return;
-    const match = this.subsystems.find((s) => s.nqn === this.pendingNqn);
-    if (match && this.table) {
-      setTimeout(() => {
-        this.table.expanded = match;
-        this.table.toggleExpandRow();
-        this.cdRef.detectChanges();
-      });
-    }
-    this.pendingNqn = null;
   }
 
   private enrichSubsystemWithInitiators(sub: NvmeofSubsystem) {

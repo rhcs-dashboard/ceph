@@ -1,4 +1,4 @@
-import { Component, Input, OnDestroy, OnInit, TemplateRef, ViewChild } from '@angular/core';
+import { Component, Input, NgZone, OnDestroy, OnInit, TemplateRef, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { NvmeofService, GroupsComboboxItem } from '~/app/shared/api/nvmeof.service';
 import { DeleteConfirmationModalComponent } from '~/app/shared/components/delete-confirmation-modal/delete-confirmation-modal.component';
@@ -53,6 +53,7 @@ export class NvmeofNamespacesListComponent implements OnInit, OnDestroy {
     public actionLabels: ActionLabelsI18n,
     private router: Router,
     private route: ActivatedRoute,
+    private ngZone: NgZone,
     private modalService: ModalCdsService,
     private authStorageService: AuthStorageService,
     private taskWrapper: TaskWrapperService,
@@ -110,26 +111,25 @@ export class NvmeofNamespacesListComponent implements OnInit, OnDestroy {
         name: $localize`Expand`,
         permission: 'update',
         icon: Icons.edit,
-        click: () =>
-          this.router.navigate(
-            [
-              {
-                outlets: {
-                  modal: [
-                    URLVerbs.EDIT,
-                    this.selection.first().ns_subsystem_nqn,
-                    'namespace',
-                    this.selection.first().nsid
-                  ]
+        click: (row: NvmeofSubsystemNamespace) => {
+          const namespace = row || this.selection.first();
+          this.ngZone.run(() => {
+            this.router.navigate(
+              [
+                {
+                  outlets: {
+                    modal: [URLVerbs.EDIT, namespace.ns_subsystem_nqn, 'namespace', namespace.nsid]
+                  }
                 }
+              ],
+              {
+                relativeTo: this.route,
+                queryParams: { group: this.group },
+                queryParamsHandling: 'merge'
               }
-            ],
-            {
-              relativeTo: this.route,
-              queryParams: { group: this.group },
-              queryParamsHandling: 'merge'
-            }
-          )
+            );
+          });
+        }
       },
       {
         name: this.actionLabels.DELETE,
@@ -149,12 +149,17 @@ export class NvmeofNamespacesListComponent implements OnInit, OnDestroy {
             const namespaces = Array.isArray(res) ? res : res.namespaces || [];
             // Deduplicate by nsid + subsystem NQN (API with wildcard can return duplicates per gateway)
             const seen = new Set<string>();
-            return namespaces.filter((ns) => {
-              const key = `${ns.nsid}_${ns['ns_subsystem_nqn']}`;
-              if (seen.has(key)) return false;
-              seen.add(key);
-              return true;
-            });
+            return namespaces
+              .filter((ns) => {
+                const key = `${ns.nsid}_${ns['ns_subsystem_nqn']}`;
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+              })
+              .map((ns) => ({
+                ...ns,
+                unique_id: `${ns.nsid}_${ns['ns_subsystem_nqn']}`
+              }));
           }),
           catchError(() => of([]))
         );

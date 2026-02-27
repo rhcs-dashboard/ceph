@@ -3,12 +3,11 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
 
 import { ActionLabelsI18n } from '~/app/shared/constants/app.constants';
-import { CdFormGroup } from '~/app/shared/forms/cd-form-group';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Step } from 'carbon-components-angular';
 import { InitiatorRequest, NvmeofService } from '~/app/shared/api/nvmeof.service';
 import { TearsheetComponent } from '~/app/shared/components/tearsheet/tearsheet.component';
-import { HOST_TYPE } from '~/app/shared/models/nvmeof';
+import { HOST_TYPE, ListenerItem, AUTHENTICATION } from '~/app/shared/models/nvmeof';
 import { from, Observable, of } from 'rxjs';
 import { NotificationService } from '~/app/shared/services/notification.service';
 import { NotificationType } from '~/app/shared/enum/notification-type.enum';
@@ -21,6 +20,7 @@ export type SubsystemPayload = {
   subsystemDchapKey: string;
   addedHosts: string[];
   hostType: string;
+  listeners: ListenerItem[];
 };
 
 type StepResult = { step: string; success: boolean; error?: string };
@@ -32,7 +32,6 @@ type StepResult = { step: string; success: boolean; error?: string };
   standalone: false
 })
 export class NvmeofSubsystemsFormComponent implements OnInit {
-  subsystemForm: CdFormGroup;
   action: string;
   group: string;
   steps: Step[] = [
@@ -48,6 +47,10 @@ export class NvmeofSubsystemsFormComponent implements OnInit {
     {
       label: $localize`Authentication`,
       complete: false
+    },
+    {
+      label: $localize`Review`,
+      complete: false
     }
   ];
   title: string = $localize`Create Subsystem`;
@@ -56,6 +59,15 @@ export class NvmeofSubsystemsFormComponent implements OnInit {
   private lastCreatedNqn: string;
 
   @ViewChild(TearsheetComponent) tearsheet!: TearsheetComponent;
+
+  // Review step data
+  reviewNqn: string = '';
+  reviewListeners: any[] = [];
+  reviewHostType: string = HOST_TYPE.SPECIFIC;
+  reviewAddedHosts: string[] = [];
+  reviewAuthType: string = AUTHENTICATION.Unidirectional;
+  reviewSubsystemDchapKey: string = '';
+  reviewHostDchapKeyCount: number = 0;
 
   constructor(
     public actionLabels: ActionLabelsI18n,
@@ -73,6 +85,35 @@ export class NvmeofSubsystemsFormComponent implements OnInit {
       this.group = params?.['group'];
     });
   }
+
+  populateReviewData() {
+    if (!this.tearsheet?.stepContents) return;
+    const steps = this.tearsheet.stepContents.toArray();
+
+    // Step 1: Subsystem details
+    const step1Form = steps[0]?.stepComponent?.formGroup;
+    if (step1Form) {
+      this.reviewNqn = step1Form.get('nqn')?.value || '';
+      this.reviewListeners = step1Form.get('listeners')?.value || [];
+    }
+
+    // Step 2: Host access control
+    const step2Form = steps[1]?.stepComponent?.formGroup;
+    if (step2Form) {
+      this.reviewHostType = step2Form.get('hostType')?.value || HOST_TYPE.SPECIFIC;
+      this.reviewAddedHosts = step2Form.get('addedHosts')?.value || [];
+    }
+
+    // Step 3: Authentication
+    const step3Form = steps[2]?.stepComponent?.formGroup;
+    if (step3Form) {
+      this.reviewAuthType = step3Form.get('authType')?.value || AUTHENTICATION.Unidirectional;
+      this.reviewSubsystemDchapKey = step3Form.get('subsystemDchapKey')?.value || '';
+      const hostKeys = step3Form.get('hostDchapKeyList')?.value || [];
+      this.reviewHostDchapKeyCount = hostKeys.filter((k: any) => k?.key).length;
+    }
+  }
+
   onSubmit(payload: SubsystemPayload) {
     this.isSubmitLoading = true;
     this.lastCreatedNqn = payload.nqn;
@@ -91,19 +132,27 @@ export class NvmeofSubsystemsFormComponent implements OnInit {
       .subscribe({
         next: () => {
           stepResults.push({ step: this.steps[0].label, success: true });
-          this.runSequentialSteps(
-            [
-              {
-                step: this.steps[1].label,
-                call: () =>
-                  this.nvmeofService.addSubsystemInitiators(
-                    `${payload.nqn}.${this.group}`,
-                    initiatorRequest
-                  )
-              }
-            ],
-            stepResults
-          ).subscribe({
+          const sequentialSteps: { step: string; call: () => Observable<any> }[] = [];
+
+          if (payload.listeners && payload.listeners.length > 0) {
+            sequentialSteps.push({
+              step: $localize`Listeners`,
+              call: () =>
+                this.nvmeofService.createListeners(
+                  `${payload.nqn}.${this.group}`,
+                  this.group,
+                  payload.listeners
+                )
+            });
+          }
+
+          sequentialSteps.push({
+            step: this.steps[1].label,
+            call: () =>
+              this.nvmeofService.addInitiators(`${payload.nqn}.${this.group}`, initiatorRequest)
+          });
+
+          this.runSequentialSteps(sequentialSteps, stepResults).subscribe({
             complete: () => this.showFinalNotification(stepResults)
           });
         },

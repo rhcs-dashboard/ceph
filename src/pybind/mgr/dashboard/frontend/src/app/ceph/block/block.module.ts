@@ -54,6 +54,7 @@ import { NvmeofSubsystemsStepTwoComponent } from './nvmeof-subsystems-form/nvmeo
 import { NvmeofGatewayNodeComponent } from './nvmeof-gateway-node/nvmeof-gateway-node.component';
 import { NvmeofGroupFormComponent } from './nvmeof-group-form/nvmeof-group-form.component';
 import { NvmeofEditHostKeyModalComponent } from './nvmeof-edit-host-key-modal/nvmeof-edit-host-key-modal.component';
+import { NvmeofSubsystemsStepFourComponent } from './nvmeof-subsystems-form/nvmeof-subsystem-step-4/nvmeof-subsystem-step-4.component';
 
 import {
   ButtonModule,
@@ -183,6 +184,7 @@ import { NvmeofSubsystemPerformanceComponent } from './nvmeof-subsystem-performa
     NvmeofNamespaceExpandModalComponent,
     NvmeSubsystemViewComponent,
     NvmeofEditHostKeyModalComponent,
+    NvmeofSubsystemsStepFourComponent,
     NvmeofSubsystemOverviewComponent,
     NvmeofSubsystemPerformanceComponent
   ],
@@ -344,6 +346,7 @@ const routes: Routes = [
       {
         path: 'gateways',
         component: NvmeofGatewayComponent,
+        data: { breadcrumbs: 'Gateways' },
         children: [
           {
             path: `${URLVerbs.EDIT}/:subsystem_nqn/namespace/:nsid`,
@@ -432,6 +435,7 @@ const routes: Routes = [
             path: 'hosts',
             component: NvmeofInitiatorsListComponent
           },
+
           {
             path: 'namespaces',
             component: NvmeofSubsystemNamespacesListComponent
@@ -443,6 +447,21 @@ const routes: Routes = [
           {
             path: 'performance',
             component: NvmeofSubsystemPerformanceComponent
+          },
+          {
+            path: `${URLVerbs.ADD}/initiator`,
+            component: NvmeofInitiatorsFormComponent,
+            outlet: 'modal'
+          },
+          {
+            path: `${URLVerbs.ADD}/listener`,
+            component: NvmeofListenersFormComponent,
+            outlet: 'modal'
+          },
+          {
+            path: `${URLVerbs.EDIT}/:subsystem_nqn/namespace/:nsid`,
+            component: NvmeofNamespaceExpandModalComponent,
+            outlet: 'modal'
           }
         ]
       }
