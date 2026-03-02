@@ -4,8 +4,7 @@
  [description]="description"
  [isSubmitLoading]="isSubmitLoading"
  (submitRequested)="onSubmit($event)"
- (stepChanged)="populateReviewData()"
- >
+ (stepChanged)="populateReviewData()">
   <cd-tearsheet-step>
     <cd-nvmeof-subsystem-step-one
      #tearsheetStep
@@ -16,11 +15,14 @@
       #tearsheetStep
       [group]="group"></cd-nvmeof-subsystem-step-two>
   </cd-tearsheet-step>
+  @if(showAuthStep) {
   <cd-tearsheet-step>
     <cd-nvmeof-subsystem-step-three
      #tearsheetStep
+     [stepTwoValue]="stepTwoValue"
      [group]="group"></cd-nvmeof-subsystem-step-three>
   </cd-tearsheet-step>
+  }
   <cd-tearsheet-step>
     <cd-nvmeof-subsystem-step-four
      #tearsheetStep
