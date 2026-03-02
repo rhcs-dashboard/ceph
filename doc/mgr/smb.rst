@@ -261,6 +261,7 @@ Create a read-only share at a custom path in the CephFS volume:
 
     ceph smb share create test1 plans cephfs \
         --path=/qbranch/top/secret/plans --readonly
+
 Update Share QoS
 ++++++++++++++++
 
