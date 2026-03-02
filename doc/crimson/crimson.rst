@@ -91,6 +91,7 @@ On some conservative distributions, io_uring may be disabled, preventing Crimson
 If this configuration change is acceptable in your environment, you may enable io_uring support by running:
 
 .. prompt:: bash #
+
     sudo sysctl -w kernel.io_uring_disabled=0
 
 
