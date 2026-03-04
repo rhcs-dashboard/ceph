@@ -94,8 +94,13 @@
           @for (plugin of plugins; track plugin) {
           <option
             [value]="plugin"
+            [selected]="plugin === PLUGIN.ISA"
           >
-            {{ plugin }}
+            @if(plugin === PLUGIN.JERASURE) {
+              {{ plugin | upperFirst }}
+            } @else {
+              {{ plugin | uppercase }}
+            }
           </option>
           }
         </cds-select>

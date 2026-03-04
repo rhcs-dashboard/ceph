@@ -42,10 +42,10 @@ export class ErasureCodeProfileFormModalComponent
     LRC: 'lrc', // Locally Repairable Erasure Code
     SHEC: 'shec', // Shingled Erasure Code
     CLAY: 'clay', // Coupled LAYer
-    JERASURE: 'jerasure', // default
-    ISA: 'isa' // Intel Storage Acceleration
+    JERASURE: 'jerasure',
+    ISA: 'isa' // Intel Storage Acceleration - default
   };
-  plugin = this.PLUGIN.JERASURE;
+  plugin = this.PLUGIN.ISA;
   icons = Icons;
 
   form: CdFormGroup;
@@ -73,7 +73,7 @@ export class ErasureCodeProfileFormModalComponent
     this.action = this.actionLabels.CREATE;
     this.resource = $localize`EC Profile`;
     this.createForm();
-    this.setJerasureDefaults();
+    this.setIsaDefaults();
   }
 
   createForm() {
@@ -89,9 +89,9 @@ export class ErasureCodeProfileFormModalComponent
           )
         ]
       ],
-      plugin: [this.PLUGIN.JERASURE, [Validators.required]],
+      plugin: [this.PLUGIN.ISA, [Validators.required]],
       k: [
-        4, // Will be overwritten with plugin defaults
+        7, // Will be overwritten with plugin defaults
         [
           Validators.required,
           Validators.min(2),
@@ -101,7 +101,7 @@ export class ErasureCodeProfileFormModalComponent
         ]
       ],
       m: [
-        2, // Will be overwritten with plugin defaults
+        3, // Will be overwritten with plugin defaults
         [
           Validators.required,
           Validators.min(1),
@@ -151,7 +151,7 @@ export class ErasureCodeProfileFormModalComponent
           CdValidators.custom('dMax', (v: number) => this.dMaxValidation(v))
         ]
       ],
-      scalar_mds: [this.PLUGIN.JERASURE, [Validators.required]] // jerasure or isa or shec
+      scalar_mds: [this.PLUGIN.ISA, [Validators.required]] // jerasure or isa or shec
     });
     this.toggleDCalc();
     this.form.get('k').valueChanges.subscribe(() => this.updateValidityOnChange(['m', 'l', 'd']));
@@ -427,6 +427,12 @@ export class ErasureCodeProfileFormModalComponent
             }
             this.cdr.detectChanges();
           }, 0);
+
+          if (this.plugins.includes(this.PLUGIN.ISA)) {
+            this.setIsaDefaults();
+          } else if (this.plugins.includes(this.PLUGIN.JERASURE)) {
+            this.setJerasureDefaults();
+          }
         }
       );
   }
