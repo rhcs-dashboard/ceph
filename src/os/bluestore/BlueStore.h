@@ -244,6 +244,12 @@ enum {
   l_bluestore_slow_op_normal_count,
   l_bluestore_slow_op_scrub_count,
   //****************************************
+
+  // Fragmentation tracking
+  //****************************************
+  l_bluestore_runtime_frag_lat,
+  l_bluestore_static_frag_lat,
+  //****************************************
   l_bluestore_last
 };
 
