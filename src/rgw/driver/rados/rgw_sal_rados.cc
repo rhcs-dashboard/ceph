@@ -4456,7 +4456,7 @@ MPRadosSerializer::MPRadosSerializer(const DoutPrefixProvider *dpp, RadosStore* 
   store->getRados()->open_pool_ctx(dpp, meta_pool, ioctx, true, true);
 }
 
-int MPRadosSerializer::try_lock(const DoutPrefixProvider *dpp, utime_t dur, optional_yield y)
+int MPRadosSerializer::try_lock(const DoutPrefixProvider *dpp, ceph::timespan dur, optional_yield y)
 {
   librados::ObjectWriteOperation op;
   op.assert_exists();
@@ -4485,7 +4485,7 @@ LCRadosSerializer::LCRadosSerializer(RadosStore* store, const std::string& _oid,
   lock.set_cookie(cookie);
 }
 
-int LCRadosSerializer::try_lock(const DoutPrefixProvider *dpp, utime_t dur, optional_yield y)
+int LCRadosSerializer::try_lock(const DoutPrefixProvider *dpp, ceph::timespan dur, optional_yield y)
 {
   librados::ObjectWriteOperation op;
   lock.set_duration(dur);
@@ -4669,7 +4669,7 @@ RadosRestoreSerializer::RadosRestoreSerializer(RadosStore* store, const std::str
   lock.set_cookie(cookie);
 }
 
-int RadosRestoreSerializer::try_lock(const DoutPrefixProvider *dpp, utime_t dur, optional_yield y)
+int RadosRestoreSerializer::try_lock(const DoutPrefixProvider *dpp, ceph::timespan dur, optional_yield y)
 {
   lock.set_duration(dur);
   return lock.lock_exclusive((librados::IoCtx*)(&ioctx), oid);
