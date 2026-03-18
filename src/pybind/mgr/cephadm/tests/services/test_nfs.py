@@ -692,6 +692,7 @@ def test_nfs_choose_next_action(cephadm_module, mock_cephadm):
         # dependencies are prefixed with 'kmip' but I can't find any code
         # that would produce any dependencies prefixed with 'kmip'!
 
+
 @patch("cephadm.services.nfs.NFSService.run_grace_tool", MagicMock())
 @patch("cephadm.services.nfs.NFSService.purge", MagicMock())
 @patch("cephadm.services.nfs.NFSService.create_rados_config_obj", MagicMock())
