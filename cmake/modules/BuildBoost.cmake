@@ -184,7 +184,14 @@ function(do_build_boost root_dir version)
     BUILD_IN_SOURCE 1
     BUILD_BYPRODUCTS ${Boost_LIBRARIES}
     INSTALL_COMMAND ${install_command}
-    PREFIX "${root_dir}")
+    PREFIX "${root_dir}"
+    PATCH_COMMAND ${CMAKE_COMMAND}
+      -DSOURCE_DIR=<SOURCE_DIR>
+      -DCMAKE_SYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}
+      -DVERSION=${version}
+      -DCMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}
+      -DPACKAGE_NAME=boost
+      -P ${CMAKE_MODULE_PATH}/Patch.cmake)
   ExternalProject_Add_Step(Boost build-bjam
     COMMAND ./tools/build/src/engine/build.sh --cxx=${CMAKE_CXX_COMPILER} ${toolset}
     COMMAND ${CMAKE_COMMAND} -E copy ./tools/build/src/engine/b2 ${bjam}
