@@ -140,7 +140,7 @@ def os_exit_noop(status: int) -> None:
 
 os._exit = os_exit_noop   # type: ignore
 
-DEFAULT_IMAGE = 'quay.io/ceph/ceph'
+DEFAULT_IMAGE = 'registry.redhat.io/rhceph/rhceph-9-rhel9'
 
 
 def host_exists(hostname_position: int = 1) -> Callable:
@@ -352,7 +352,7 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
         Option(
             'default_registry',
             type='str',
-            default='quay.io',
+            default='registry.redhat.io',
             desc='Search-registry to which we should normalize unqualified image names. '
                  'This is not the default registry',
         ),
