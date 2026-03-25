@@ -1081,6 +1081,11 @@ class TestIngressService:
             '        name = "client.nfs.foo.test.0.0-rgw";\n'
             '}\n'
             '\n'
+            'CEPH {\n'
+            '        register_service = true;\n'
+            '        nodeid = "0";\n'
+            '}\n'
+            '\n'
             "%url    rados://.nfs/foo/conf-nfs.foo"
         )
         nfs_expected_conf = {

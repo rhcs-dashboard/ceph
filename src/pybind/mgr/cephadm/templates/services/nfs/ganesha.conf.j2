@@ -46,6 +46,11 @@ RGW {
         name = "client.{{ rgw_user }}";
 }
 
+CEPH {
+        register_service = true;
+        nodeid = "{{ nodeid }}";
+}
+
 {% if tls_add %}
 TLS_CONFIG{
         Enable_TLS = {{ tls_add }};
