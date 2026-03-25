@@ -1471,7 +1471,11 @@ class Module(MgrModule, OrchestratorClientMixin):
                 name = pool.get('erasure_code_profile', '')
                 profile = ec_profiles.get(name, {})
                 if profile:
-                    description = f"ec:{profile['k']}+{profile['m']}"
+                    k = profile.get("k")
+                    m = profile.get("m")
+
+                    if k is not None:
+                        description = f"ec:{k}+{m}" if m is not None else f"ec:{k}"
                 else:
                     description = "ec:unknown"
 
