@@ -1152,12 +1152,27 @@ public:
     }
   }
 
-  uint64_t get_available_extra() const {
-    return db_avail4slow;
-  }
+  // Returns a static value (based on disk layout and store's settings)
+  // of the first RocksDB level which doesn't fully fit into "fast" volume.
+  // So with the selector's help data belonging to this level could be 
+  // [partially] allocated at that volume if get_*_extra() methods below
+  // indicate non-zero values. 
   uint64_t get_extra_level() const {
     return extra_level;
   }
+  // Returns a static value (based on disk layout and store's settings)
+  // of the extra space at DB volume which
+  // this volume selector permits for using by data from "slow" levels.
+  // Takes both maximum historical observations and store's settings
+  // into account
+  uint64_t get_max_extra() const {
+    return db_avail4slow;
+  }
+  // Calculates the effective amount of extra space at "fast" volume which
+  // this volume selector permits for using by data from "slow" levels.
+  // Takes both the maximum historical observations and the value from 
+  // get_max_extra() into account to get the final result.
+  uint64_t get_effective_extra() const;
   void* get_hint_for_log() const override {
     return  reinterpret_cast<void*>(LEVEL_LOG);
   }
