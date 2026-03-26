@@ -7,7 +7,7 @@ Tentacle is the 20th stable release of Ceph.
 v20.2.1 Tentacle
 ================
 
-This is the second backport release in the Tentacle series. We recommend that all users update to this release.
+This is the first minor release in the Tentacle series. We recommend that all users update to this release.
 
 Release Date
 ------------
@@ -17,7 +17,59 @@ April 06, 2026
 Notable Changes
 ---------------
 
-TBD
+OSD / BlueStore
+---------------
+
+* EC Recovery: Fixed a length calculation bug in erase_after_ro_offset() that caused empty shards to retain data, leading to shard_size >= tobj_size assertion failures when recovering small objects in EC pools.
+* BlueFS Volume Selector: Updated the BlueFS volume selector to properly account for file size changes when recovering the WAL in envelope mode.
+* BlueFS: Fixed a bug where stat() missed the actual file size update after indexing WAL envelope files.
+
+Monitor (mon)
+-------------
+
+* Fast EC Restrictions: Denied the ability to enable EC optimizations ("fast EC") for non-4K-aligned chunk sizes. Unaligned chunk sizes handled by fast EC perform poorly and suffer from bugs, so attempts to force this configuration are now rejected.
+* Peering: Ensured ceph pg repeer proposes a correctly sized pg temp, as optimized EC cannot cope with mismatched sizes.
+* NVMeoF Gateway: Added a new nvme-gw listeners command to display all existing listeners (including auto-listeners) inside a pool/group.
+* NVMeoF Failover: Overhauled the NVMeoF Gateway fast-failover logic. Beacon timeouts are now evaluated within prepare_beacon to support shorter intervals, and the mechanism for detecting monitor slowness was improved.
+
+librbd & rbd-mirror
+-------------------
+
+* RBD: Introduced a new ``RBD_LOCK_MODE_EXCLUSIVE_TRANSIENT`` policy for ``rbd_lock_acquire()``. This is a low-level interface intended to allow a peer to grab exclusive lock manually for short periods of time with other peers pausing their activity and waiting for the lock to be released rather than instantly aborting I/O and returning an error. It's possible to switch from ``RBD_LOCK_MODE_EXCLUSIVE`` to ``RBD_LOCK_MODE_EXCLUSIVE_TRANSIENT`` policy and vice versa even if the lock is already held.
+
+Ceph Object Gateway (RGW)
+-------------------------
+
+* Multi-Part Operations: Fixed conditional validation handling in MultiWrite, Delete, and MultiDelete workflows.
+
+mgr/dashboard
+-------------
+
+* UI Navigation: Redesigned the main landing page; the "Dashboard" navigation item was renamed to "Overview" and uses a new carbonized productive card layout.
+* NVMeoF Management: Added the nvmeof get_subsystems CLI command, fixed JSON output indentation for NVMeoF CLI commands, and reverted the server_addr API parameter back to traddr for consistency.
+* Hosts View: Fixed a bug causing the IP addresses of hosts to be hidden on the Hosts page due to an issue with fact merging.
+* Forms & Modals: Standardized forms onto the Carbon Design System, including the pools form, service form, multi-site realm token export modal, delete zone modal, and password change forms.
+* Form Validation: Generalized form error handling and validations using a new cdValidate directive.
+
+mgr/cephadm
+-----------
+
+* Monitoring Stack: Bumped the default container image versions for the monitoring stack: Prometheus to v3.6.0, Node-exporter to v1.9.1, Alertmanager to v0.28.1, and Grafana to v12.2.0.
+
+Security Changes
+----------------
+
+* Monitoring Stack Images: Updated Prometheus, Alertmanager, and Grafana container image versions, picking up upstream security and stability fixes.
+
+Configuration Changes
+---------------------
+
+* ``bluefs_check_volume_selector_on_mount``: The previous bluefs_check_volume_selector_on_umount debug setting was renamed and repurposed. It now checks for volume selector inconsistencies on both mount and unmount phases.
+
+* ``mon_nvmeofgw_beacon_grace``: The default grace period before marking a gateway as failed has been reduced from 10 seconds to 7 seconds for faster failover.
+
+* ``nvmeof_mon_client_tick_period``: The default beacon tick interval has been lowered from 2 seconds to 1 second.
+
 
 Changelog
 ---------
