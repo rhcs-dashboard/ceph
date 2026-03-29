@@ -25,6 +25,7 @@
 #include "test/osd/MockErasureCode.h"
 #include "test/osd/MockPGBackendListener.h"
 #include "test/osd/EventLoop.h"
+#include "test/osd/MockMessenger.h"
 #include "common/TrackedOp.h"
 #include "os/memstore/MemStore.h"
 #include "osd/ECSwitch.h"
@@ -63,36 +64,28 @@ protected:
   coll_t coll;
   
   std::shared_ptr<OSDMap> osdmap;
-  std::unique_ptr<OpTracker> op_tracker;
   std::unique_ptr<EventLoop> event_loop;
-  std::map<int, std::function<bool(OpRequestRef)>> message_router;
+  std::unique_ptr<MockMessenger> messenger;
   
   std::map<int, std::unique_ptr<MockPGBackendListener>> listeners;
   std::map<int, std::unique_ptr<PGBackend>> backends;
   std::map<int, coll_t> colls;
   std::map<int, ObjectStore::CollectionHandle> chs;
   
-  /**
-   * Optional listener factory callback.
-   *
-   * If set, setup_ec_pool() and setup_replicated_pool() will call this
-   * factory instead of constructing MockPGBackendListener directly.
-   * The factory receives the instance index and the parameters needed to
-   * construct the listener, and must return a unique_ptr to the new
-   * MockPGBackendListener.  The returned object is stored in listeners[i]
-   * as usual, so ownership stays with the base class.
-   *
-   * Derived classes (e.g. ECPeeringTestFixture) can set this in their
-   * constructor to gain direct access to the created listeners without
-   * needing to steal ownership via release_listener().
-   */
-  std::function<std::unique_ptr<MockPGBackendListener>(
-    int instance,
-    std::shared_ptr<OSDMap> osdmap,
-    int64_t pool_id,
-    DoutPrefixProvider* dpp,
-    pg_shard_t whoami)> listener_factory;
-
+  /// Persistent OBC storage - emulates PrimaryLogPG's object_contexts LRU.
+  /// Keyed by hobject_t, values are shared_ptr so the same OBC is reused
+  /// across sequential operations on the same object. This is critical for
+  /// EC attr_cache continuity.
+  std::map<hobject_t, ObjectContextRef> object_contexts;
+  
+  /// Track outstanding writes per object. When this reaches 0, we can safely
+  /// clear attr_cache (as there are no in-flight writes that might have stale
+  /// cached OI data).
+  std::map<hobject_t, int> outstanding_writes;
+  
+  // OpTracker for wrapping messages in OpRequestRef
+  std::shared_ptr<OpTracker> op_tracker;
+  
   ceph::ErasureCodeInterfaceRef ec_impl;
   std::map<int, std::unique_ptr<ECExtentCache::LRU>> lrus;
   int k = 4;  // data chunks
@@ -100,13 +93,20 @@ protected:
   uint64_t stripe_unit = 4096;  // aka chunk_size
   std::string ec_plugin = "isa";
   std::string ec_technique = "reed_sol_van";
-  
+
   int num_replicas = 3;
   int min_size = 2;
   
   int64_t pool_id = 0;
   pg_t pgid;
   spg_t spgid;
+  
+  // Transaction ID counter - increments with each transaction
+  ceph_tid_t next_tid = 1;
+  
+  // Version counter for auto-generating versions in write* functions
+  // The epoch comes from osdmap, this tracks the second version number
+  uint64_t next_version = 1;
   
   class TestDpp : public NoDoutPrefix {
   public:
@@ -159,7 +159,6 @@ public:
     CephContext *cct = g_ceph_context;
     dpp = std::make_unique<TestDpp>(cct);
     event_loop = std::make_unique<EventLoop>(false);
-    op_tracker = std::make_unique<OpTracker>(cct, false, 1);
     
     if (pool_type == EC) {
       setup_ec_pool();
@@ -169,55 +168,44 @@ public:
   }
   
   void TearDown() override {
-    // 0. Process any remaining events in the EventLoop.
-    // If the test passed, orphaned events indicate a bug - warn and skip draining
-    // so the test fails loudly.  If the test already failed, drain silently to
-    // allow the rest of TearDown to complete without cascading errors.
+
     if (event_loop) {
       if (event_loop->has_events()) {
         if (!HasFailure()) {
           ADD_FAILURE() << "TearDown: " << event_loop->queued_event_count()
                         << " orphaned events remain after a passing test";
         }
-        event_loop->run_until_idle(1000);
+        event_loop->run_until_idle();
       }
     }
-    
-    // 1. Clean up all backend instances (polymorphic cleanup)
-    //    Note: We skip calling on_change() during teardown as it may access
-    //    invalid state. The backends will be destroyed anyway.
-    backends.clear();
-    
-    // 2. Clean up EC-specific resources
-    if (pool_type == EC) {
-      lrus.clear();
-      ec_impl.reset();
-    }
-    
-    // 3. Clean up listeners
-    listeners.clear();
-    
-    // 4. Reset op tracker (call on_shutdown first)
+
     if (op_tracker) {
       op_tracker->on_shutdown();
       op_tracker.reset();
     }
+
+    backends.clear();
+    object_contexts.clear();
+    outstanding_writes.clear();
     
-    // 5. Reset all collection handles
+    if (pool_type == EC) {
+      lrus.clear();
+      ec_impl.reset();
+    }
+
+    listeners.clear();
     chs.clear();
     colls.clear();
     
     if (ch) {
       ch.reset();
     }
-    
-    // 6. Unmount and destroy the store
+
     if (store) {
       store->umount();
       store.reset();
     }
-    
-    // 7. Clean up the test directory
+
     cleanup_data_dir();
   }
   
@@ -290,17 +278,89 @@ public:
     return obc;
   }
   
+  /// Get an existing OBC or create a new one.
+  /// Unlike make_object_context(), this method reuses OBCs for the same
+  /// object across operations, which is essential for attr_cache continuity
+  /// in EC pools.
+  ObjectContextRef get_or_create_obc(
+    const hobject_t& hoid,
+    bool exists = false,
+    uint64_t size = 0)
+  {
+    auto it = object_contexts.find(hoid);
+    if (it != object_contexts.end()) {
+      return it->second;
+    }
+    ObjectContextRef obc = make_object_context(hoid, exists, size);
+    
+    // If the object exists and this is an EC pool, populate attr_cache with
+    // ALL attributes from disk. This matches production behavior where the OBC
+    // is loaded with all xattrs from the object store.
+    if (exists && pool_type == EC && store && !chs.empty()) {
+      auto writes_it = outstanding_writes.find(hoid);
+      bool has_outstanding_writes = (writes_it != outstanding_writes.end() && writes_it->second > 0);
+      
+      // Only read from disk if there are no outstanding writes
+      if (!has_outstanding_writes) {
+        ObjectStore::CollectionHandle ch_primary = chs[0];
+        if (ch_primary) {
+          ghobject_t ghoid(hoid, ghobject_t::NO_GEN, shard_id_t::NO_SHARD);
+          std::map<std::string, ceph::buffer::ptr, std::less<>> attrs;
+          int r = store->getattrs(ch_primary, ghoid, attrs);
+          
+          if (r >= 0) {
+            // Successfully read all attributes from disk - populate the cache
+            for (auto& [key, value_ptr] : attrs) {
+              bufferlist bl;
+              bl.append(value_ptr);
+              obc->attr_cache[key] = std::move(bl);
+            }
+          }
+        }
+      }
+    }
+    
+    object_contexts[hoid] = obc;
+    return obc;
+  }
+  
+  /**
+   * Set the next version number for auto-generation.
+   * This can be used by tests after rollback to set the version to a specific value.
+   * The epoch will still come from the osdmap.
+   */
+  void set_next_version(uint64_t version) {
+    next_version = version;
+  }
+  
+  /**
+   * Get the next version as an eversion_t with epoch from osdmap.
+   * This auto-increments the version counter.
+   */
+  eversion_t get_next_version() {
+    epoch_t epoch = osdmap->get_epoch();
+    return eversion_t(epoch, next_version++);
+  }
+  
+  /**
+   * Read ObjectInfo from the store for an existing object.
+   * Returns an ObjectContext with the decoded ObjectInfo, or a new
+   * ObjectContext with default values if the object doesn't exist.
+   */
+  ObjectContextRef get_object_context(
+    const hobject_t& hoid);
+  
   int do_transaction_and_complete(
     const hobject_t& hoid,
     PGTransactionUPtr pg_t,
     const object_stat_sum_t& delta_stats,
     const eversion_t& at_version,
-    std::vector<pg_log_entry_t> log_entries);
+    std::vector<pg_log_entry_t> log_entries,
+    std::function<void(int)> on_write_complete = nullptr);
   
   virtual int create_and_write(
     const std::string& obj_name,
-    const std::string& data,
-    const eversion_t& at_version = eversion_t(1, 1));
+    const std::string& data);
 
 public:
   
@@ -308,8 +368,6 @@ public:
     const std::string& obj_name,
     uint64_t offset,
     const std::string& data,
-    const eversion_t& prior_version,
-    const eversion_t& at_version,
     uint64_t object_size);
 
   int read_object(
@@ -318,6 +376,63 @@ public:
     uint64_t length,
     bufferlist& out_data,
     uint64_t object_size);
+
+  /**
+   * Read an object and verify that its contents match expected data.
+   *
+   * This helper function combines read_object with assertions to verify:
+   * 1. The read operation completes successfully (result >= 0)
+   * 2. The read data length matches expected length
+   * 3. The read data content matches expected content
+   *
+   * @param obj_name Name of the object to read
+   * @param expected_data Expected data content
+   * @param offset Offset to read from (default: 0)
+   * @param context_msg Optional context message to append to assertion messages
+   */
+  void verify_object(
+    const std::string& obj_name,
+    const std::string& expected_data,
+    size_t offset,
+    size_t object_size);
+
+  /**
+   * Create and write an object, then verify it was written correctly.
+   *
+   * This helper function combines create_and_write with verify_object to:
+   * 1. Create and write the object
+   * 2. Verify the write completed successfully (result == 0)
+   * 3. Read back and verify the data matches
+   *
+   * @param obj_name Name of the object to create and write
+   * @param data Data to write
+   * @param context_msg Optional context message to append to assertion messages
+   */
+  void create_and_write_verify(
+    const std::string& obj_name,
+    const std::string& data);
+
+  /**
+   * Write to an object (potentially with offset), then verify the write succeeded.
+   *
+   * This helper function combines write with verification to:
+   * 1. Write data at the specified offset
+   * 2. Verify the write completed successfully (result == 0)
+   * 3. Read back and verify the written data matches
+   *
+   * @param obj_name Name of the object to write
+   * @param offset Offset to write at
+   * @param data Data to write
+   * @param object_size Current size of the object
+   * @param context_msg Optional context message to append to assertion messages
+   * @return The result code from the write operation
+   */
+  void write_verify(
+    const std::string& obj_name,
+    size_t offset,
+    const std::string& data,
+    size_t object_size,
+    const std::string& context_msg = "");
 
   /**
    * Update the OSDMap and trigger backend cleanup.
@@ -335,6 +450,13 @@ public:
   virtual void update_osdmap(
     std::shared_ptr<OSDMap> new_osdmap,
     std::optional<pg_shard_t> new_primary = std::nullopt);
+
+  /**
+   * Clear attr_cache for all objects.
+   * Called on on_change() to invalidate cached attributes that might be stale
+   * after a peering event or OSDMap change.
+   */
+  void clear_all_attr_caches();
 
 };
 

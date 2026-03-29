@@ -25,7 +25,12 @@
 #include "MockPGBackendListener.h"
 #include "MockPGBackend.h"
 #include "MockPGLogEntryHandler.h"
+#include "MockMessenger.h"
 #include "global/global_context.h"
+
+// Forward declarations
+class EventLoop;
+class ECPeeringTestFixture;
 
 #define dout_context g_ceph_context
 #define dout_subsys ceph_subsys_osd
@@ -44,11 +49,22 @@ class MockPeeringListener : public PeeringState::PeeringListener {
   PerfCounters* logger_perf;
   std::vector<int> next_acting;
 
+  // MockMessenger for routing cluster messages (optional - used by ECPeeringTestFixture)
+  MockMessenger* messenger = nullptr;
+  
+  // EventLoop for routing events (optional - used by ECPeeringTestFixture)
+  class EventLoop* event_loop = nullptr;
+  
+  // Fixture pointer for accessing peering state and context (optional - used by ECPeeringTestFixture)
+  class ECPeeringTestFixture* fixture = nullptr;
+
 #ifdef WITH_CRIMSON
-  // Per OSD state
+  // Per OSD state - kept for backward compatibility with TestPeeringState
+  // When messenger is set, messages are routed through it instead
   std::map<int,std::list<MessageURef>> messages;
 #else
-  // Per OSD state
+  // Per OSD state - kept for backward compatibility with TestPeeringState
+  // When messenger is set, messages are routed through it instead
   std::map<int,std::list<MessageRef>> messages;
 #endif
   std::vector<HeartbeatStampsRef> hb_stamps;
@@ -85,6 +101,30 @@ class MockPeeringListener : public PeeringState::PeeringListener {
     logger_perf = build_osd_logger(g_ceph_context);
     g_ceph_context->get_perfcounters_collection()->add(logger_perf);
   }
+  /// Constructor for ECPeeringTestFixture: accepts a pre-created backend listener
+  /// instead of creating one internally. This avoids the throw-away construction
+  /// pattern where the internally-created listener would be immediately replaced.
+  MockPeeringListener(OSDMapRef osdmap,
+                      int64_t pool_id,
+                      DoutPrefixProvider *dpp,
+                      pg_shard_t pg_whoami,
+                      std::unique_ptr<MockPGBackendListener> bl,
+                      ObjectStore *object_store,
+                      coll_t coll_arg,
+                      ObjectStore::CollectionHandle ch_arg)
+    : pg_whoami(pg_whoami),
+      backend_listener(std::move(bl)),
+      coll(coll_arg),
+      ch(ch_arg)
+  {
+    backend = std::make_unique<MockPGBackend>(
+      g_ceph_context, backend_listener.get(), object_store, coll, ch);
+    recoverystate_perf = build_recoverystate_perf(g_ceph_context);
+    g_ceph_context->get_perfcounters_collection()->add(recoverystate_perf);
+    logger_perf = build_osd_logger(g_ceph_context);
+    g_ceph_context->get_perfcounters_collection()->add(logger_perf);
+  }
+
 
   ~MockPeeringListener() {
     if (recoverystate_perf) {
@@ -134,18 +174,42 @@ class MockPeeringListener : public PeeringState::PeeringListener {
 #ifdef WITH_CRIMSON
   void send_cluster_message(
     int osd, MessageURef m, epoch_t epoch, bool share_map_update=false) override {
-    dout(0) << "send_cluster_message to " << osd << " " << m << dendl;
-    messages[osd].push_back(m);
+    dout(0) << "send_cluster_message to " << osd << " " << m << " epoch " << epoch << dendl;
+    if (messenger) {
+      // Use MockMessenger for EventLoop-based routing with epoch tracking
+      messenger->send_message(pg_whoami.osd, osd, m.detach());
+    } else {
+      // Fall back to direct message queue for TestPeeringState compatibility
+      messages[osd].push_back(m);
+    }
     messages_sent++;
   }
 #else
   void send_cluster_message(
     int osd, MessageRef m, epoch_t epoch, bool share_map_update=false) override {
-    dout(0) << "send_cluster_message to " << osd << " " << m << dendl;
-    messages[osd].push_back(m);
+    dout(0) << "send_cluster_message to " << osd << " " << m << " epoch " << epoch << dendl;
+    if (messenger) {
+      // Use MockMessenger for EventLoop-based routing with epoch tracking
+      messenger->send_message(pg_whoami.osd, osd, m.detach());
+    } else {
+      // Fall back to direct message queue for TestPeeringState compatibility
+      messages[osd].push_back(m);
+    }
     messages_sent++;
   }
 #endif
+
+  void set_messenger(MockMessenger* m) {
+    messenger = m;
+  }
+  
+  void set_event_loop(EventLoop* el) {
+    event_loop = el;
+  }
+  
+  void set_fixture(ECPeeringTestFixture* f) {
+    fixture = f;
+  }
 
   void send_pg_created(pg_t pgid) override {
     pg_created_sent = true;
@@ -203,17 +267,7 @@ class MockPeeringListener : public PeeringState::PeeringListener {
   void request_local_background_io_reservation(
     unsigned priority,
     PGPeeringEventURef on_grant,
-    PGPeeringEventURef on_preempt) override {
-    if (inject_event_stall) {
-      stalled_events.push_back(std::move(on_grant));
-    } else {
-      events.push_back(std::move(on_grant));
-    }
-    if (inject_keep_preempt) {
-      stalled_events.push_back(std::move(on_preempt));
-    }
-    io_reservations_requested++;
-  }
+    PGPeeringEventURef on_preempt) override;
 
   void update_local_background_io_priority(
     unsigned priority) override {
@@ -227,17 +281,7 @@ class MockPeeringListener : public PeeringState::PeeringListener {
   void request_remote_recovery_reservation(
     unsigned priority,
     PGPeeringEventURef on_grant,
-    PGPeeringEventURef on_preempt) override {
-    if (inject_event_stall) {
-      stalled_events.push_back(std::move(on_grant));
-    } else {
-      events.push_back(std::move(on_grant));
-    }
-    if (inject_keep_preempt) {
-      stalled_events.push_back(std::move(on_preempt));
-    }
-    remote_recovery_reservations_requested++;
-  }
+    PGPeeringEventURef on_preempt) override;
 
   void cancel_remote_recovery_reservation() override {
     remote_recovery_reservation_cancelled = true;
@@ -245,14 +289,7 @@ class MockPeeringListener : public PeeringState::PeeringListener {
 
   void schedule_event_on_commit(
     ObjectStore::Transaction &t,
-    PGPeeringEventRef on_commit) override {
-    if (inject_event_stall) {
-      stalled_events.push_back(std::move(on_commit));
-    } else {
-      events.push_back(std::move(on_commit));
-    }
-    events_on_commit_scheduled++;
-  }
+    PGPeeringEventRef on_commit) override;
 
   void update_heartbeat_peers(std::set<int> peers) override {
     heartbeat_peers_updated = true;
@@ -444,48 +481,7 @@ class MockPeeringListener : public PeeringState::PeeringListener {
     return OstreamTemp(CLOG_DEBUG, nullptr);
   }
 
-  void on_activate_complete() override {
-    dout(0) << __func__ << dendl;
-    std::list<PGPeeringEventRef> *event_queue;
-    if (inject_event_stall) {
-      event_queue = &stalled_events;
-    } else {
-      event_queue = &events;
-    }
-
-    if (ps->needs_recovery()) {
-      dout(10) << "activate not all replicas are up-to-date, queueing recovery" << dendl;
-      event_queue->push_back(
-          std::make_shared<PGPeeringEvent>(
-            get_osdmap_epoch(),
-            get_osdmap_epoch(),
-            PeeringState::DoRecovery()));
-    } else if (ps->needs_backfill()) {
-      dout(10) << "activate queueing backfill" << dendl;
-      event_queue->push_back(
-          std::make_shared<PGPeeringEvent>(
-            get_osdmap_epoch(),
-            get_osdmap_epoch(),
-            PeeringState::RequestBackfill()));
-#if POOL_MIGRATION
-    } else if (ps->needs_pool_migration()) {
-      dout(10) << "activate queueing pool migration" << dendl;
-      event_queue->push_back(
-          std::make_shared<PGPeeringEvent>(
-            get_osdmap_epoch(),
-            get_osdmap_epoch(),
-            PeeringState::DoPoolMigration()));
-#endif
-    } else {
-      dout(10) << "activate all replicas clean, no recovery" << dendl;
-      event_queue->push_back(
-          std::make_shared<PGPeeringEvent>(
-            get_osdmap_epoch(),
-            get_osdmap_epoch(),
-            PeeringState::AllReplicasRecovered()));
-    }
-    activate_complete_called = true;
-  }
+  void on_activate_complete() override;
 
   void on_activate_committed() override {
     activate_committed_called = true;

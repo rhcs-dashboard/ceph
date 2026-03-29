@@ -114,6 +114,8 @@ target_link_libraries(unittest_pglog osd os global ${CMAKE_DL_LIBS} ${BLKID_LIBR
 # unittest_peeringstate
 add_executable(unittest_peeringstate
   TestPeeringState.cc
+  $<TARGET_OBJECTS:pg_backend_test_fixture>
+  $<TARGET_OBJECTS:ec_peering_test_fixture>
   )
 add_ceph_unittest(unittest_peeringstate)
 target_link_libraries(unittest_peeringstate osd os global ${CMAKE_DL_LIBS} ${BLKID_LIBRARIES})
@@ -121,13 +123,14 @@ target_link_libraries(unittest_peeringstate osd os global ${CMAKE_DL_LIBS} ${BLK
 add_library(pg_backend_test_fixture OBJECT
   PGBackendTestFixture.cc
 )
-target_link_libraries(pg_backend_test_fixture osd os global)
+target_link_libraries(pg_backend_test_fixture osd os global GTest::GTest)
 
 # ec_peering_test_fixture: object library for ECPeeringTestFixture implementation
 add_library(ec_peering_test_fixture OBJECT
   ECPeeringTestFixture.cc
+  MockPeeringListener.cc
 )
-target_link_libraries(ec_peering_test_fixture osd os global)
+target_link_libraries(ec_peering_test_fixture osd os global GTest::GTest)
 
 # unittest_backend_basics (replaces unittest_ecbasics + unittest_replicatedbasics)
 add_executable(unittest_backend_basics
@@ -148,7 +151,7 @@ add_executable(unittest_ecfailover_with_peering
   )
 add_ceph_unittest(unittest_ecfailover_with_peering)
 target_link_libraries(unittest_ecfailover_with_peering osd os global ${CMAKE_DL_LIBS} ${BLKID_LIBRARIES})
-add_dependencies(unittest_ecfailover_with_peering ec_isa)
+add_dependencies(unittest_ecfailover_with_peering ec_isa ec_jerasure)
 # unittest_hitset
 add_executable(unittest_hitset
   hitset.cc

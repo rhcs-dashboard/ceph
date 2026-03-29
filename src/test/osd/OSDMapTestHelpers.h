@@ -178,12 +178,13 @@ public:
     int k,
     int m,
     uint64_t stripe_width,
-    uint64_t flags,
-    int64_t pool_id = 0)
+    uint64_t flags)
   {
     pg_pool_t pool;
     pool.type = pg_pool_t::TYPE_ERASURE;
+
     pool.size = k + m;
+    
     pool.min_size = k;
     pool.crush_rule = 0;
     pool.erasure_code_profile = "default";

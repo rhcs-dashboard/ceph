@@ -32,6 +32,7 @@
 #include "global/global_context.h"
 #include "test/osd/MockConnection.h"
 #include "test/osd/EventLoop.h"
+#include "test/osd/MockMessenger.h"
 #include "osd/OpRequest.h"
 
 // MockPGBackendListener - mock PGBackend::Listener and ECListener for multi-instance testing.
@@ -60,8 +61,7 @@ public:
   ObjectStore *store = nullptr;
   ObjectStore::CollectionHandle ch;
   EventLoop *event_loop = nullptr;
-  std::function<bool(OpRequestRef)> handle_message_callback;
-  std::map<int, std::function<bool(OpRequestRef)>> *message_router = nullptr;
+  MockMessenger *messenger = nullptr;
   OpTracker *op_tracker = nullptr;
   PerfCounters *perf_logger = nullptr;
 
@@ -96,12 +96,8 @@ public:
     peering_state = ps;
   }
   
-  void set_handle_message_callback(std::function<bool(OpRequestRef)> cb) {
-    handle_message_callback = cb;
-  }
-  
-  void set_message_router(std::map<int, std::function<bool(OpRequestRef)>> *router) {
-    message_router = router;
+  void set_messenger(MockMessenger *m) {
+    messenger = m;
   }
 
   // Debugging
@@ -182,35 +178,19 @@ public:
     return c;
   }
 
-  // Routes messages through EventLoop for asynchronous EC message processing.
+  // Routes messages through MockMessenger for asynchronous message processing.
   void send_message(int to_osd, Message *m) override {
     MessageRef mref(m);
     sent_messages.push_back(mref);
     sent_messages_with_dest.push_back({to_osd, mref});
     
-    if (event_loop && op_tracker && message_router) {
+    if (messenger) {
       // Capture the sender's OSD ID
       int from_osd = pg_whoami.osd;
       
-      // IMPORTANT: Encode the message payload to simulate network transmission
-      // This ensures that txn_payload is moved to the middle section for MOSDRepOp messages
-      // Without this, Transaction::decode will fail because the message structure is incomplete
-      mref->encode_payload(CEPH_FEATURES_ALL);
-      
-      event_loop->schedule_osd_message(to_osd, [this, mref, to_osd, from_osd]() {
-        if (!mref->get_connection()) {
-          // Set connection peer to the SENDER, not the destination
-          ConnectionRef conn = new MockConnection(from_osd);
-          mref->set_connection(conn);
-        }
-        OpRequestRef op = op_tracker->create_request<OpRequest>(mref.get());
-        
-        // Route to the correct shard's backend using the message router
-        auto it = message_router->find(to_osd);
-        if (it != message_router->end()) {
-          it->second(op);
-        }
-      });
+      // Use MockMessenger to route the message with epoch tracking
+      // MockMessenger handles encoding, MockConnection setup, and epoch capture
+      messenger->send_message(from_osd, to_osd, m);
     }
   }
 
@@ -659,7 +639,7 @@ public:
   const pg_missing_const_i * maybe_get_shard_missing(
     pg_shard_t peer) const override {
     if (peering_state) {
-      if (peer == peering_state->get_primary()) {
+      if (peer == primary_shard()) {
         return &peering_state->get_pg_log().get_missing();
       } else {
         auto i = peering_state->get_peer_missing().find(peer);

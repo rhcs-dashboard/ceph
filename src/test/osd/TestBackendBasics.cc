@@ -79,6 +79,61 @@ public:
   void SetUp() override {
     PGBackendTestFixture::SetUp();
   }
+
+  /**
+   * Simulate failure of multiple OSDs by marking them down in the OSDMap.
+   * This is similar to TestECFailover::simulate_osd_failure but handles
+   * multiple failures at once.
+   */
+  void simulate_multiple_osd_failures(const std::vector<int>& failed_osds) {
+    auto new_osdmap = std::make_shared<OSDMap>();
+    new_osdmap->deepish_copy_from(*osdmap);
+
+    // Build new acting set with failed OSDs replaced by CRUSH_ITEM_NONE
+    std::vector<int> new_acting;
+    int total_osds = k + m;
+    
+    for (int i = 0; i < total_osds; i++) {
+      bool is_failed = std::find(failed_osds.begin(), failed_osds.end(), i) != failed_osds.end();
+      new_acting.push_back(is_failed ? CRUSH_ITEM_NONE : i);
+    }
+    
+    // Get the pool to use pgtemp_primaryfirst transformation
+    const pg_pool_t* pool = new_osdmap->get_pg_pool(pgid.pool());
+    ceph_assert(pool != nullptr);
+    
+    // For EC pools with optimizations, pgtemp_primaryfirst reorders the acting set
+    std::vector<int> transformed_acting = new_osdmap->pgtemp_primaryfirst(*pool, new_acting);
+    
+    // Use OSDMap::Incremental to set pg_temp and mark OSDs as down
+    OSDMap::Incremental inc(new_osdmap->get_epoch() + 1);
+    inc.fsid = new_osdmap->get_fsid();
+    
+    for (int failed_osd : failed_osds) {
+      inc.new_state[failed_osd] = CEPH_OSD_EXISTS;  // Mark as down (exists but not UP)
+    }
+    
+    // Convert to mempool vector for pg_temp
+    mempool::osdmap::vector<int> pg_temp_vec(transformed_acting.begin(), transformed_acting.end());
+    inc.new_pg_temp[pgid] = pg_temp_vec;
+
+    new_osdmap->apply_incremental(inc);
+    
+    // Finalize the CRUSH map
+    new_osdmap->crush->finalize();
+
+    // Update listener shardsets to remove failed shards
+    for (int failed_osd : failed_osds) {
+      pg_shard_t failed_shard(failed_osd, shard_id_t(failed_osd));
+      for (auto& [instance_id, list] : listeners) {
+        list->shardset.erase(failed_shard);
+        list->acting_recovery_backfill_shard_id_set.erase(shard_id_t(failed_osd));
+      }
+    }
+
+    // update_osdmap will query the OSDMap to determine the primary
+    update_osdmap(new_osdmap);
+  }
 };
 
 // ---------------------------------------------------------------------------
@@ -100,9 +155,8 @@ TEST_P(TestBackendBasics, WriteThenRead) {
   std::string test_data(param.size, param.fill);
   std::string obj_name = "test_backend_" + backend_config.label + "_" + param.label;
 
-  // Execute create+write operation
-  int result = create_and_write(obj_name, test_data);
-  EXPECT_EQ(result, 0) << param.label << " write should complete successfully";
+  // Execute create+write operation and verify
+  create_and_write_verify(obj_name, test_data);
 
   // Verify messages were sent to replicas/shards
   auto* primary_listener = get_primary_listener();
@@ -125,26 +179,8 @@ TEST_P(TestBackendBasics, WriteThenRead) {
   primary_listener->sent_messages.clear();
   primary_listener->sent_messages_with_dest.clear();
 
-  // Perform the read operation
-  bufferlist read_data;
-  int read_result = read_object(
-    obj_name,
-    0,                  // offset
-    test_data.length(), // length
-    read_data,
-    test_data.length()  // object_size
-  );
-
-  EXPECT_GE(read_result, 0) << param.label << " read should complete successfully";
-
-  // Verify data length
-  ASSERT_EQ(read_data.length(), test_data.length())
-    << param.label << " read data length should match written data length";
-
-  // Verify data content
-  std::string read_string(read_data.c_str(), read_data.length());
-  EXPECT_EQ(read_string, test_data)
-    << param.label << " read data should match written data";
+  // Verify object can be read back correctly
+  verify_object(obj_name, test_data, 0, test_data.size());
 
   // For EC backends: verify read messages were sent to shards
   if (backend_config.pool_type == EC) {
@@ -195,7 +231,7 @@ TEST_P(TestBackendBasics, PartialWrite) {
   // Create initial data filled with the parameterized fill character
   std::string initial_data(initial_size, param.fill);
 
-  int result = create_and_write(obj_name, initial_data, eversion_t(1, 1));
+  int result = create_and_write(obj_name, initial_data);
   EXPECT_EQ(result, 0) << param.label << " initial write should complete successfully";
 
   // Partial write data uses the next fill character (wraps around 'z' -> 'a')
@@ -206,8 +242,6 @@ TEST_P(TestBackendBasics, PartialWrite) {
     obj_name,
     partial_offset,
     partial_data,
-    eversion_t(1, 1),  // prior_version
-    eversion_t(1, 2),  // at_version
     initial_size       // object_size
   );
   EXPECT_EQ(result, 0) << param.label << " partial write should complete successfully";
@@ -483,13 +517,8 @@ TEST_P(TestECFailover, BasicOSDMapUpdate) {
   const std::string obj_name = "test_failover_object";
   const std::string test_data = "Initial data before OSDMap change";
 
-  int result = create_and_write(obj_name, test_data);
-  EXPECT_EQ(result, 0) << "Initial write should complete successfully";
-
-  bufferlist read_data;
-  int read_result = read_object(obj_name, 0, test_data.length(), read_data, test_data.length());
-  EXPECT_GE(read_result, 0) << "Read should complete successfully";
-  ASSERT_EQ(read_data.length(), test_data.length());
+  // Write and verify initial data
+  create_and_write_verify(obj_name, test_data);
 
   auto new_osdmap = std::make_shared<OSDMap>();
   new_osdmap->deepish_copy_from(*osdmap);
@@ -502,29 +531,16 @@ TEST_P(TestECFailover, BasicOSDMapUpdate) {
   ASSERT_TRUE(primary_listener != nullptr) << "Primary listener should exist";
   EXPECT_EQ(primary_listener->osdmap, new_osdmap) << "Listener OSDMap should be updated";
 
-  bufferlist read_data2;
-  read_result = read_object(obj_name, 0, test_data.length(), read_data2, test_data.length());
-  EXPECT_GE(read_result, 0) << "Read after OSDMap update should complete successfully";
-  ASSERT_EQ(read_data2.length(), test_data.length());
-
-  std::string read_string(read_data2.c_str(), read_data2.length());
-  EXPECT_EQ(read_string, test_data) << "Data should match after OSDMap update";
+  // Verify data can still be read after OSDMap update
+  verify_object(obj_name, test_data, 0, test_data.size());
 }
 
 TEST_P(TestECFailover, PrimaryFailover) {
   const std::string obj_name = "test_primary_failover";
   const std::string test_data = "Data written before primary failover";
 
-  int result = create_and_write(obj_name, test_data);
-  EXPECT_EQ(result, 0) << "Initial write should complete successfully";
-
-  bufferlist read_data;
-  int read_result = read_object(obj_name, 0, test_data.length(), read_data, test_data.length());
-  EXPECT_GE(read_result, 0) << "Read should complete successfully";
-  ASSERT_EQ(read_data.length(), test_data.length());
-
-  std::string read_string(read_data.c_str(), read_data.length());
-  EXPECT_EQ(read_string, test_data) << "Data should match before failover";
+  // Write and verify initial data
+  create_and_write_verify(obj_name, test_data);
 
   EXPECT_TRUE(listeners[0]->pgb_is_primary())
     << "Instance 0 should be primary before failover";
@@ -553,13 +569,8 @@ TEST_P(TestECFailover, PrimaryFailover) {
   EXPECT_EQ(new_primary_backend, backends[expected_new_primary].get())
     << "get_primary_backend() should return the new primary";
 
-  bufferlist read_data_after;
-  int read_result_after = read_object(obj_name, 0, test_data.length(), read_data_after, test_data.length());
-  EXPECT_GE(read_result_after, 0) << "Degraded read should complete successfully after failover";
-  ASSERT_EQ(read_data_after.length(), test_data.length());
-
-  std::string read_string_after(read_data_after.c_str(), read_data_after.length());
-  EXPECT_EQ(read_string_after, test_data) << "Data should match after failover with EC reconstruction";
+  // Verify degraded read works after failover with EC reconstruction
+  verify_object(obj_name, test_data, 0, test_data.size());
 
   EXPECT_TRUE(new_primary_listener != nullptr) << "Primary listener should exist after failover";
   EXPECT_GT(new_primary_listener->osdmap->get_epoch(), 1)
