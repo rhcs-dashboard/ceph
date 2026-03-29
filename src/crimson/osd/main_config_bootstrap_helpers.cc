@@ -86,12 +86,11 @@ seastar::future<> populate_config_from_mon()
 }
 
 struct SeastarOption {
-  std::string option_name;  // Command-line option name
-  std::string config_key;   // Configuration key
-  Option::type_t value_type ;   // Type of configuration value
+  std::string option_name;
+  std::string config_key;
+  Option::type_t value_type;
 };
 
-// Define a list of Seastar options
 const std::vector<SeastarOption> seastar_options = {
   {"--task-quota-ms", "crimson_reactor_task_quota_ms", Option::TYPE_FLOAT},
   {"--io-latency-goal-ms", "crimson_reactor_io_latency_goal_ms", Option::TYPE_FLOAT},
@@ -100,7 +99,6 @@ const std::vector<SeastarOption> seastar_options = {
   {"--reactor-backend", "crimson_reactor_backend", Option::TYPE_STR}
 };
 
-// Function to get the option value as a string
 std::optional<std::string> get_option_value(const SeastarOption& option) {
   switch (option.value_type) {
     case Option::TYPE_FLOAT: {
