@@ -337,8 +337,7 @@ get_early_config(int argc, const char *argv[])
     int status;
     waitpid(worker, &status, 0);
 
-    // One of the parameters was taged as exit(0) in the child process
-    // so we need to check if we should exit here
+    // child exited via exit(0) for early-exit paths (e.g. --help, --version)
     if (!have_data && WIFEXITED(status) && WEXITSTATUS(status) == 0) {
       exit(0);
     }
