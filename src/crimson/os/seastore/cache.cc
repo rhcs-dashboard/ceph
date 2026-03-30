@@ -942,7 +942,7 @@ void Cache::commit_retire_extent(
   invalidate_extent(t, *ref);
 }
 
-void Cache::commit_replace_extent(
+void Cache::prepare_rewrite_publish_to_prior(
     Transaction& t,
     CachedExtentRef next,
     CachedExtentRef prev)
@@ -954,8 +954,37 @@ void Cache::commit_replace_extent(
   assert(next->get_paddr().is_absolute() || next->get_paddr().is_root());
   assert(next->version == prev->version + 1);
   const auto t_src = t.get_src();
-  bool t_rewrite = is_rewrite_transaction(t_src);
-  if (booting && !t_rewrite) {
+  assert(is_rewrite_transaction(t_src));
+
+  bool was_stable_dirty = prev->is_stable_dirty();
+  if (!was_stable_dirty) {
+    pinboard->remove(*prev);
+  }
+  prev->set_io_wait(CachedExtent::extent_state_t::DIRTY, true);
+  ceph_assert(next->committer);
+  ceph_assert(prev->committer);
+  ceph_assert(next->committer == prev->committer);
+  auto &committer = *next->committer;
+  committer.commit_state();
+  if (is_lba_backref_node(next->get_type())) {
+    committer.sync_checksum();
+  }
+  if (!was_stable_dirty) {
+    add_to_dirty(prev, &t_src);
+  }
+}
+
+void Cache::commit_replace_extent(
+    Transaction& t,
+    CachedExtentRef next,
+    CachedExtentRef prev)
+{
+  assert(next->get_paddr() == prev->get_paddr());
+  assert(next->get_paddr().is_absolute() || next->get_paddr().is_root());
+  assert(next->version == prev->version + 1);
+  const auto t_src = t.get_src();
+
+  if (booting) {
     extents_index.replace(*next, *prev);
   }
 
@@ -965,23 +994,6 @@ void Cache::commit_replace_extent(
     // add the new dirty root to front
     remove_from_dirty(prev, nullptr/* exclude root */);
     add_to_dirty(next, nullptr/* exclude root */);
-  } else if (t_rewrite) {
-    bool was_stable_dirty = prev->is_stable_dirty();
-    if (!was_stable_dirty) {
-      pinboard->remove(*prev);
-    }
-    prev->set_io_wait(CachedExtent::extent_state_t::DIRTY, true);
-    ceph_assert(next->committer);
-    ceph_assert(prev->committer);
-    ceph_assert(next->committer == prev->committer);
-    auto &committer = *next->committer;
-    committer.commit_state();
-    if (is_lba_backref_node(next->get_type())) {
-      committer.sync_checksum();
-    }
-    if (!was_stable_dirty) {
-      add_to_dirty(prev, &t_src);
-    }
   } else if (prev->is_stable_dirty()) {
     replace_dirty(next, prev, t_src);
   } else {
@@ -989,9 +1001,8 @@ void Cache::commit_replace_extent(
     add_to_dirty(next, &t_src);
   }
 
-  if (!t_rewrite || is_root_type(prev->get_type())) {
-    invalidate_extent(t, *prev);
-  }
+  invalidate_extent(t, *prev);
+
 }
 
 void Cache::invalidate_extent(
@@ -1477,7 +1488,11 @@ record_t Cache::prepare_record(
       if (i->is_mutation_pending()) {
         i->set_io_wait(CachedExtent::extent_state_t::DIRTY,
                        is_rewrite_transaction(t.get_src()));
-        commit_replace_extent(t, i, i->prior_instance);
+        if (is_rewrite_transaction(t.get_src())) {
+          prepare_rewrite_publish_to_prior(t, i, i->prior_instance);
+        } else {
+          commit_replace_extent(t, i, i->prior_instance);
+        }
       } // else, is_exist_mutation_pending():
         // - it doesn't have prior_instance to replace
         // - and add_extent() atomically below

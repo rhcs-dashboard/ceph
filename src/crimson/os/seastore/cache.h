@@ -1948,8 +1948,27 @@ private:
   /// Retire extent
   void commit_retire_extent(Transaction& t, CachedExtentRef ref);
 
-  /// Replace prev with next
+  /**
+  * commit_replace_extent()
+  * replace-and-invalidate path (to be deprecated..)
+  *
+  * Invalidates `prev` for readers (conflict-and-retry) and replaces it with `next`.
+  */
   void commit_replace_extent(Transaction& t, CachedExtentRef next, CachedExtentRef prev);
+
+  /**
+  * prepare_rewrite_publish_to_prior()
+  * Rewrite (background) pre-commit staging: publish state to prior.
+  *
+  * For background rewrite paths (TRIM_DIRTY / CLEANER_*).
+  * i.e is_rewrite_transaction().
+  *
+  * Prepares `prev` (the shared prior) to carry the committed state
+  * before commit, so readers don’t get invalidated.
+  */
+  void Cache::prepare_rewrite_publish_to_prior(Transaction& t,
+                                               CachedExtentRef next,
+                                               CachedExtentRef prev);
 
   /// Invalidate extent and mark affected transactions
   void invalidate_extent(Transaction& t, CachedExtent& extent);
