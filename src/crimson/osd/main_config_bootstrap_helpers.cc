@@ -129,7 +129,7 @@ std::optional<std::string> get_option_value(const SeastarOption& option) {
       break;
     }
     default:
-      logger().warn("get_option_value --option_name {} encountered unknown type", option.config_key);
+      logger().warn("get_option_value: {} has unknown type", option.option_name);
       return std::nullopt;
   }
   return std::nullopt;
@@ -197,7 +197,7 @@ _get_early_config(int argc, const char *argv[])
         for (const auto& option : seastar_options) {
           auto option_value = get_option_value(option);
           if (option_value) {
-            logger().info("Configure option_name {} with value : {}", option.config_key, option_value);
+            logger().info("configure {} with value: {}", option.option_name, option_value);
             ret.early_args.emplace_back(option.option_name);
             if (option.value_type != Option::TYPE_BOOL) {
               ret.early_args.emplace_back(*option_value);
