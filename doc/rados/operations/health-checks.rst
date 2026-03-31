@@ -200,7 +200,7 @@ To disable the grace period entirely (immediate reporting), set the value to 0:
    ceph config set mon mon_netsplit_grace_period 0
 
 MON_COLOCATED
-____________
+_____________
 
 Two or more Monitors are located on the same node. This health check is 
 raised when multiple Monitors share the same IP address. This check is by 
