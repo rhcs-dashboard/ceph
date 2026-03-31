@@ -2391,7 +2391,8 @@ class RgwMultisite:
             raise DashboardException(error, http_status_code=500, component='rgw')
 
     def create_zone(self, zone_name, zonegroup_name, default, master, endpoints, access_key,
-                    secret_key, tier_type):
+                    secret_key, tier_type, sync_from: Optional[str] = None,
+                    sync_from_all: Optional[str] = None):
         rgw_zone_create_cmd = ['zone', 'create']
         cmd_create_zone_options = ['--rgw-zone', zone_name]
         if zonegroup_name != 'null':
@@ -2413,6 +2414,12 @@ class RgwMultisite:
         if tier_type:
             cmd_create_zone_options.append('--tier-type')
             cmd_create_zone_options.append(tier_type)
+        if sync_from is not None:
+            cmd_create_zone_options.append('--sync-from')
+            cmd_create_zone_options.append(sync_from)
+        if sync_from_all is not None:
+            cmd_create_zone_options.append('--sync-from-all')
+            cmd_create_zone_options.append(str(sync_from_all).lower())
         rgw_zone_create_cmd += cmd_create_zone_options
         try:
             exit_code, out, err = mgr.send_rgwadmin_command(rgw_zone_create_cmd)
@@ -2434,7 +2441,8 @@ class RgwMultisite:
         return '', ''
 
     def modify_zone(self, zone_name: str, zonegroup_name: str, default: str, master: str,
-                    endpoints: str, access_key: str, secret_key: str, tier_type: str):
+                    endpoints: str, access_key: str, secret_key: str, tier_type: str,
+                    sync_from: Optional[str] = None, sync_from_all: Optional[str] = None):
         rgw_zone_modify_cmd = ['zone', 'modify', '--rgw-zonegroup',
                                zonegroup_name, '--rgw-zone', zone_name]
         if endpoints:
@@ -2453,6 +2461,12 @@ class RgwMultisite:
         if tier_type is not None:
             rgw_zone_modify_cmd.append('--tier-type')
             rgw_zone_modify_cmd.append(tier_type)
+        if sync_from is not None:
+            rgw_zone_modify_cmd.append('--sync-from')
+            rgw_zone_modify_cmd.append(sync_from)
+        if sync_from_all is not None:
+            rgw_zone_modify_cmd.append('--sync-from-all')
+            rgw_zone_modify_cmd.append(str(sync_from_all).lower())
         try:
             exit_code, _, err = mgr.send_rgwadmin_command(rgw_zone_modify_cmd)
             if exit_code > 0:
@@ -2528,7 +2542,8 @@ class RgwMultisite:
                   master: str = '', endpoints: str = '', access_key: str = '', secret_key: str = '',
                   placement_target: str = '', data_pool: str = '', index_pool: str = '',
                   data_extra_pool: str = '', storage_class: str = '', data_pool_class: str = '',
-                  compression: str = '', tier_type: str = ''):
+                  compression: str = '', tier_type: str = '', sync_from: str = '',
+                  sync_from_all: str = ''):
         if new_zone_name != zone_name:
             rgw_zone_rename_cmd = ['zone', 'rename', '--rgw-zone',
                                    zone_name, '--zone-new-name', new_zone_name]
@@ -2542,7 +2557,7 @@ class RgwMultisite:
                 raise DashboardException(error, http_status_code=500, component='rgw')
             self.update_period()
         self.modify_zone(new_zone_name, zonegroup_name, default, master, endpoints, access_key,
-                         secret_key, tier_type)
+                         secret_key, tier_type, sync_from, sync_from_all)
 
         if placement_target:
             self.add_placement_targets_storage_class_zone(

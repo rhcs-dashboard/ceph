@@ -243,3 +243,7 @@ input:-webkit-autofill:active {
 .border-subtle-inline-end {
   border-inline-end: 1px solid var(--cds-border-subtle-01);
 }
+
+.popover {
+  --bs-popover-zindex: 9999;
+}
