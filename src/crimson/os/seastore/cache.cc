@@ -942,11 +942,13 @@ void Cache::commit_retire_extent(
   invalidate_extent(t, *ref);
 }
 
-void Cache::prepare_rewrite_publish_to_prior(
+void Cache::stage_visibility_handoff(
     Transaction& t,
     CachedExtentRef next,
     CachedExtentRef prev)
 {
+  LOG_PREFIX(Cache::stage_visibility_handoff);
+  SUBDEBUGT(seastore_t, "", t);
   assert(next->get_paddr() == prev->get_paddr() ||
          // prev is being rewritten by a trim_dirty
          // or cleaner transaction
@@ -954,21 +956,23 @@ void Cache::prepare_rewrite_publish_to_prior(
   assert(next->get_paddr().is_absolute() || next->get_paddr().is_root());
   assert(next->version == prev->version + 1);
   const auto t_src = t.get_src();
-  assert(is_rewrite_transaction(t_src));
+  ceph_assert(should_use_no_conflict_publish(t_src, next->get_type()));
 
   bool was_stable_dirty = prev->is_stable_dirty();
   if (!was_stable_dirty) {
     pinboard->remove(*prev);
   }
+
+  // Block prev/prior into an io-wait state so anyone waiting on
+  // it will not proceed while we are preparing/publishing the new view.
   prev->set_io_wait(CachedExtent::extent_state_t::DIRTY, true);
   ceph_assert(next->committer);
   ceph_assert(prev->committer);
   ceph_assert(next->committer == prev->committer);
-  auto &committer = *next->committer;
-  committer.commit_state();
-  if (is_lba_backref_node(next->get_type())) {
-    committer.sync_checksum();
-  }
+
+  // commit_state() is called afer commit, a CLEAN prior may still have NULL_TIME.
+  prev->set_modify_time(next->get_modify_time());
+
   if (!was_stable_dirty) {
     add_to_dirty(prev, &t_src);
   }
@@ -1367,8 +1371,7 @@ record_t Cache::prepare_record(
       DEBUGT("invalid mutated extent -- {}", t, *i);
       continue;
     }
-    if (is_rewrite_transaction(t.get_src()) &&
-        !is_root_type(i->get_type())) {
+    if (should_use_no_conflict_publish(t.get_src(), i->get_type())) {
       i->new_committer(t);
       i->committer->block_trans(t);
     }
@@ -1484,21 +1487,25 @@ record_t Cache::prepare_record(
    * - prepare_commit()
    */
   for (auto &i: t.mutated_block_list) {
-    if (i->is_valid()) {
-      if (i->is_mutation_pending()) {
-        i->set_io_wait(CachedExtent::extent_state_t::DIRTY,
-                       is_rewrite_transaction(t.get_src()));
-        if (is_rewrite_transaction(t.get_src())) {
-          prepare_rewrite_publish_to_prior(t, i, i->prior_instance);
-        } else {
-          commit_replace_extent(t, i, i->prior_instance);
-        }
-      } // else, is_exist_mutation_pending():
-        // - it doesn't have prior_instance to replace
-        // - and add_extent() atomically below
-        // - set_io_wait(DIRTY) atomically below
+    if (!i->is_valid()) {
+      continue;
     }
-  }
+
+    if (i->is_mutation_pending()) {
+      const bool use_no_conflict = should_use_no_conflict_publish(t.get_src(), i->get_type());
+      // Block the new extent readers until the journal commit completes.
+      i->set_io_wait(CachedExtent::extent_state_t::DIRTY, use_no_conflict);
+
+      if (use_no_conflict) {
+        stage_visibility_handoff(t, i, i->prior_instance);
+      } else {
+        commit_replace_extent(t, i, i->prior_instance);
+      }
+      // else, is_exist_mutation_pending():
+      // - it doesn't have prior_instance to replace
+      // - handled by add_extent() atomically below
+      }
+    }
 
   // Transaction is now a go, set up in-memory cache state
   // invalidate now invalid blocks
@@ -1514,7 +1521,10 @@ record_t Cache::prepare_record(
     retire_stat.increment(extent->get_length());
     DEBUGT("retired and remove extent {}~0x{:x} -- {}",
 	   t, extent->get_paddr(), extent->get_length(), *extent);
-    if (is_rewrite_transaction(t.get_src())) {
+    if (should_use_no_conflict_publish(t.get_src(), extent->get_type())) {
+      // avoid extent invalidation on retirement
+      // only adjust dirty bookkeeping
+      // we would invalidate them in complete_commit final stage
       assert(extent->is_stable());
       if (extent->is_stable_dirty()) {
         remove_from_dirty(extent, &trans_src);
@@ -1635,24 +1645,19 @@ record_t Cache::prepare_record(
 	  i->get_type()));
     }
     i->set_io_wait(CachedExtent::extent_state_t::CLEAN,
-                   is_rewrite_transaction(t.get_src()));
+                   should_use_no_conflict_publish(t.get_src(), i->get_type()));
     // Note, paddr is known until complete_commit(),
     // so add_extent() later.
-    if (is_rewrite_transaction(t.get_src())) {
+    if (should_use_no_conflict_publish(t.get_src(), i->get_type())) {
       assert(i->get_prior_instance());
       assert(!i->committer);
       assert(!i->get_prior_instance()->committer);
       i->new_committer(t);
       assert(i->committer);
       auto &committer = *i->committer;
-      // this must have been a rewriten extent
-      committer.commit_state();
-      if (is_lba_backref_node(i->get_type())) {
-        committer.sync_checksum();
-      }
       committer.block_trans(t);
       i->get_prior_instance()->set_io_wait(
-        CachedExtent::extent_state_t::CLEAN, true);
+        CachedExtent::extent_state_t::CLEAN, should_use_no_conflict_publish(t.get_src(), i->get_type()));
     }
   }
 
@@ -1677,7 +1682,7 @@ record_t Cache::prepare_record(
 	  i->get_length(),
 	  i->get_type()));
     }
-    if (is_rewrite_transaction(t.get_src())) {
+    if (should_use_no_conflict_publish(t.get_src(), i->get_type())) {
       assert(i->get_prior_instance());
       assert(!i->committer);
       assert(!i->get_prior_instance()->committer);
@@ -1685,20 +1690,14 @@ record_t Cache::prepare_record(
       assert(i->committer);
       i->get_prior_instance()->committer = i->committer;
       auto &committer = *i->committer;
-      // this must have been a rewriten extent
-      committer.commit_state();
-      if (is_lba_backref_node(i->get_type())) {
-        committer.sync_checksum();
-      }
       committer.block_trans(t);
       i->get_prior_instance()->set_io_wait(
         CachedExtent::extent_state_t::CLEAN, true);
     }
     i->set_io_wait(CachedExtent::extent_state_t::CLEAN,
-                   is_rewrite_transaction(t.get_src()));
+                   should_use_no_conflict_publish(t.get_src(), i->get_type()));
     // Note, paddr is (can be) known until complete_commit(),
     // so add_extent() later.
-
   }
 
   for (auto &i: t.inplace_ool_block_list) {
@@ -1745,7 +1744,7 @@ record_t Cache::prepare_record(
     } else {
       assert(i->is_exist_mutation_pending());
       i->set_io_wait(CachedExtent::extent_state_t::DIRTY,
-                     is_rewrite_transaction(t.get_src()));
+                     should_use_no_conflict_publish(t.get_src(), i->get_type()));
     }
 
     // exist mutation pending extents must be in t.mutated_block_list
@@ -1980,7 +1979,9 @@ void Cache::complete_commit(
   for (auto &i: t.retired_set) {
     auto &extent = i.extent;
     auto trans_src = t.get_src();
-    if (is_rewrite_transaction(trans_src)) {
+    if (should_use_no_conflict_publish(trans_src, extent->get_type())) {
+     // retired extents should remain valid through complete_commit().
+     // We only free space post-commit *AFTER* handoff.
       assert(extent->is_valid());
     }
     epm.mark_space_free(extent->get_paddr(), extent->get_length());
@@ -2008,7 +2009,7 @@ void Cache::complete_commit(
     i->pending_for_transaction = TRANS_ID_NULL;
     i->on_initial_write();
     const auto t_src = t.get_src();
-    if (is_rewrite_transaction(t_src)) {
+    if (should_use_no_conflict_publish(t_src, i->get_type())) {
       ceph_assert(i->committer);
       auto &committer = *i->committer;
       auto &prior = *i->get_prior_instance();
@@ -2017,6 +2018,8 @@ void Cache::complete_commit(
              "existing, inline={} -- {}, prior={}",
              t, is_inline, *i, prior);
       prior.pending_for_transaction = TRANS_ID_NULL;
+      committer.commit_state();
+      committer.sync_checksum();
       committer.commit_and_share_paddr();
       if (is_lba_backref_node(i->get_type())) {
         committer.commit_data();
@@ -2086,7 +2089,7 @@ void Cache::complete_commit(
     if (i->version == 1 || is_root_type(i->get_type())) {
       i->dirty_from = start_seq;
       DEBUGT("commit extent done, become dirty -- {}", t, *i);
-      if (is_rewrite_transaction(t.get_src()) && !is_root_type(i->get_type())) {
+      if (should_use_no_conflict_publish(t.get_src(), i->get_type())) {
         auto &prior = *i->get_prior_instance();
         prior.dirty_from = start_seq;
         ceph_assert(i->committer);
@@ -2097,12 +2100,13 @@ void Cache::complete_commit(
       DEBUGT("commit extent done -- {}", t, *i);
     }
     i->on_delta_write(final_block_start);
-    if (is_rewrite_transaction(t.get_src()) &&
-        !is_root_type(i->get_type())) {
+    if (should_use_no_conflict_publish(t.get_src(), i->get_type())) {
       TRACET("committing paddr to prior for {}, prior={}",
         t, *i, *i->prior_instance);
       assert(i->committer);
       auto &committer = *i->committer;
+      committer.commit_state();
+      committer.sync_checksum();
       committer.unblock_trans(t);
       auto &prior = *i->prior_instance;
       prior.pending_for_transaction = TRANS_ID_NULL;
@@ -2141,14 +2145,15 @@ void Cache::complete_commit(
     commit_backref_entries(std::move(backref_entries), start_seq);
   }
 
-  if (is_rewrite_transaction(t.get_src())) {
-    t.for_each_finalized_fresh_block([&t](const CachedExtentRef &i) {
+  t.for_each_finalized_fresh_block([&t](const CachedExtentRef &i) {
+    if (should_use_no_conflict_publish(t.get_src(), i->get_type())) {
       i->set_invalid(t);
-    });
-    for (auto &i: t.mutated_block_list) {
-      if (i->get_type() != extent_types_t::ROOT) {
+    }
+  });
+
+  for (auto &i: t.mutated_block_list) {
+    if (should_use_no_conflict_publish(t.get_src(), i->get_type())) {
         i->set_invalid(t);
-      }
     }
   }
 }

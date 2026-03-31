@@ -1957,18 +1957,17 @@ private:
   void commit_replace_extent(Transaction& t, CachedExtentRef next, CachedExtentRef prev);
 
   /**
-  * prepare_rewrite_publish_to_prior()
-  * Rewrite (background) pre-commit staging: publish state to prior.
-  *
-  * For background rewrite paths (TRIM_DIRTY / CLEANER_*).
-  * i.e is_rewrite_transaction().
-  *
-  * Prepares `prev` (the shared prior) to carry the committed state
-  * before commit, so readers don’t get invalidated.
-  */
-  void Cache::prepare_rewrite_publish_to_prior(Transaction& t,
-                                               CachedExtentRef next,
-                                               CachedExtentRef prev);
+   * stage_visibility_handoff()
+   * pre-commit staging: publish state to prior (No conflict path).
+   *
+   * Used for should_use_no_conflict_publish transactions.
+   *
+   * Sets up committer + readers of `prev` (the shared prior) so that publish (state/data + paddr share)
+   * can be applied atomically later in complete_commit(). Avoiding readers invalidatation.
+ */
+void stage_visibility_handoff(Transaction& t,
+                              CachedExtentRef next,
+                              CachedExtentRef prev);
 
   /// Invalidate extent and mark affected transactions
   void invalidate_extent(Transaction& t, CachedExtent& extent);
