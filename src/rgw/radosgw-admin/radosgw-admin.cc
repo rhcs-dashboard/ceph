@@ -551,7 +551,11 @@ void usage()
   cout << "                                 additionally rados objects for incomplete multipart uploads will not be output\n";
   cout << "\nBucket list objects options:\n";
   cout << "   --max-entries                 max number of entries listed (default 1000)\n";
-  cout << "   --marker                      the marker used to specify on which entry the listing begins, default none (i.e., very first entry)\n";
+  cout << "   --marker                      object name marker to specify where listing begins (default: start from beginning)\n";
+  cout << "                                 requires ordered listing (do not use with --allow-unordered)\n";
+  cout << "   --object-version              for versioned buckets: specify the version/instance ID to start from\n";
+  cout << "                                 use together with --marker to paginate through versioned buckets\n";
+  cout << "                                 example: --marker=obj1 --object-version=abc123def456\n";
   cout << "   --show-restore-stats          if the flag is in present it will show restores stats in the bucket stats command\n";
   cout << "\n";
   generic_client_usage();
@@ -7625,7 +7629,14 @@ int main(int argc, const char **argv)
 
       params.prefix = prefix;
       params.delim = delim;
-      params.marker = rgw_obj_key(marker);
+      // Support pagination for versioned buckets using --marker and --object-version
+      // For versioned buckets: use both --marker (name) and --object-version (instance)
+      // For non-versioned buckets: use only --marker (name)
+      if (!object_version.empty()) {
+        params.marker = rgw_obj_key(marker, object_version);
+      } else {
+        params.marker = rgw_obj_key(marker);
+      }
       params.ns = ns;
       params.enforce_ns = false;
       params.list_versions = true;
