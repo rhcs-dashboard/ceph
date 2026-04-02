@@ -136,6 +136,7 @@ struct object_data_handler_test_t:
 	DEFAULT_OBJECT_METADATA_RESERVATION);
       size = 0;
       known_contents = buffer::create(4<<20 /* 4MB */);
+      known_contents.zero(true);
     }
 
     void clear() {
