@@ -120,7 +120,7 @@ namespace crimson::os::seastore::segment_manager::zbd {
   class ZBDSegmentManager final : public SegmentManager{
   // interfaces used by Device
   public:
-    seastar::future<> start(int shard_nums) final;
+    seastar::future<> start(uint32_t shard_nums) final;
 
     seastar::future<> stop() final;
 
