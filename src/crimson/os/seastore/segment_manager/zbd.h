@@ -101,12 +101,12 @@ namespace crimson::os::seastore::segment_manager::zbd {
   public:
     ZBDSegment(ZBDSegmentManager &man, segment_id_t i) : manager(man), id(i){};
 
-    segment_id_t get_segment_id() const final { return id; }
-    segment_off_t get_write_capacity() const final;
-    segment_off_t get_write_ptr() const final { return write_pointer; }
-    close_ertr::future<> close() final;
-    write_ertr::future<> write(segment_off_t offset, ceph::bufferlist bl) final;
-    write_ertr::future<> advance_wp(segment_off_t offset) final;
+    segment_id_t get_segment_id() const override { return id; }
+    segment_off_t get_write_capacity() const override;
+    segment_off_t get_write_ptr() const override { return write_pointer; }
+    close_ertr::future<> close() override;
+    write_ertr::future<> write(segment_off_t offset, ceph::bufferlist bl) override;
+    write_ertr::future<> advance_wp(segment_off_t offset) override;
 
     ~ZBDSegment() {}
   private:
@@ -120,27 +120,27 @@ namespace crimson::os::seastore::segment_manager::zbd {
   class ZBDSegmentManager final : public SegmentManager{
   // interfaces used by Device
   public:
-    seastar::future<> start(int shard_nums) final;
+    seastar::future<> start(uint32_t shard_nums) override;
 
-    seastar::future<> stop() final;
+    seastar::future<> stop() override;
 
-    Device& get_sharded_device(store_index_t store_index = 0) final;
+    Device& get_sharded_device(store_index_t store_index = 0) override;
 
-    mount_ret mount() final;
-    mkfs_ret mkfs(device_config_t meta) final;
+    mount_ret mount() override;
+    mkfs_ret mkfs(device_config_t meta) override;
 
     ZBDSegmentManager(const std::string &path, store_index_t store_index = 0)
     : device_path(path),
       store_index(store_index) {}
 
-    ~ZBDSegmentManager() final = default;
+    ~ZBDSegmentManager() override = default;
 
   //interfaces used by each shard device
   public:
-    open_ertr::future<SegmentRef> open(segment_id_t id) final;
-    close_ertr::future<> close() final;
+    open_ertr::future<SegmentRef> open(segment_id_t id) override;
+    close_ertr::future<> close() override;
 
-    release_ertr::future<> release(segment_id_t id) final;
+    release_ertr::future<> release(segment_id_t id) override;
 
     read_ertr::future<> read(
       paddr_t addr, 
@@ -148,23 +148,23 @@ namespace crimson::os::seastore::segment_manager::zbd {
       ceph::bufferptr &out) final;
     read_ertr::future<> readv(
       paddr_t addr,
-      std::vector<bufferptr> ptrs) final;
+      std::vector<bufferptr> ptrs) override;
 
-    read_ertr::future<uint32_t> get_shard_nums() final;
+    read_ertr::future<uint32_t> get_shard_nums() override;
 
-    device_type_t get_device_type() const final {
+    device_type_t get_device_type() const override {
       return device_type_t::ZBD;
     }
 
-    size_t get_available_size() const final {
+    size_t get_available_size() const override {
       return shard_info.size;
     };
 
-    extent_len_t get_block_size() const final {
+    extent_len_t get_block_size() const override {
       return metadata.block_size;
     };
 
-    segment_off_t get_segment_size() const final {
+    segment_off_t get_segment_size() const override {
       return metadata.segment_capacity;
     };
 
@@ -172,11 +172,11 @@ namespace crimson::os::seastore::segment_manager::zbd {
       return metadata.meta;
     };
 
-    device_id_t get_device_id() const final;
+    device_id_t get_device_id() const override;
 
-    secondary_device_set_t& get_secondary_devices() final;
+    secondary_device_set_t& get_secondary_devices() override;
 
-    magic_t get_magic() const final;
+    magic_t get_magic() const override;
 
     Segment::write_ertr::future<> segment_write(
     paddr_t addr,
