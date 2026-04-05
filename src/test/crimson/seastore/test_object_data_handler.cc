@@ -136,6 +136,7 @@ struct object_data_handler_test_t:
 	DEFAULT_OBJECT_METADATA_RESERVATION);
       size = 0;
       known_contents = buffer::create(4<<20 /* 4MB */);
+      known_contents.zero(true);
     }
 
     void clear() {
@@ -1007,6 +1008,18 @@ TEST_P(object_data_handler_test_t, basic_clone_write_read) {
 	read(*t, 0, 4<<20, i);
       }
     }
+  });
+}
+
+TEST_P(object_data_handler_test_t, aggregate_read) {
+  run_async([this] {
+    auto t = create_mutate_transaction();
+    write(*t, 4096, 4096, 'a');
+    write(*t, 4096 * 10, 65536, 'b');
+    write(*t, 4096 * 12, 12288, 'c');
+    write(*t, 1024 * 1024, 2048, 'd');
+    submit_transaction(std::move(t));
+    read(0, 2048 * 1024);
   });
 }
 
