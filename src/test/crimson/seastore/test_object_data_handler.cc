@@ -817,7 +817,7 @@ TEST_P(object_data_handler_test_t, multiple_remap) {
     auto base = pins.front().get_key();
     int i = 0;
     for (auto &pin : pins) {
-      assert(pin.get_key().get_byte_distance<size_t>(base) == res[i]);
+      ASSERT_EQ(pin.get_key().get_byte_distance<size_t>(base), res[i]);
       i++;
     }
     read(0, 128<<10);
@@ -883,7 +883,7 @@ TEST_P(object_data_handler_test_t, overwrite_then_read_within_transaction) {
     t = create_mutate_transaction();
     { 
       auto pins = get_mappings(*t, base, len);
-      assert(pins.size() == 1);
+      ASSERT_EQ(pins.size(), 1);
       auto pin1 = remap_pin(*t, std::move(pins.front()), 4096, 8192);
       auto ext = get_extent(*t, base + 4096, 4096 * 2);
       ASSERT_TRUE(ext->is_exist_clean());
