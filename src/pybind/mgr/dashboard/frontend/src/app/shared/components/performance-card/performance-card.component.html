@@ -31,7 +31,8 @@
             chartTitle="IOPS"
             [chartKey]="performanceTypes?.IOPS"
             [dataUnit]="metricUnitMap?.iops"
-            [rawData]="chartDataSignal()?.iops">
+            [rawData]="chartDataSignal()?.iops"
+            [decimals]="0">
           </cd-area-chart>
         </div>
         <div cdsCol
