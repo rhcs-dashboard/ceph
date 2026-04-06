@@ -492,6 +492,99 @@ else:
                 )
             )
 
+        @empty_response
+        @NvmeofCLICommand(
+            "nvmeof subsystem add_kmip_server_endpoint", model.RequestStatus,
+            success_message_template=("Adding an endpoint, with address {address}:{port}, "
+                                      "to KMIP server {server_name} on subsystem {nqn}: "
+                                      "Successful")
+        )
+        @EndpointDoc(
+            "Add a KMIP server endpoint to the subsystem",
+            parameters={
+                "nqn": Param(str, "NVMeoF subsystem NQN"),
+                "server_name": Param(str, "Name of the KMIP server the endpoint points to"),
+                "address": Param(str, "KMIP server endpoint address", True, None),
+                "port": Param(int, "KMIP server endpoint port", True, 5696),
+                "gw_group": Param(str, "NVMeoF gateway group", True, None),
+                "server_address": Param(str, "NVMeoF gateway address", True, None),
+            },
+        )
+        @convert_to_model(model.RequestStatus)
+        @handle_nvmeof_error
+        def add_kmip_server_endpoint(self, nqn: str, server_name: str,
+                                     address: Optional[str] = None,
+                                     port: Optional[int] = 5696, gw_group: Optional[str] = None,
+                                     server_address: Optional[str] = None):
+            ep = NVMeoFClient.pb2.kmip_server_endpoint(address=address, port=port)
+            return NVMeoFClient(
+                gw_group=gw_group,
+                server_address=server_address
+            ).stub.add_kmip_server_endpoints(
+                NVMeoFClient.pb2.add_kmip_server_endpoints_req(
+                    subsystem_nqn=nqn, server_name=server_name,
+                    endpoints=[ep]
+                )
+            )
+
+        @empty_response
+        @NvmeofCLICommand(
+            "nvmeof subsystem del_kmip_server_endpoint", model.RequestStatus,
+            success_message_template=("Deleting endpoint, with address {address}:{port}, from "
+                                      "KMIP server {server_name} on subsystem {nqn}: Successful")
+        )
+        @EndpointDoc(
+            "Delete a KMIP server endpoint from the subsystem",
+            parameters={
+                "nqn": Param(str, "NVMeoF subsystem NQN"),
+                "server_name": Param(str, "Name of the KMIP server the endpoint points to"),
+                "address": Param(str, "KMIP server endpoint address", True, None),
+                "port": Param(int, "KMIP server endpoint port", True, 5696),
+                "gw_group": Param(str, "NVMeoF gateway group", True, None),
+                "server_address": Param(str, "NVMeoF gateway address", True, None),
+            },
+        )
+        @convert_to_model(model.RequestStatus)
+        @handle_nvmeof_error
+        def del_kmip_server_endpoint(self, nqn: str, server_name: str,
+                                     address: Optional[str] = None,
+                                     port: Optional[int] = 5696, gw_group: Optional[str] = None,
+                                     server_address: Optional[str] = None):
+            ep = NVMeoFClient.pb2.kmip_server_endpoint(address=address, port=port)
+            return NVMeoFClient(
+                gw_group=gw_group,
+                server_address=server_address
+            ).stub.del_kmip_server_endpoints(
+                NVMeoFClient.pb2.del_kmip_server_endpoints_req(
+                    subsystem_nqn=nqn, server_name=server_name,
+                    endpoints=[ep]
+                )
+            )
+
+        @NvmeofCLICommand("nvmeof subsystem list_kmip_server_endpoints",
+                          model.SubsystemListKMIPEndpoints)
+        @EndpointDoc(
+            "List KMIP server endpoints for a subsystem or all subsystems",
+            parameters={
+                "nqn": Param(str, "Only show endpoints for this subsystem NQN", True, None),
+                "server_name": Param(str, "Only show endpoints for this KMIP server name",
+                                     True, None),
+                "gw_group": Param(str, "NVMeoF gateway group", True, None),
+                "server_address": Param(str, "NVMeoF gateway address", True, None),
+            },
+        )
+        @convert_to_model(model.SubsystemListKMIPEndpoints)
+        @handle_nvmeof_error
+        def list_eps(self, nqn: Optional[str] = None, server_name: Optional[str] = None,
+                     gw_group: Optional[str] = None, server_address: Optional[str] = None):
+            return NVMeoFClient(
+                gw_group=gw_group,
+                server_address=server_address
+            ).stub.list_kmip_server_endpoints(
+                NVMeoFClient.pb2.list_kmip_server_endpoints_req(subsystem_nqn=nqn,
+                                                                server_name=server_name)
+            )
+
         @NvmeofCLICommand("nvmeof get_subsystems", model.GetSubsystems)
         @convert_to_model(model.GetSubsystems)
         @handle_nvmeof_error
@@ -742,6 +835,17 @@ else:
                 "disable_auto_resize": Param(str, "Disable auto resize", True, None),
                 "read_only": Param(str, "Read only namespace", True, None),
                 "location": Param(str, "Gateway location for namespace", True, None),
+                "encryption_format": Param([str],
+                                           "Encryption format(s) to use, LUKS1 or LUKS2, "
+                                           "separated by commas",
+                                           True, None),
+                "encryption_algorithm": Param(str,
+                                              "Algorithm to use for encryption",
+                                              True, None),
+                "key_id": Param([str],
+                                "Key ID(s) to use for encryption pass phrases, "
+                                "separated by commas",
+                                True, None),
                 "gw_group": Param(str, "NVMeoF gateway group", True, None),
                 "server_address": Param(str, "NVMeoF gateway address", True, None),
             },
@@ -768,7 +872,24 @@ else:
             gw_group: Optional[str] = None,
             server_address: Optional[str] = None,
             rados_namespace: Optional[str] = None,
+            encryption_format: Optional[List[str]] = None,
+            encryption_algorithm: Optional[str] = None,
+            key_id: Optional[List[str]] = None,
         ):
+            encryption_format = encryption_format or []
+            key_id = key_id or []
+            if len(encryption_format) != len(key_id):
+                raise DashboardException(
+                    msg="The number of key IDs should match the number of encryption formats",
+                    code="key_ids_encryption_formats_mismatch",
+                    http_status_code=400,
+                    component="nvmeof",
+                )
+            enc_entries = [
+                NVMeoFClient.pb2.encryption_entry(
+                    format=f.strip().lower(),
+                    key_id=k.strip()
+                ) for f, k in zip(encryption_format, key_id)]
             return NVMeoFClient(
                 gw_group=gw_group,
                 server_address=server_address
@@ -788,7 +909,9 @@ else:
                     no_auto_visible=no_auto_visible,
                     disable_auto_resize=disable_auto_resize,
                     read_only=read_only,
-                    location=location
+                    location=location,
+                    encryption_entries=enc_entries,
+                    encryption_algorithm=encryption_algorithm
                 )
             )
 
@@ -822,6 +945,17 @@ else:
                     bool,
                     "Namespace will be visible only for the allowed hosts"
                 ),
+                "encryption_format": Param([str],
+                                           "Encryption format(s) to use, LUKS1 or LUKS2, "
+                                           "separated by commas",
+                                           True, None),
+                "encryption_algorithm": Param(str,
+                                              "Algorithm to use for encryption",
+                                              True, None),
+                "key_id": Param([str],
+                                "Key ID(s) to use for encryption pass phrases, "
+                                "separated by commas",
+                                True, None),
                 "gw_group": Param(str, "NVMeoF gateway group", True, None),
                 "server_address": Param(str, "Target gateway address", True, None),
             },
@@ -848,7 +982,9 @@ else:
             gw_group: Optional[str] = None,
             server_address: Optional[str] = None,
             rados_namespace: Optional[str] = None,
-
+            encryption_format: Optional[List[str]] = None,
+            encryption_algorithm: Optional[str] = None,
+            key_id: Optional[List[str]] = None,
         ):
             if size and rbd_image_size:
                 raise DashboardException(
@@ -863,6 +999,22 @@ else:
                 size_b = convert_to_bytes(size, default_unit='MB')
             if rbd_image_size:
                 rbd_image_size_b = convert_to_bytes(rbd_image_size, default_unit='MB')
+            if not encryption_format:
+                encryption_format = []
+            if not key_id:
+                key_id = []
+            if len(encryption_format) != len(key_id):
+                raise DashboardException(
+                    msg="The number of key IDs should match the number of encryption formats",
+                    code="key_ids_encryption_formats_mismatch",
+                    http_status_code=400,
+                    component="nvmeof",
+                )
+            enc_entries = [
+                NVMeoFClient.pb2.encryption_entry(
+                    format=f.strip().lower(),
+                    key_id=k.strip()
+                ) for f, k in zip(encryption_format, key_id)]
             return NVMeoFClient(
                 gw_group=gw_group,
                 server_address=server_address
@@ -882,7 +1034,9 @@ else:
                     no_auto_visible=no_auto_visible,
                     disable_auto_resize=disable_auto_resize,
                     read_only=read_only,
-                    location=location
+                    location=location,
+                    encryption_entries=enc_entries,
+                    encryption_algorithm=encryption_algorithm
                 )
             )
 
