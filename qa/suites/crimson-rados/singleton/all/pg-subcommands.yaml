@@ -28,7 +28,4 @@ tasks:
 - workunit:
     clients:
       client.0:
-        - osd/pg-subcommands.sh
-    basedir: qa/standalone
-    env:
-      PG_SUBCOMMANDS_FUNCS: "TEST_b_crimson_save_and_compare"
+        - crimson/test_pg_subcommands.sh
