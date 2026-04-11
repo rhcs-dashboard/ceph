@@ -144,7 +144,6 @@
 # Look for check failures?
 
 import argparse
-import codecs
 import datetime
 from getpass import getuser
 import git # https://github.com/gitpython-developers/gitpython
@@ -218,7 +217,7 @@ while not os.path.exists(git_dir + '/.git'):
 
 CONTRIBUTORS = {}
 NEW_CONTRIBUTORS = {}
-with codecs.open(git_dir + "/.githubmap", encoding='utf-8') as f:
+with open(git_dir + "/.githubmap", mode='r', encoding='utf-8') as f:
     comment = re.compile(r"\s*#")
     patt = re.compile(r"([\w-]+)\s+(.*)")
     for line in f:
