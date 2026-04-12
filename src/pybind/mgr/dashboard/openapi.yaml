@@ -12558,13 +12558,21 @@ paths:
     get:
       parameters:
       - allowEmptyValue: true
+        description: NVMeoF gateway group
         in: query
         name: gw_group
         schema:
           type: string
       - allowEmptyValue: true
+        description: NVMeoF gateway address
         in: query
         name: server_address
+        schema:
+          type: string
+      - allowEmptyValue: true
+        description: NVMeoF gateway address (deprecated)
+        in: query
+        name: traddr
         schema:
           type: string
       responses:
@@ -12634,6 +12642,9 @@ paths:
                 server_address:
                   description: NVMeoF gateway address
                   type: string
+                traddr:
+                  description: NVMeoF gateway address (deprecated)
+                  type: string
               required:
               - enabled
               type: object
@@ -12673,19 +12684,28 @@ paths:
   /api/nvmeof/gateway/listener_info/{nqn}:
     get:
       parameters:
-      - in: path
+      - description: NVMeoF subsystem NQN
+        in: path
         name: nqn
         required: true
         schema:
           type: string
       - allowEmptyValue: true
+        description: NVMeoF gateway group
         in: query
         name: gw_group
         schema:
           type: string
       - allowEmptyValue: true
+        description: NVMeoF gateway address
         in: query
         name: server_address
+        schema:
+          type: string
+      - allowEmptyValue: true
+        description: NVMeoF gateway address (deprecated)
+        in: query
+        name: traddr
         schema:
           type: string
       responses:
@@ -12716,13 +12736,21 @@ paths:
     get:
       parameters:
       - allowEmptyValue: true
+        description: NVMeoF gateway group
         in: query
         name: gw_group
         schema:
           type: string
       - allowEmptyValue: true
+        description: NVMeoF gateway address
         in: query
         name: server_address
+        schema:
+          type: string
+      - allowEmptyValue: true
+        description: NVMeoF gateway address (deprecated)
+        in: query
+        name: traddr
         schema:
           type: string
       responses:
@@ -12757,10 +12785,16 @@ paths:
             schema:
               properties:
                 gw_group:
+                  description: NVMeoF gateway group
                   type: string
                 log_level:
+                  description: Log level
                   type: string
                 server_address:
+                  description: NVMeoF gateway address
+                  type: string
+                traddr:
+                  description: NVMeoF gateway address (deprecated)
                   type: string
               required:
               - log_level
@@ -12802,13 +12836,21 @@ paths:
     get:
       parameters:
       - allowEmptyValue: true
+        description: NVMeoF gateway group
         in: query
         name: gw_group
         schema:
           type: string
       - allowEmptyValue: true
+        description: NVMeoF gateway address
         in: query
         name: server_address
+        schema:
+          type: string
+      - allowEmptyValue: true
+        description: NVMeoF gateway address (deprecated)
+        in: query
+        name: traddr
         schema:
           type: string
       responses:
@@ -12839,13 +12881,21 @@ paths:
     get:
       parameters:
       - allowEmptyValue: true
+        description: NVMeoF gateway group
         in: query
         name: gw_group
         schema:
           type: string
       - allowEmptyValue: true
+        description: NVMeoF gateway address
         in: query
         name: server_address
+        schema:
+          type: string
+      - allowEmptyValue: true
+        description: NVMeoF gateway address (deprecated)
+        in: query
+        name: traddr
         schema:
           type: string
       responses:
@@ -12876,18 +12926,27 @@ paths:
     get:
       parameters:
       - allowEmptyValue: true
+        description: Get all log flags
         in: query
         name: all_log_flags
         schema:
-          type: string
+          type: boolean
       - allowEmptyValue: true
+        description: NVMeoF gateway group
         in: query
         name: gw_group
         schema:
           type: string
       - allowEmptyValue: true
+        description: NVMeoF gateway address
         in: query
         name: server_address
+        schema:
+          type: string
+      - allowEmptyValue: true
+        description: NVMeoF gateway address (deprecated)
+        in: query
+        name: traddr
         schema:
           type: string
       responses:
@@ -12922,14 +12981,24 @@ paths:
             schema:
               properties:
                 extra_log_flags:
-                  type: string
+                  description: Extra log flags
+                  items:
+                    type: string
+                  type: array
                 gw_group:
+                  description: NVMeoF gateway group
                   type: string
                 log_level:
+                  description: SPDK log level
                   type: string
                 print_level:
+                  description: SPDK print level
                   type: string
                 server_address:
+                  description: NVMeoF gateway address
+                  type: string
+                traddr:
+                  description: NVMeoF gateway address (deprecated)
                   type: string
               type: object
       responses:
@@ -12974,10 +13043,18 @@ paths:
             schema:
               properties:
                 extra_log_flags:
-                  type: string
+                  description: Extra log flags
+                  items:
+                    type: string
+                  type: array
                 gw_group:
+                  description: NVMeoF gateway group
                   type: string
                 server_address:
+                  description: NVMeoF gateway address
+                  type: string
+                traddr:
+                  description: NVMeoF gateway address (deprecated)
                   type: string
               type: object
       responses:
@@ -13017,13 +13094,21 @@ paths:
     get:
       parameters:
       - allowEmptyValue: true
+        description: NVMeoF gateway group
         in: query
         name: gw_group
         schema:
           type: string
       - allowEmptyValue: true
+        description: NVMeoF gateway address
         in: query
         name: server_address
+        schema:
+          type: string
+      - allowEmptyValue: true
+        description: NVMeoF gateway address (deprecated)
+        in: query
+        name: traddr
         schema:
           type: string
       responses:
@@ -13091,6 +13176,9 @@ paths:
                 server_address:
                   description: NVMeoF gateway address
                   type: string
+                traddr:
+                  description: NVMeoF gateway address (deprecated)
+                  type: string
               required:
               - nqn
               type: object
@@ -13154,6 +13242,12 @@ paths:
         name: server_address
         schema:
           type: string
+      - allowEmptyValue: true
+        description: NVMeoF gateway address (deprecated)
+        in: query
+        name: traddr
+        schema:
+          type: string
       responses:
         '202':
           content:
@@ -13207,6 +13301,12 @@ paths:
         name: server_address
         schema:
           type: string
+      - allowEmptyValue: true
+        description: NVMeoF gateway address (deprecated)
+        in: query
+        name: traddr
+        schema:
+          type: string
       responses:
         '200':
           content:
@@ -13252,6 +13352,12 @@ paths:
         name: server_address
         schema:
           type: string
+      - allowEmptyValue: true
+        description: NVMeoF gateway address (deprecated)
+        in: query
+        name: traddr
+        schema:
+          type: string
       responses:
         '200':
           content:
@@ -13295,6 +13401,12 @@ paths:
         description: NVMeoF gateway address
         in: query
         name: server_address
+        schema:
+          type: string
+      - allowEmptyValue: true
+        description: NVMeoF gateway address (deprecated)
+        in: query
+        name: traddr
         schema:
           type: string
       responses:
@@ -13348,6 +13460,9 @@ paths:
                   type: string
                 server_address:
                   description: NVMeoF gateway address
+                  type: string
+                traddr:
+                  description: NVMeoF gateway address (deprecated)
                   type: string
               required:
               - host_nqn
@@ -13412,6 +13527,12 @@ paths:
         name: server_address
         schema:
           type: string
+      - allowEmptyValue: true
+        description: NVMeoF gateway address (deprecated)
+        in: query
+        name: traddr
+        schema:
+          type: string
       responses:
         '202':
           content:
@@ -13473,6 +13594,9 @@ paths:
                   type: string
                 server_address:
                   description: NVMeoF gateway address
+                  type: string
+                traddr:
+                  description: NVMeoF gateway address (deprecated)
                   type: string
               required:
               - dhchap_controller_key
@@ -13539,6 +13663,9 @@ paths:
                 server_address:
                   description: NVMeoF gateway address
                   type: string
+                traddr:
+                  description: NVMeoF gateway address (deprecated)
+                  type: string
               required:
               - dhchap_key
               type: object
@@ -13601,6 +13728,9 @@ paths:
                 server_address:
                   description: NVMeoF gateway address
                   type: string
+                traddr:
+                  description: NVMeoF gateway address (deprecated)
+                  type: string
               type: object
       responses:
         '200':
@@ -13661,6 +13791,9 @@ paths:
                 server_address:
                   description: NVMeoF gateway address
                   type: string
+                traddr:
+                  description: NVMeoF gateway address (deprecated)
+                  type: string
               type: object
       responses:
         '200':
@@ -13714,6 +13847,12 @@ paths:
         description: NVMeoF gateway address
         in: query
         name: server_address
+        schema:
+          type: string
+      - allowEmptyValue: true
+        description: NVMeoF gateway address (deprecated)
+        in: query
+        name: traddr
         schema:
           type: string
       responses:
@@ -13929,6 +14068,12 @@ paths:
         name: server_address
         schema:
           type: string
+      - allowEmptyValue: true
+        description: NVMeoF gateway address (deprecated)
+        in: query
+        name: traddr
+        schema:
+          type: string
       responses:
         '200':
           content:
@@ -14037,6 +14182,9 @@ paths:
                 size:
                   description: Deprecated. Use `rbd_image_size` instead
                   type: integer
+                traddr:
+                  description: NVMeoF gateway address (deprecated)
+                  type: string
                 trash_image:
                   default: false
                   description: Trash the RBD image when namespace is removed
@@ -14110,6 +14258,12 @@ paths:
         name: server_address
         schema:
           type: string
+      - allowEmptyValue: true
+        description: NVMeoF gateway address (deprecated)
+        in: query
+        name: traddr
+        schema:
+          type: string
       responses:
         '202':
           content:
@@ -14167,6 +14321,12 @@ paths:
         description: NVMeoF gateway address
         in: query
         name: server_address
+        schema:
+          type: string
+      - allowEmptyValue: true
+        description: NVMeoF gateway address (deprecated)
+        in: query
+        name: traddr
         schema:
           type: string
       responses:
@@ -14236,6 +14396,9 @@ paths:
                 server_address:
                   description: NVMeoF gateway address
                   type: string
+                traddr:
+                  description: NVMeoF gateway address (deprecated)
+                  type: string
                 trash_image:
                   description: Trash RBD image after removing namespace
                   type: boolean
@@ -14299,6 +14462,9 @@ paths:
                   type: string
                 server_address:
                   description: NVMeoF gateway address
+                  type: string
+                traddr:
+                  description: NVMeoF gateway address (deprecated)
                   type: string
               required:
               - host_nqn
@@ -14364,6 +14530,9 @@ paths:
                   type: integer
                 server_address:
                   description: NVMeoF gateway address
+                  type: string
+                traddr:
+                  description: NVMeoF gateway address (deprecated)
                   type: string
               type: object
       responses:
@@ -14432,6 +14601,9 @@ paths:
                 server_address:
                   description: NVMeoF gateway address
                   type: string
+                traddr:
+                  description: NVMeoF gateway address (deprecated)
+                  type: string
               required:
               - auto_visible
               type: object
@@ -14498,6 +14670,9 @@ paths:
                 server_address:
                   description: NVMeoF gateway address
                   type: string
+                traddr:
+                  description: NVMeoF gateway address (deprecated)
+                  type: string
               required:
               - host_nqn
               type: object
@@ -14561,6 +14736,12 @@ paths:
         name: server_address
         schema:
           type: string
+      - allowEmptyValue: true
+        description: NVMeoF gateway address (deprecated)
+        in: query
+        name: traddr
+        schema:
+          type: string
       responses:
         '200':
           content:
@@ -14610,6 +14791,9 @@ paths:
                   type: string
                 server_address:
                   description: NVMeoF gateway address
+                  type: string
+                traddr:
+                  description: NVMeoF gateway address (deprecated)
                   type: string
               type: object
       responses:
@@ -14673,6 +14857,9 @@ paths:
                   type: integer
                 server_address:
                   description: NVMeoF gateway address
+                  type: string
+                traddr:
+                  description: NVMeoF gateway address (deprecated)
                   type: string
               required:
               - rbd_image_size
@@ -14739,6 +14926,9 @@ paths:
                   type: string
                 server_address:
                   description: NVMeoF gateway address
+                  type: string
+                traddr:
+                  description: NVMeoF gateway address (deprecated)
                   type: string
               required:
               - auto_resize_enabled
@@ -14815,6 +15005,9 @@ paths:
                 server_address:
                   description: NVMeoF gateway address
                   type: string
+                traddr:
+                  description: NVMeoF gateway address (deprecated)
+                  type: string
                 w_mbytes_per_second:
                   description: Write MB/s
                   type: integer
@@ -14880,6 +15073,9 @@ paths:
                   type: boolean
                 server_address:
                   description: NVMeoF gateway address
+                  type: string
+                traddr:
+                  description: NVMeoF gateway address (deprecated)
                   type: string
               required:
               - rbd_trash_image_on_delete
