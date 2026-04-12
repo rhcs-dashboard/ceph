@@ -43,6 +43,7 @@ class GatewayInfo(NamedTuple):
     max_subsystems: Annotated[int, CliFlags.DROP]
     gateway_initialization_over: Annotated[bool, CliFlags.DROP]
     io_stats_enabled: Annotated[bool, CliFlags.DROP]
+    location: Annotated[str, CliFlags.DROP]
     spdk_version: Optional[str] = ""
 
 
