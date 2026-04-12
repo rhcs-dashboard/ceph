@@ -22,7 +22,8 @@
 #include "crimson/mon/MonClient.h"
 #include "crimson/net/Messenger.h"
 
-#include <sys/wait.h> // for waitpid()
+#include <fcntl.h>
+#include <sys/wait.h>
 
 using namespace std::literals;
 using crimson::common::local_conf;
@@ -286,7 +287,7 @@ get_early_config(int argc, const char *argv[])
     exit(0);
   }
   int pipes[2];
-  int r = pipe2(pipes, 0);
+  int r = pipe2(pipes, O_CLOEXEC);
   if (r < 0) {
     std::cerr << "get_early_config: failed to create pipes: "
 	      << -errno << std::endl;
