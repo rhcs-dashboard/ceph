@@ -13971,6 +13971,15 @@ paths:
                   default: false
                   description: Disable auto resize
                   type: string
+                encryption_algorithm:
+                  description: Algorithm to use for encryption
+                  type: string
+                encryption_format:
+                  description: Encryption format(s) to use, LUKS1 or LUKS2, separated
+                    by commas
+                  items:
+                    type: string
+                  type: array
                 force:
                   default: false
                   description: Force create namespace even it image is used by other
@@ -13979,6 +13988,12 @@ paths:
                 gw_group:
                   description: NVMeoF gateway group
                   type: string
+                key_id:
+                  description: Key ID(s) to use for encryption pass phrases, separated
+                    by commas
+                  items:
+                    type: string
+                  type: array
                 load_balancing_group:
                   description: Load balancing group
                   type: integer
