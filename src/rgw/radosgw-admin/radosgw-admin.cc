@@ -459,7 +459,8 @@ void usage()
   cout << "   --bucket-index-max-shards         override a zone/zonegroup's default bucket index shard count\n";
   cout << "   --fix                             besides checking bucket index, will also fix it\n";
   cout << "   --check-objects                   bucket check: rebuilds bucket index according to actual objects state\n";
-  cout << "   --format=<format>                 specify output format for certain operations: xml, json\n";
+  cout << "   --format=<format>                 specify output format for certain operations: xml, json (default: json)\n";
+  cout << "   --pretty-format                   enable pretty formatting for json/xml output\n";
   cout << "   --purge-data                      when specified, user removal will also purge all the\n";
   cout << "                                     user data\n";
   cout << "   --purge-keys                      when specified, subuser removal will also purge all the\n";
