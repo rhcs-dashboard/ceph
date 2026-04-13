@@ -688,7 +688,7 @@ void PGRecovery::request_backfill()
 void PGRecovery::all_replicas_recovered()
 {
   LOG_PREFIX(PGRecovery::all_replicas_recovered);
-  DEBUGDPP("", *pg->get_dpp());
+  DEBUGDPP("posting AllReplicasRecovered event", *pg->get_dpp());
   start_peering_event_operation_listener(PeeringState::AllReplicasRecovered());
 }
 
