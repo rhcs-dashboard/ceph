@@ -226,10 +226,12 @@ describe('PoolFormComponent', () => {
 
     it('is invalid at the beginning all sub forms are valid', () => {
       expect(form.valid).toBeFalsy();
-      ['name', 'poolType', 'pgNum'].forEach((name) => formHelper.expectError(name, 'required'));
-      ['size', 'crushRule', 'erasureProfile', 'ecOverwrites'].forEach((name) =>
-        formHelper.expectValid(name)
-      );
+      // With default poolType 'replicated', expect 'name' required.
+      ['name'].forEach((name) => formHelper.expectError(name, 'required'));
+      // For replicated type with multiple crush rules, 'crushRule' is required.
+      formHelper.expectError('crushRule', 'required');
+      // Other fields are valid by default.
+      ['size', 'erasureProfile', 'ecOverwrites'].forEach((name) => formHelper.expectValid(name));
       expect(component.form.get('compression').valid).toBeTruthy();
     });
 
@@ -247,12 +249,13 @@ describe('PoolFormComponent', () => {
     });
 
     it('validates poolType', () => {
-      formHelper.expectError('poolType', 'required');
+      // Default is 'replicated' now, so just verify switching remains valid
       formHelper.expectValidChange('poolType', 'erasure');
       formHelper.expectValidChange('poolType', 'replicated');
     });
 
     it('validates that pgNum is required creation mode', () => {
+      formHelper.setValue('pgNum', '');
       formHelper.expectError(form.get('pgNum'), 'required');
     });
 
@@ -270,6 +273,8 @@ describe('PoolFormComponent', () => {
       formHelper.setValue('name', 'some-name');
       formHelper.setValue('poolType', 'erasure');
       fixture.detectChanges();
+      // Recompute crushRule validator since it depends on poolType
+      form.get('crushRule').updateValueAndValidity();
       setPgNum(1);
       expect(form.valid).toBeTruthy();
     });
@@ -1192,6 +1197,8 @@ describe('PoolFormComponent', () => {
           poolType: 'erasure',
           pgNum: 4
         });
+        // Ensure crushRule validator clears when switching to erasure
+        form.get('crushRule').updateValueAndValidity();
       });
 
       it('minimum requirements without ECP to create ec pool', () => {
@@ -1204,6 +1211,8 @@ describe('PoolFormComponent', () => {
           poolType: 'erasure',
           pgNum: 4
         });
+        // Ensure crushRule validator clears when switching to erasure
+        form.get('crushRule').updateValueAndValidity();
         expectValidSubmit({
           pool: 'minECPool',
           pool_type: 'erasure',
