@@ -340,6 +340,10 @@ else:
                 "network_mask": Param([str],
                                       "Network mask to automatically create listeners",
                                       True, None),
+                "port": Param(int, "Port to use for the created listeners", True, None),
+                "secure_listeners": Param(bool,
+                                          "Make all the auto-listeners for this subsystem secure",
+                                          True, False),
             },
         )
         @convert_to_model(model.SubsystemStatus)
@@ -348,7 +352,8 @@ else:
                    max_namespaces: Optional[int] = None, no_group_append: Optional[bool] = False,
                    serial_number: Optional[str] = None, dhchap_key: Optional[str] = None,
                    gw_group: Optional[str] = None, server_address: Optional[str] = None,
-                   network_mask: Optional[List[str]] = None):
+                   network_mask: Optional[List[str]] = None,
+                   port: Optional[int] = None, secure_listeners: Optional[bool] = False):
             return NVMeoFClient(
                 gw_group=gw_group,
                 server_address=server_address
@@ -358,6 +363,7 @@ else:
                     max_namespaces=max_namespaces, enable_ha=True,
                     no_group_append=no_group_append,
                     dhchap_key=dhchap_key, network_mask=network_mask,
+                    port=port, secure_listeners=secure_listeners
                 )
             )
 
