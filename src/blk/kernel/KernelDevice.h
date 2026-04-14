@@ -101,6 +101,8 @@ private:
                    bool async = true,
                    bool force = false) override;
 
+  void collect_alerts(osd_alert_list_t& alerts, const std::string& device_name) override;
+
   int _aio_start();
   void _aio_stop();
 
