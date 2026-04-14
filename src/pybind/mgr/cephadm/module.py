@@ -62,7 +62,7 @@ from mgr_module import (
     NotifyType,
     MonCommandFailed,
 )
-from mgr_util import build_url
+from mgr_util import build_url, NvmeofMetadataPoolHelper
 import orchestrator
 from orchestrator.module import to_format, Format
 
@@ -3922,6 +3922,8 @@ Then run the following:
             nvmeof_spec = cast(NvmeofServiceSpec, spec)
             assert nvmeof_spec.pool is not None, "Pool cannot be None for nvmeof services"
             assert nvmeof_spec.service_id is not None  # for mypy
+            if nvmeof_spec.pool == '.nvmeof':
+                NvmeofMetadataPoolHelper(self).create_pool_if_needed()
             try:
                 self._check_pool_exists(nvmeof_spec.pool, nvmeof_spec.service_name())
             except OrchestratorError as e:
