@@ -820,6 +820,12 @@ Options
 
     Specify output format for certain operations. Supported formats: xml, json.
 
+.. option:: --pretty-format
+
+    Enable pretty formatting for JSON/XML output with indentation and newlines.
+    If no format is specified, default is true. Use ``--format <json/xml>`` to disable
+    for more compact output.
+
 .. option:: --sync-stats
 
     Option for the 'user stats' command. When specified, it will update user stats with
