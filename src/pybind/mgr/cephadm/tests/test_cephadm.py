@@ -87,12 +87,15 @@ def with_daemon(cephadm_module: CephadmOrchestrator, spec: ServiceSpec, host: st
 
 @contextmanager
 def with_osd_daemon(cephadm_module: CephadmOrchestrator, _run_cephadm, host: str, osd_id: int, ceph_volume_lvm_list=None):
+    # OSD is in the cluster map but still down (no cephadm daemon yet). If up==1,
+    # get_osd_uuid_map(only_up=True) would list it in before_osd_uuid_map and
+    # deploy_osd_daemons_for_existing_osds would skip deploying the daemon.
     cephadm_module.mock_store_set('_ceph_get', 'osd_map', {
         'osds': [
             {
                 'osd': 1,
                 'up_from': 0,
-                'up': True,
+                'up': 0,
                 'uuid': 'uuid'
             }
         ]
@@ -146,6 +149,39 @@ def with_osd_daemon(cephadm_module: CephadmOrchestrator, _run_cephadm, host: str
 
 
 class TestCephadm(object):
+
+    def test_get_osd_uuid_map_includes_down_osds_when_only_up_false(self, cephadm_module):
+        cephadm_module.mock_store_set('_ceph_get', 'osd_map', {
+            'osds': [
+                {'osd': 0, 'up': 1, 'uuid': 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'},
+                {'osd': 1, 'up': 0, 'uuid': 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'},
+            ]
+        })
+        m = cephadm_module.get_osd_uuid_map(only_up=False)
+        assert m == {
+            '0': 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+            '1': 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+        }
+
+    def test_get_osd_uuid_map_only_up_includes_only_up_osds(self, cephadm_module):
+        cephadm_module.mock_store_set('_ceph_get', 'osd_map', {
+            'osds': [
+                {'osd': 0, 'up': 1, 'uuid': 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'},
+                {'osd': 1, 'up': 0, 'uuid': 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'},
+            ]
+        })
+        m = cephadm_module.get_osd_uuid_map(only_up=True)
+        assert m == {'0': 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'}
+
+    @mock.patch('cephadm.services.osd.to_thread', new_callable=mock.AsyncMock)
+    def test_deploy_osd_daemons_wait_for_latest_osdmap_failure(self, mock_to_thread, cephadm_module):
+        mock_to_thread.return_value = -5
+        with pytest.raises(OrchestratorError, match='wait_for_latest_osdmap failed'):
+            cephadm_module.wait_async(
+                cephadm_module.osd_service.deploy_osd_daemons_for_existing_osds(
+                    'test',
+                    DriveGroupSpec(service_type='osd', service_id=''),
+                    replace_osd_ids=[]))
 
     def test_get_unique_name(self, cephadm_module):
         # type: (CephadmOrchestrator) -> None
@@ -1576,6 +1612,13 @@ class TestCephadm(object):
                         dd2.status = DaemonDescriptionStatus.error
                         cephadm_module.cache.update_host_daemons(dd1.hostname, {dd1.name(): dd1})
                         cephadm_module.cache.update_host_daemons(dd2.hostname, {dd2.name(): dd2})
+                        # _check_for_moved_osds removes the stray duplicate only if
+                        # get_osd_by_id reports the osd as up
+                        cephadm_module.mock_store_set('_ceph_get', 'osd_map', {
+                            'osds': [
+                                {'osd': 1, 'up_from': 0, 'up': 1, 'uuid': 'uuid'}
+                            ]
+                        })
                         CephadmServe(cephadm_module)._check_for_moved_osds()
                         assert len(cephadm_module.cache.get_daemons()) == 1
 
