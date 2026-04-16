@@ -64,7 +64,13 @@
 * RBD: Mirror snapshot creation and trash purge schedules are now automatically
   staggered when no explicit "start-time" is specified. This reduces scheduling
   spikes and distributes work more evenly over time.
-
+* RBD: Introduced a new ``RBD_LOCK_MODE_EXCLUSIVE_TRANSIENT`` policy for
+  ``rbd_lock_acquire()``. This is a low-level interface intended to allow
+  a peer to grab exclusive lock manually for short periods of time with other
+  peers pausing their activity and waiting for the lock to be released rather
+  than instantly aborting I/O and returning an error. It's possible to switch
+  from ``RBD_LOCK_MODE_EXCLUSIVE`` to ``RBD_LOCK_MODE_EXCLUSIVE_TRANSIENT``
+  policy and vice versa even if the lock is already held.
 * OSD: A health warning is reported when BlueFS usage exceeds the
   configured ratio of the main OSD data device size. This warning is
   informational and can be muted with:
