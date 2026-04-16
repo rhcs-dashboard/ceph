@@ -133,7 +133,7 @@ class RgwMultisiteStatus(RESTController):
                                     zonegroup_endpoints=None, zone_name=None, tier_type=None,
                                     zone_endpoints=None, username=None, cluster_fsid=None,
                                     replication_zone_name=None, cluster_details=None,
-                                    selectedRealmName=None):
+                                    selectedRealmName=None, secondary_tier_type=None):
         multisite_instance = RgwMultisiteAutomation()
         result = multisite_instance.setup_multisite_replication(realm_name, zonegroup_name,
                                                                 zonegroup_endpoints, zone_name,
@@ -141,7 +141,8 @@ class RgwMultisiteStatus(RESTController):
                                                                 username, cluster_fsid,
                                                                 replication_zone_name,
                                                                 cluster_details,
-                                                                selectedRealmName)
+                                                                selectedRealmName,
+                                                                secondary_tier_type)
         return result
 
     @RESTController.Collection(method='PUT', path='/setup-rgw-credentials')
@@ -1385,9 +1386,10 @@ class RgwRealm(RESTController):
     @UpdatePermission
     @allow_empty_body
     # pylint: disable=W0613
-    def import_realm_token(self, realm_token, zone_name, port, placement_spec=None):
+    def import_realm_token(self, realm_token, zone_name, port, placement_spec=None, tier_type=None):
         try:
-            result = CephService.import_realm_token(realm_token, zone_name, port, placement_spec)
+            result = CephService.import_realm_token(realm_token, zone_name, port, placement_spec,
+                                                    tier_type)
             return result
         except NoRgwDaemonsException as e:
             raise DashboardException(e, http_status_code=404, component='rgw')

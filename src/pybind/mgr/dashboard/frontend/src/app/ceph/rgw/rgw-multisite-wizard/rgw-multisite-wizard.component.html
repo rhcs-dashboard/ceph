@@ -289,6 +289,19 @@
                         i18n>This field is required.</span>
                 </div>
               </div>
+              <div class="form-group row">
+                <div class="cd-col-form-offset">
+                  <input type="checkbox"
+                         formControlName="secondary_archive_zone"
+                         id="secondary_archive_zone">
+                  <label for="secondary_archive_zone"
+                         class="custom-control-label cds-ml-3"
+                         i18n>Archive</label>
+                  <cd-help-text>
+                    <span i18n>Enable archival storage to keep all object versions and protect data from deletion or corruption.</span>
+                  </cd-help-text>
+                </div>
+              </div>
             </ng-template>
             <div *ngSwitchCase="3"
                  class="ms-5">
