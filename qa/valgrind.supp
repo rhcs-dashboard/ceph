@@ -1,16 +1,12 @@
-
 {
    <allthefrees, so we can behave with tcmalloc>
    Memcheck:Free
    fun:free
-   ...
 }
 {
-   operator delete[] in Rados::shutdown
+   <allthefrees, so we can behave with tcmalloc>
    Memcheck:Free
-   fun:_ZdaPvm
-   ...
-   fun:_ZN8librados7v14_2_05Rados8shutdownEv
+   fun:_Zda*
 }
 {
    older boost mersenne twister uses uninitialized memory for randomness
@@ -582,14 +578,6 @@
         fun:(below main)
 }
 {
-        rocksdb mismatched free bluestore close
-        Memcheck:Free
-        fun:_ZdaPvmSt11align_val_t
-        fun:_ZN12RocksDBStore5closeEv
-        fun:_ZN12RocksDBStoreD*Ev
-        ...
-}
-{
 	libstdc++ leak on xenial
 	Memcheck:Leak
 	fun:malloc
@@ -857,12 +845,6 @@
    ...
 }
 {
-   co_compose bug manifesting under Ubuntu only
-   Memcheck:Free
-   fun:_ZdaPvm
-   ...
-}
-{
    OpenSSL leak still reachable
    Memcheck:Leak
    match-leak-kinds: reachable
@@ -951,27 +933,6 @@
    ...
    fun:*ProtocolV2*
    ...
-}
-{
-   rocky10_gcc14_mismatch_delete_map_erase
-   Memcheck:Free
-   fun:_Zda*align_val_t*
-   ...
-   fun:*global_init_prefork*
-}
-{
-   rocky10_gcc14_mismatch_delete_map_erase
-   Memcheck:Free
-   fun:_Zda*align_val_t*
-   ...
-   fun:*ceph6common11CephContext*
-}
-{
-   rocky10_gcc14_mismatch_delete_map_erase
-   Memcheck:Free
-   fun:_Zda*align_val_t*
-   ...
-   fun:exit
 }
 {
    rocky10 still reachable rocksdb leak
