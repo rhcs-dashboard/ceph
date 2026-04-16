@@ -307,9 +307,6 @@ public:
     // determine device name for underlying hardware
     std::set<std::string> raw_devices;
     get_raw_devices(logdevname, &raw_devices);
-    if (raw_devices.size() > 1) {
-      ceph_abort("Device " + logdevname_a + " consist of "+ raw_devices.size() + " devices: " + raw_devices);
-    }
     for (auto& d : raw_devices) {
       std::string devpath = "/sys/block/" + d + "/device/";
       uint32_t vendor;
@@ -319,6 +316,13 @@ public:
                  << " vendor=" << vendor << " at " << devpath << dendl;
         // get vendor and device id of underlying hardware, compare with FCM ids
         if (vendor == 0x1014 && device == 0x0634) {
+          if (raw_devices.size() > 1) {
+            derr << __func__
+                 << "Device " << logdevname_a << " consist of " << raw_devices.size()
+                 << " devices: " << raw_devices
+                 << dendl;
+            ceph_abort("Multi-device volumes are unsupported for FCM plugin");
+          }
           fcm_devices.push_back(fcm_dev(d));
           dout(1) << __func__ << " Found FCM vendor/device id on " << d << dendl;
         }
