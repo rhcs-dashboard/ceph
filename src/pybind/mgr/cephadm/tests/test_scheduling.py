@@ -1916,7 +1916,7 @@ def test_blocking_daemon_host(
             ],
             [],
             None,
-            ['nfs:host1'],
+            ['nfs:host1(*:2049,9587)'],
             [],
             ['nfs.nfs2']  # to_remove
         ),
@@ -1960,7 +1960,7 @@ def test_blocking_daemon_host(
                 DaemonDescription('keepalived', 'ingress4', 'host4'),
             ],
             None,
-            ['nfs:host3', 'nfs:host4'],
+            ['nfs:host3(*:2049,9587)', 'nfs:host4(*:2049,9587)'],
             [],
             ['nfs.nfs1', 'nfs.nfs2']  # to_remove
         ),
@@ -1980,7 +1980,7 @@ def test_blocking_daemon_host(
                 DaemonDescription('keepalived', 'ingress3', 'host3'),
             ],
             {0: {1: '0.1', 2: '0.2'}, 1: {1: '1.1'}},
-            ['nfs:host1(rank=0.2)', 'nfs:host3(rank=1.1)'],
+            ['nfs:host1(rank=0.2 *:2049,9587)', 'nfs:host3(rank=1.1 *:2049,9587)'],
             [],
             ['nfs.0.1']
         ),
