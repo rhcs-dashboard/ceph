@@ -152,7 +152,7 @@ else:
         @handle_nvmeof_error
         def set_log_level(self, log_level: str, gw_group: Optional[str] = None,
                           server_address: Optional[str] = None):
-            log_level = log_level.lower()
+            log_level = log_level.strip().lower()
             gw_log_level = NVMeoFClient(gw_group=gw_group,
                                         server_address=server_address).stub.set_gateway_log_level(
                 NVMeoFClient.pb2.set_gateway_log_level_req(log_level=log_level)
@@ -254,8 +254,8 @@ else:
                                extra_log_flags: Optional[List[str]] = None,
                                gw_group: Optional[str] = None,
                                server_address: Optional[str] = None):
-            log_level = log_level.upper() if log_level else None
-            print_level = print_level.upper() if print_level else None
+            log_level = log_level.strip().upper() if log_level else None
+            print_level = print_level.strip().upper() if print_level else None
             spdk_log_level = NVMeoFClient(
                 gw_group=gw_group,
                 server_address=server_address
@@ -896,6 +896,7 @@ else:
                     format=f.strip().lower(),
                     key_id=k.strip()
                 ) for f, k in zip(encryption_format, key_id)]
+            enc_alg = encryption_algorithm.strip().lower() if encryption_algorithm else None
             return NVMeoFClient(
                 gw_group=gw_group,
                 server_address=server_address
@@ -917,7 +918,7 @@ else:
                     read_only=read_only,
                     location=location,
                     encryption_entries=enc_entries,
-                    encryption_algorithm=encryption_algorithm
+                    encryption_algorithm=enc_alg
                 )
             )
 
@@ -1021,6 +1022,7 @@ else:
                     format=f.strip().lower(),
                     key_id=k.strip()
                 ) for f, k in zip(encryption_format, key_id)]
+            enc_alg = encryption_algorithm.strip().lower() if encryption_algorithm else None
             return NVMeoFClient(
                 gw_group=gw_group,
                 server_address=server_address
@@ -1042,7 +1044,7 @@ else:
                     read_only=read_only,
                     location=location,
                     encryption_entries=enc_entries,
-                    encryption_algorithm=encryption_algorithm
+                    encryption_algorithm=enc_alg
                 )
             )
 
