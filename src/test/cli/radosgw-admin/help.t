@@ -424,7 +424,11 @@
   
   Bucket list objects options:
      --max-entries                 max number of entries listed (default 1000)
-     --marker                      the marker used to specify on which entry the listing begins, default none (i.e., very first entry)
+     --marker                      object name marker to specify where listing begins (default: start from beginning)
+                                   requires ordered listing (do not use with --allow-unordered)
+     --object-version              for versioned buckets: specify the version/instance ID to start from
+                                   use together with --marker to paginate through versioned buckets
+                                   example: --marker=obj1 --object-version=abc123def456
      --show-restore-stats          if the flag is in present it will show restores stats in the bucket stats command
   
     --conf/-c FILE    read configuration from the given configuration file

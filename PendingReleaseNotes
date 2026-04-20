@@ -3,6 +3,10 @@
   very large namespaces.
 * RGW: Bucket Logging suppports creating log buckets in EC pools.
   Implicit logging object commits are now performed asynchronously.
+* RGW: radosgw-admin bucket list now supports pagination for versioned buckets by using
+  both --marker and --object-version options together (e.g., ``--marker=obj1 --object-version=abc123``).
+  This enables proper pagination through versioned bucket listings without duplicates or
+  infinite loops. For non-versioned buckets, use only --marker as before (backward compatible).
 * RGW: OpenSSL engine support is deprecated in favor of provider support.
   - Removed the `openssl_engine_opts` configuration option. OpenSSL engine configuration in string format is no longer supported.
   - Added the `openssl_conf` configuration option for loading specified providers as default providers.
