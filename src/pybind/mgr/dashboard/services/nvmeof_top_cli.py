@@ -216,9 +216,15 @@ else:
                     continue
                 perf_stats.calculate(self.delay)
 
+                if ns.rados_namespace_name:
+                    rbd_image_path = (f"{ns.rbd_pool_name}/{ns.rados_namespace_name}/"
+                                      f"{ns.rbd_image_name}")
+                else:
+                    rbd_image_path = f"{ns.rbd_pool_name}/{ns.rbd_image_name}"
+
                 ns_data.append((
                     ns.nsid,
-                    f"{ns.rbd_pool_name}/{ns.rbd_image_name}",
+                    rbd_image_path,
                     int(perf_stats.total_ops_rate),
                     int(perf_stats.read_ops_rate),
                     f"{self.bytes_to_MB(perf_stats.read_bytes_rate):3.2f}",
