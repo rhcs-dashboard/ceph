@@ -170,6 +170,15 @@ HTTP
 .. confval:: rgw_http_notif_connection_timeout
 .. confval:: rgw_http_notif_max_inflight
 
+Kafka
+~~~~~
+After recovering from a broker failure, a persistent topic will try
+to resend all notifications in batches. If the topic is configured on
+the broker with a segment size smaller than our default (1MB), sending
+the messages would fail. If we know that we have such segment size
+configuration, we should send smaller batches using:
+
+.. confval:: rgw_kafka_max_batch_size
 
 Bucket Notification REST API
 ----------------------------
