@@ -7304,12 +7304,6 @@ int BlueStore::_open_fm(KeyValueDB::Transaction t,
     ceph_assert(cct->_conf->bdev_block_size <= min_alloc_size);
 
     uint64_t alloc_size = min_alloc_size;
-    if (!bdev->is_smr() && freelist_type == "zoned") {
-      derr << "non-SMR device (or SMR support not built-in) but freelist_type = zoned"
-	   << dendl;
-      return -EINVAL;
-    }
-
     fm->create(bdev->get_size(), alloc_size, t);
 
     auto reserved = _get_ondisk_reserved();
