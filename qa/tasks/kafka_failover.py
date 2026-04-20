@@ -140,6 +140,9 @@ def install_kafka(ctx, config):
             ctx.cluster.only(client).run(
                 args=['rm', '-rf', '{tdir}'.format(tdir=kafka_dir)],
             )
+            ctx.cluster.only(client).run(
+                args=['rm', '-rf', '{tdir}/{doc}'.format(tdir=teuthology.get_testdir(ctx),doc=kafka_file)],
+            )
 
 
 @contextlib.contextmanager
