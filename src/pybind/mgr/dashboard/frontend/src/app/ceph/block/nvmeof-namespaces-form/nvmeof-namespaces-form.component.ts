@@ -330,6 +330,8 @@ export class NvmeofNamespacesFormComponent implements OnInit {
 
     const loopCount = isGatewayProvisioned ? nsCount : 1;
 
+    const blockSize = this.nsForm.getValue('namespace_size');
+
     for (let i = 1; i <= loopCount; i++) {
       const request: NamespaceCreateRequest = {
         gw_group: this.group,
@@ -337,6 +339,10 @@ export class NvmeofNamespacesFormComponent implements OnInit {
         create_image: isGatewayProvisioned,
         no_auto_visible: noAutoVisible
       };
+
+      if (blockSize) {
+        request.block_size = blockSize;
+      }
 
       if (isGatewayProvisioned) {
         const rbdImageName = this.nsForm.getValue('rbd_image_name');
