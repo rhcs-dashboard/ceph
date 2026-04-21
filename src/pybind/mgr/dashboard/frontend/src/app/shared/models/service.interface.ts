@@ -7,6 +7,45 @@ export interface CephServiceStatus {
   created: Date;
 }
 
+export enum CephCertificateStatus {
+  valid = 'valid',
+  expired = 'expired',
+  expiring = 'expiring',
+  expiringSoon = 'expiring_soon',
+  notConfigured = 'not_configured',
+  invalid = 'invalid'
+}
+
+export enum DaemonAction {
+  START = 'start',
+  STOP = 'stop',
+  RESTART = 'restart',
+  REDEPLOY = 'redeploy'
+}
+
+export const CERTIFICATE_STATUS_ICON_MAP: Record<string, string> = {
+  valid: 'success',
+  expiring: 'warning',
+  expiring_soon: 'warning',
+  expired: 'danger',
+  not_configured: 'warning',
+  invalid: 'danger',
+  default: 'warning'
+};
+
+export interface CephServiceCertificate {
+  cert_name: string;
+  scope: string;
+  requires_certificate: boolean;
+  status: CephCertificateStatus | string;
+  days_to_expiration: number;
+  signed_by: string;
+  has_certificate: boolean;
+  certificate_source: string;
+  expiry_date: string;
+  issuer: string;
+  common_name: string;
+}
 // This will become handy when creating arbitrary services
 export interface CephServiceSpec {
   service_name: string;
