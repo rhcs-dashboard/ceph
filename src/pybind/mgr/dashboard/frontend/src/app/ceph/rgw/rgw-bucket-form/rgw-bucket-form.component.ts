@@ -327,11 +327,12 @@ export class RgwBucketFormComponent extends CdForm implements OnInit, AfterViewC
             }
             if (value['replication']) {
               const replicationConfig = value['replication'];
-              if (replicationConfig?.['Rule']?.['Status'] === 'Enabled') {
-                this.bucketForm.get('replication').setValue(true);
-              } else {
-                this.bucketForm.get('replication').setValue(false);
-              }
+              // Only consider S3 replication rules, not sync policies (managed on sync-policy page)
+              const hasReplicationRules =
+                replicationConfig?.['replication_rules_configured'] === true &&
+                replicationConfig?.['policy']?.['Rule']?.['Status'] === 'Enabled';
+
+              this.bucketForm.get('replication').setValue(hasReplicationRules);
             }
             this.filterAclPermissions();
           }

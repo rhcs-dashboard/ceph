@@ -508,17 +508,41 @@ class RgwBucket(RgwRESTController):
             return None
 
         rgw_client = RgwClient.instance(owner, daemon_name)
-        zonegroup_name = RgwClient.admin_instance(daemon_name=daemon_name).get_default_zonegroup()
 
-        policy_exists = multisite.policy_group_exists(_SYNC_GROUP_ID, zonegroup_name)
-        if replication and not policy_exists:
-            multisite.create_dashboard_admin_sync_group(zonegroup_name=zonegroup_name)
+        if replication:
+            zonegroup_name = RgwClient.admin_instance(
+                daemon_name=daemon_name).get_default_zonegroup()
+            policy_exists = multisite.policy_group_exists(_SYNC_GROUP_ID, zonegroup_name)
+            if not policy_exists:
+                multisite.create_dashboard_admin_sync_group(zonegroup_name=zonegroup_name)
+            return rgw_client.set_bucket_replication(bucket_name)
 
-        return rgw_client.set_bucket_replication(bucket_name, replication)
+        return rgw_client.delete_bucket_replication(bucket_name)
 
     def _get_replication(self, bucket_name: str, owner, daemon_name):
+        multisite = RgwMultisite()
         rgw_client = RgwClient.instance(owner, daemon_name)
-        return rgw_client.get_bucket_replication(bucket_name)
+        replication_config = rgw_client.get_bucket_replication(bucket_name)
+
+        # Check if there's a valid S3 replication config with actual rules
+        replication_rules_configured = bool(replication_config and replication_config.get('Rule'))
+
+        # Check for sync policies
+        sync_policy_active = False
+        try:
+            sync_policy = multisite.get_sync_policy(bucket_name=bucket_name)
+            # Check if there are sync policy groups with 'enabled' status
+            groups = sync_policy.get('groups', [])
+            sync_policy_active = any(g.get('status', '').lower() == 'enabled' for g in groups)
+        except (RequestException, DashboardException):
+            # Silently ignore errors from sync policy check
+            pass
+
+        return {
+            'sync_policy_active': sync_policy_active,
+            'replication_rules_configured': replication_rules_configured,
+            'policy': replication_config if replication_config else {}
+        }
 
     @staticmethod
     def strip_tenant_from_bucket_name(bucket_name):
