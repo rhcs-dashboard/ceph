@@ -16,6 +16,13 @@ export enum CephCertificateStatus {
   invalid = 'invalid'
 }
 
+export enum DaemonAction {
+  START = 'start',
+  STOP = 'stop',
+  RESTART = 'restart',
+  REDEPLOY = 'redeploy'
+}
+
 export const CERTIFICATE_STATUS_ICON_MAP: Record<string, string> = {
   valid: 'success',
   expiring: 'warning',
