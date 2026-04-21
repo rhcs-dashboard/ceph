@@ -19478,6 +19478,8 @@ paths:
                   type: string
                 realm_token:
                   type: string
+                tier_type:
+                  type: string
                 zone_name:
                   type: string
               required:
