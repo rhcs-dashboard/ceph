@@ -42,7 +42,8 @@
             chartTitle="Latency"
             [chartKey]="performanceTypes?.Latency"
             [dataUnit]="metricUnitMap?.latency"
-            [rawData]="chartDataSignal()?.latency">
+            [rawData]="chartDataSignal()?.latency"
+            [decimals]="2">
           </cd-area-chart>
         </div>
         <div cdsCol
@@ -52,7 +53,8 @@
             chartTitle="Throughput"
             [chartKey]="performanceTypes?.Throughput"
             [dataUnit]="metricUnitMap?.throughput"
-            [rawData]="chartDataSignal()?.throughput">
+            [rawData]="chartDataSignal()?.throughput"
+            [decimals]="2">
           </cd-area-chart>
         </div>
       </div>
