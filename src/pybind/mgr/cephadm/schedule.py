@@ -546,7 +546,7 @@ class HostAssignment(object):
             ls = []
             for p in orig:
                 ip = None
-                # daemon can have specific ip if 'ip_addrs' is spcified in spec, we can use this
+                # daemon can have specific ip if 'ip_addrs' is specified in spec, we can use this
                 # parameter for all services, if they need to bind to specific ip
                 # If ip not present and networks is passed, ip of that network will be used
                 if self.spec.ip_addrs:
