@@ -273,7 +273,7 @@ class TestIngressService:
             '    stick-table type ip size 200k expire 30m peers haproxy_peers\n'
             '    stick on src\n'
             '    hash-type   consistent\n'
-            '    server nfs.foo.0 192.168.122.111:12049 check\n'
+            '    server nfs.foo.0 192.168.122.111:12049 check inter 30s\n'
         )
         haproxy_expected_conf = {
             'files': {'haproxy.cfg': haproxy_txt}

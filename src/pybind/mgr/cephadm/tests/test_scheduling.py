@@ -1881,7 +1881,7 @@ def test_blocking_daemon_host(
                 DaemonDescription('nfs', 'nfs3', 'host3'),
             ],
             None,
-            ['haproxy:host1(*:443,8888)', 'haproxy:host3(*:443,8888)', 'keepalived:host1', 'keepalived:host3'],
+            ['haproxy:host1(*:443,8888,1024)', 'haproxy:host3(*:443,8888,1024)', 'keepalived:host1', 'keepalived:host3'],
             [],
             ['haproxy.ingress2', 'haproxy.ingress4', 'keepalived.ingress2', 'keepalived.ingress4']  # to_remove
         ),
@@ -1902,7 +1902,7 @@ def test_blocking_daemon_host(
                 DaemonDescription('nfs', 'nfs2', 'host2'),
             ],
             None,
-            ['haproxy:host1(*:443,8888)', 'keepalived:host1'],
+            ['haproxy:host1(*:443,8888,1024)', 'keepalived:host1'],
             [],
             ['haproxy.ingress2', 'haproxy.ingress3', 'keepalived.ingress2', 'keepalived.ingress3']  # to_remove
         ),
@@ -1939,7 +1939,7 @@ def test_blocking_daemon_host(
                 DaemonDescription('nfs', 'nfs6', 'host6'),
             ],
             None,
-            ['haproxy:host1(*:443,8888)', 'haproxy:host2(*:443,8888)', 'keepalived:host1', 'keepalived:host2'],
+            ['haproxy:host1(*:443,8888,1024)', 'haproxy:host2(*:443,8888,1024)', 'keepalived:host1', 'keepalived:host2'],
             [],
             ['haproxy.ingress3', 'haproxy.ingress4', 'keepalived.ingress3', 'keepalived.ingress4']  # to_remove
         ),
