@@ -212,8 +212,7 @@ detail`` returns a message similar to the following::
       [snip]
       mon.a (rank 0) addr 127.0.0.1:6789/0 is down (out of quorum)
 
-**How do I troubleshoot a Ceph cluster that has quorum but also has at least one monitor down?**
-
+How do I troubleshoot a Ceph cluster that has quorum but also has at least one monitor down?
   #. Make sure that ``mon.a`` is running.
 
   #. Make sure that you can connect to ``mon.a``'s node from the
@@ -240,8 +239,7 @@ detail`` returns a message similar to the following::
   the documentation.
   
 
-**What does it mean when a Monitor's state is ``probing``?**
-
+What does it mean when a Monitor's state is ``probing``?
   If ``ceph health detail`` shows that a Monitor's state is
   ``probing``, then the Monitor is still looking for the other Monitors. Every
   Monitor remains in this state for some time when it is started. When a
@@ -275,8 +273,7 @@ detail`` returns a message similar to the following::
   the proper preparation of logs.
 
 
-**What does it mean when a Monitor's state is ``electing``?**
-
+What does it mean when a Monitor's state is ``electing``?
   If ``ceph health detail`` shows that a Monitor's state is ``electing``, the
   monitor is in the middle of an election. Elections typically complete
   quickly, but sometimes the monitors can get stuck in what is known as an
@@ -296,8 +293,7 @@ detail`` returns a message similar to the following::
   you put the problematic Monitor into a ``down`` state while you investigate.
   This is possible only if there are enough surviving Monitors to form quorum. 
 
-**What does it mean when a Monitor's state is ``synchronizing``?**
-
+What does it mean when a Monitor's state is ``synchronizing``?
   If ``ceph health detail`` shows that the Monitor is ``synchronizing``, the
   monitor is catching up with the rest of the cluster so that it can join the
   quorum. The amount of time that it takes for the Monitor to synchronize with
@@ -318,8 +314,7 @@ detail`` returns a message similar to the following::
   bug you raise. See `Preparing your logs`_ for information about the proper
   preparation of logs.
 
-**What does it mean when a Monitor's state is ``leader`` or ``peon``?**
-
+What does it mean when a Monitor's state is ``leader`` or ``peon``?
   During normal Ceph operations when the cluster is in the ``HEALTH_OK`` state,
   one monitor in the Ceph cluster is in the ``leader`` state and the rest of
   the monitors are in the ``peon`` state. The state of a given monitor can be
