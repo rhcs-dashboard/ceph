@@ -339,7 +339,15 @@ Device::access_ertr::future<> SeaStore::_mount()
 
   ceph_assert(seastar::this_shard_id() == primary_core);
   co_await device->mount();
-  ceph_assert(device->get_sharded_device(0).get_block_size() >= laddr_t::UNIT_SIZE);
+  {
+    auto block_size = device->get_sharded_device(0).get_block_size();
+    ceph_assertf(block_size >= laddr_t::UNIT_SIZE,
+                 "seastore requires a device block size of at least %u bytes, "
+                 "but the primary device at '%s/block' reports block_size=%u; "
+                 "use a device whose logical block size is >= %u bytes",
+                 laddr_t::UNIT_SIZE, root.c_str(), block_size,
+                 laddr_t::UNIT_SIZE);
+  }
 
   auto &sec_devices = device->get_sharded_device(0).get_secondary_devices();
   for (auto& device_entry : sec_devices) {
@@ -350,7 +358,13 @@ Device::access_ertr::future<> SeaStore::_mount()
     DeviceRef sec_dev = co_await Device::make_device(path, dtype);
     co_await sec_dev->start(store_shard_nums);
     co_await sec_dev->mount();
-    ceph_assert(sec_dev->get_sharded_device(0).get_block_size() >= laddr_t::UNIT_SIZE);
+    auto sec_block_size = sec_dev->get_sharded_device(0).get_block_size();
+    ceph_assertf(sec_block_size >= laddr_t::UNIT_SIZE,
+                 "seastore requires a device block size of at least %u bytes, "
+                 "but the secondary device at '%s' reports block_size=%u; "
+                 "use a device whose logical block size is >= %u bytes",
+                 laddr_t::UNIT_SIZE, path.c_str(), sec_block_size,
+                 laddr_t::UNIT_SIZE);
     assert(sec_dev->get_sharded_device(0).get_magic() == magic);
     secondaries.emplace_back(std::move(sec_dev));
     co_await set_secondaries();
