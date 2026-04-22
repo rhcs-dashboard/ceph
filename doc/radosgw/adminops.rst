@@ -252,7 +252,7 @@ Request Parameters
 
 ``end``
 
-:Description: Date and (optional) time that specifies the end time of the requested data (none inclusive).
+:Description: Date and (optional) time that specifies the end time of the requested data (non-inclusive).
 :Type: String
 :Example: ``2012-09-25 16:00:00``
 :Required: No
@@ -398,16 +398,16 @@ Request Parameters
 :Description: The ID of the account to be created.
 :Type: String
 :Example: ``RGW00000000000000001``
-:Required: Yes
+:Required: No
 
-An account ID must be 20 characters long, and in the format of the string "RGW" followed by 17 numeric characters.
+An account ID must be 20 characters long, and in the format of the string "RGW" followed by 17 numeric characters. If not specified, a random unique one will be generated.
 
 ``name``
 
 :Description: The name of the account to be created.
 :Type: String
 :Example: ``account_name``
-:Required: Yes
+:Required: No
 
 ``email``
 
@@ -823,7 +823,7 @@ Special Error Responses
 None.
 
 Get Account Info
-===========
+================
 .. versionadded:: Squid
 
 Get account info. Either an ``id`` or a ``name`` must be provided.
@@ -1180,6 +1180,7 @@ A tenant name may also specified as a part of ``uid``, by following the syntax
 :Required: No
 
 ``default-storage-class``
+
 :Description: default storage class for the user, default-placement must be defined when setting this option.
 :Type: string
 :Example: STANDARD-1A
@@ -1189,9 +1190,16 @@ A tenant name may also specified as a part of ``uid``, by following the syntax
 
 ``account-id``
 
-:Description: the account under which a user should exist.
+:Description: The account under which a user should exist.
 :Type: string
 :Example: RGW00000000000000001
+:Required: No
+
+``account-root``
+
+:Description: Whether the user should be root for its account.
+:Type: Boolean
+:Example: False [False]
 :Required: No
 
 Response Entities
@@ -1399,9 +1407,26 @@ Request Parameters
 :Required: No
 
 ``default-storage-class``
+
 :Description: default storage class for the user, default-placement must be defined when setting this option.
 :Type: string
 :Example: STANDARD-1A
+:Required: No
+
+.. versionadded:: Squid
+
+``account-id``
+
+:Description: The account under which a user should exist. Cannot be changed or removed once set.
+:Type: string
+:Example: RGW00000000000000001
+:Required: No
+
+``account-root``
+
+:Description: Whether the user should be root for its account.
+:Type: Boolean
+:Example: False [False]
 :Required: No
 
 Response Entities
@@ -1571,7 +1596,7 @@ Request Parameters
 
 ``uid``
 
-:Description: The user ID under which a subuser is to  be created.
+:Description: The user ID under which a subuser is to be created.
 :Type: String
 :Example: ``foo_user``
 :Required: Yes
@@ -2248,7 +2273,7 @@ Request Parameters
 
 ``purge-objects``
 
-:Description: Remove a buckets objects before deletion.
+:Description: Remove a bucket's objects before deletion.
 :Type: Boolean
 :Example: True [False]
 :Required: No
@@ -2788,7 +2813,7 @@ permission. ::
 Rate Limit
 ==========
 
-The Admin Operations API enables you to set and get ratelimit configurations on users and on bucket and global rate limit configurations. See `Rate Limit Management`_ for additional details.
+The Admin Operations API enables you to set and get ratelimit configurations on users and on buckets and global rate limit configurations. See `Rate Limit Management`_ for additional details.
 Rate Limit includes the maximum number of operations and/or bytes per accumulation interval, separated by read and/or write (Additionally list and get operations),
 to a bucket and/or by a user and the maximum storage size in megabytes.
 

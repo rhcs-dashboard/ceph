@@ -77,11 +77,25 @@ public:
     uint64_t rbm_addr = convert_paddr_to_abs_addr(addr);
     return read(rbm_addr, out);
   }
+  read_ertr::future<> readv(
+    paddr_t addr,
+    std::vector<bufferptr> ptrs) final {
+    uint64_t rbm_addr = convert_paddr_to_abs_addr(addr);
+    return _readv(rbm_addr, std::move(ptrs));
+  }
 protected:
   rbm_superblock_t super;
   rbm_shard_info_t shard_info;
+  uint32_t device_shard_nums = 0;
+  store_index_t store_index = 0;
+  bool shard_status = true;
+  virtual read_ertr::future<> _readv(
+    uint64_t offset,
+    std::vector<bufferptr> ptrs) = 0;
+
 public:
-  RBMDevice() {}
+  RBMDevice(store_index_t store_index = 0)
+  : store_index(store_index) {}
   virtual ~RBMDevice() = default;
 
   template <typename T>
@@ -114,6 +128,8 @@ public:
   }
   std::size_t get_available_size() const { return super.size; }
   extent_len_t get_block_size() const { return super.block_size; }
+
+  read_ertr::future<uint32_t> get_shard_nums() final;
 
   virtual read_ertr::future<> read(
     uint64_t offset,
@@ -230,6 +246,9 @@ public:
   read_ertr::future<> read(
     uint64_t offset,
     bufferptr &bptr) override;
+  read_ertr::future<> _readv(
+    uint64_t offset,
+    std::vector<bufferptr> ptrs) override;
 
   close_ertr::future<> close() override;
 

@@ -23,7 +23,7 @@ from ceph.deployment.service_spec import (
     CertificateSource,
     RequiresCertificatesEntry
 )
-from ceph.deployment.utils import is_ipv6, unwrap_ipv6
+from ceph.deployment.utils import is_ipv6, unwrap_ipv6, wrap_ipv6
 from mgr_util import build_url, merge_dicts
 from orchestrator import (
     OrchestratorError,
@@ -100,8 +100,10 @@ def get_dashboard_endpoints(svc: 'CephadmService') -> Tuple[List[str], Optional[
             if not port:
                 continue
             assert dd.hostname is not None
+            # fqdn may already be a name or numeric address; ensure IPv6
+            # literals are bracketed.
             addr = svc.mgr.get_fqdn(dd.hostname)
-            dashboard_endpoints.append(f'{addr}:{port}')
+            dashboard_endpoints.append(f'{wrap_ipv6(addr)}:{port}')
 
     return dashboard_endpoints, protocol
 
@@ -315,10 +317,25 @@ class CephadmService(metaclass=ABCMeta):
         pass
 
     @classmethod
-    def get_dependencies(cls, mgr: "CephadmOrchestrator",
-                         spec: Optional[ServiceSpec] = None,
-                         daemon_type: Optional[str] = None) -> List[str]:
+    def get_dependencies(
+        cls,
+        mgr: "CephadmOrchestrator",
+        spec: Optional[ServiceSpec] = None,
+        daemon_type: Optional[str] = None,
+    ) -> List[str]:
         return []
+
+    @classmethod
+    def sorted_dependencies(
+        cls,
+        mgr: "CephadmOrchestrator",
+        spec: Optional[ServiceSpec] = None,
+        daemon_type: Optional[str] = None,
+    ) -> List[str]:
+        """A version of get_dependencies that guarantees that the returned
+        list is in sorted order.
+        """
+        return sorted(cls.get_dependencies(mgr, spec, daemon_type))
 
     def __init__(self, mgr: "CephadmOrchestrator"):
         self.mgr: "CephadmOrchestrator" = mgr
@@ -787,6 +804,35 @@ class CephadmService(metaclass=ABCMeta):
         """
         Called after the daemon is removed.
         """
+
+        def _cleanup_tls_creds_for_host(svc_name: str, host: str, cert_source: Optional[str]) -> None:
+
+            if cert_source == CertificateSource.CEPHADM_SIGNED.value:
+                logger.info(f"Removing cephadm-signed certificate/key for service: {svc_name}, host: {host}")
+                self.mgr.cert_mgr.rm_self_signed_cert_key_pair(svc_name, host)
+            elif cert_source == CertificateSource.INLINE.value:
+                logger.info(f"Removing inline-saved certificate/key for service: {svc_name}, host: {host}")
+                self.mgr.cert_mgr.rm_cert(self.cert_name, svc_name, host)
+                self.mgr.cert_mgr.rm_key(self.key_name, svc_name, host)
+                if self.ca_cert_name:
+                    self.mgr.cert_mgr.rm_cert(self.ca_cert_name, svc_name, host)
+            elif cert_source == CertificateSource.REFERENCE.value:
+                # It's a reference cert/key to the certmgr so we must keep them as user may want to use them later
+                logger.info(f"Keeping referenced certificate/key for service: {svc_name}, host: {host}")
+            elif cert_source is None:
+                # This could happen when TLS is being disabled in spec by the user, so we lose the value
+                # of the certificate source but we still have to do our best to cleanup the TLS credentials.
+                logger.info(f"Removing certificate/key for service: {svc_name}, host: {host}")
+                self.mgr.cert_mgr.rm_self_signed_cert_key_pair_if_present(svc_name, host)
+                # try to remove inline certs (if any)
+                if not self.mgr.cert_mgr.is_cert_editable(self.cert_name, svc_name, host):
+                    self.mgr.cert_mgr.rm_cert_if_present(self.cert_name, svc_name, host)
+                    self.mgr.cert_mgr.rm_key_if_present(self.key_name, svc_name, host)
+                    if self.ca_cert_name:
+                        self.mgr.cert_mgr.rm_cert_if_present(self.ca_cert_name, svc_name, host)
+            else:
+                logger.error(f"Unknown cert-source {cert_source}. Cannot remove cert/key for: {svc_name}, host: {host}")
+
         assert daemon.daemon_type is not None
         assert daemon.hostname
         assert self.TYPE == daemon_type_to_service(daemon.daemon_type)
@@ -798,24 +844,27 @@ class CephadmService(metaclass=ABCMeta):
             if svc_name not in self.mgr.spec_store:
                 return
 
+            host = daemon.hostname
             spec = self.mgr.spec_store[svc_name].spec
             if not spec.ssl:
+                # Service no longer uses TLS; safe to clean up TLS credentials for this host
+                _cleanup_tls_creds_for_host(svc_name, host, spec.certificate_source)
                 return
 
-            host = daemon.hostname
-            cert_source = spec.certificate_source
-            if cert_source == CertificateSource.CEPHADM_SIGNED.value:
-                logger.info(f"Removing cephadm-signed certificate/key for service: {svc_name}, host: {host}")
-                self.mgr.cert_mgr.rm_self_signed_cert_key_pair(svc_name, host)
-            elif cert_source == CertificateSource.INLINE.value:
-                logger.info(f"Removing inline-saved certificate/key for service: {svc_name}, host: {host}")
-                self.mgr.cert_mgr.rm_cert(self.cert_name, svc_name, host)
-                self.mgr.cert_mgr.rm_key(self.key_name, svc_name, host)
-                if self.ca_cert_name:
-                    self.mgr.cert_mgr.rm_cert(self.ca_cert_name, svc_name, host)
+            remaining = [
+                d for d in self.mgr.cache.get_daemons_by_service(svc_name)
+                if d.hostname == host
+            ]
+            if remaining:
+                # The service still has daemons running on this host (e.g. during an HTTP -> HTTPS
+                # transition the daemons running on :80 are removed but new daemons running on :443
+                # area created), so the TLS cert/key may still be in use. Do not remove it yet.
+                logger.info(
+                    "Not removing TLS cert/key for %s on %s: still %d daemons present",
+                    svc_name, host, len(remaining)
+                )
             else:
-                # It's a reference cert/key to the certmgr so we must keep them as user may want to use them later
-                logger.info(f"Keeping referenced certificate/key for service: {svc_name}, host: {host}")
+                _cleanup_tls_creds_for_host(svc_name, host, spec.certificate_source)
 
     def purge(self, service_name: str) -> None:
         """Called to carry out any purge tasks following service removal"""
@@ -836,6 +885,30 @@ class CephadmService(metaclass=ABCMeta):
 
     def has_placement_changed(self, deps: List[str], spec: ServiceSpec) -> bool:
         return False
+
+    def choose_next_action(
+        self,
+        scheduled_action: utils.Action,
+        daemon_type: Optional[str],
+        spec: Optional[ServiceSpec],
+        curr_deps: List[str],
+        last_deps: List[str],
+    ) -> utils.Action:
+        """Given the scheduled_action, service spec, daemon_type, and
+        current and previous dependency lists return the next action that
+        this service would prefer cephadm take.
+        """
+        if curr_deps == last_deps:
+            return scheduled_action
+        sym_diff = set(curr_deps).symmetric_difference(last_deps)
+        logger.info(
+            'Reconfigure wanted %s: deps %r -> %r (diff %r)',
+            spec.service_name() if spec else daemon_type,
+            last_deps,
+            curr_deps,
+            sym_diff,
+        )
+        return utils.Action.RECONFIG
 
 
 class CephService(CephadmService):
@@ -895,7 +968,7 @@ class CephService(CephadmService):
 
         entity = self.get_auth_entity(daemon_id, host=host)
 
-        logger.info(f'Removing key for {entity}')
+        logger.info(f'Removing keyring for {entity}')
         ret, out, err = self.mgr.mon_command({
             'prefix': 'auth rm',
             'entity': entity,
@@ -1301,15 +1374,24 @@ class RgwService(CephService):
             san_list = spec.zonegroup_hostnames or []
             hostnames = san_list + [f"*.{h}" for h in san_list] if spec.wildcard_enabled else san_list
 
-            zg_update_cmd = {
-                'prefix': 'rgw zonegroup modify',
-                'realm_name': spec.rgw_realm,
-                'zonegroup_name': spec.rgw_zonegroup,
-                'zone_name': spec.rgw_zone,
-                'hostnames': hostnames,
-            }
-            logger.debug(f'rgw cmd: {zg_update_cmd}')
-            ret, out, err = self.mgr.check_mon_command(zg_update_cmd)
+            # zonegroup modify requires explicit realm/zonegroup/zone identifiers.
+            # on single-site deployments, these values may be unset, avoid calling.
+            if not (spec.rgw_realm and spec.rgw_zonegroup and spec.rgw_zone):
+                logger.warning(
+                    f"Skipping 'rgw zonegroup modify' for {spec.service_name()}: "
+                    "zonegroup_hostnames is set but rgw_realm/rgw_zonegroup/rgw_zone "
+                    "were not provided in the spec."
+                )
+            else:
+                zg_update_cmd = {
+                    'prefix': 'rgw zonegroup modify',
+                    'realm_name': spec.rgw_realm,
+                    'zonegroup_name': spec.rgw_zonegroup,
+                    'zone_name': spec.rgw_zone,
+                    'hostnames': hostnames,
+                }
+                logger.debug(f'rgw cmd: {zg_update_cmd}')
+                ret, out, err = self.mgr.check_mon_command(zg_update_cmd)
 
         # TODO: fail, if we don't have a spec
         logger.info('Saving service %s spec with placement %s' % (
@@ -1712,6 +1794,22 @@ class CephExporterService(CephService):
 
         return daemon_spec
 
+    def choose_next_action(
+        self,
+        scheduled_action: utils.Action,
+        daemon_type: Optional[str],
+        spec: Optional[ServiceSpec],
+        curr_deps: List[str],
+        last_deps: List[str],
+    ) -> utils.Action:
+        """Given the scheduled_action, service spec, daemon_type, and
+        current and previous dependency lists return the next action that
+        this service would prefer cephadm take.
+        """
+        return next_action_for_mgmt_stack_service(
+            scheduled_action, daemon_type, spec, curr_deps, last_deps
+        )
+
 
 @register_cephadm_service
 class CephfsMirrorService(CephService):
@@ -1809,3 +1907,51 @@ class CephadmAgent(CephService):
         return config, sorted([str(self.mgr.get_mgr_ip()), str(agent.server_port),
                                self.mgr.cert_mgr.get_root_ca(),
                                str(self.mgr.get_module_option('device_enhanced_scan'))])
+
+
+def next_action_for_mgmt_stack_service(
+    scheduled_action: utils.Action,
+    daemon_type: Optional[str],
+    spec: Optional[ServiceSpec],
+    curr_deps: List[str],
+    last_deps: List[str],
+) -> utils.Action:
+    """This function exists to help refactor existing code to use
+    choose_next_action instead of if-blocks inside serve.py.
+    It avoids the need to muck around with common base classes at the
+    cost of some duplication.
+    Call this from choose_next_action.
+    """
+    if curr_deps == last_deps:
+        return scheduled_action
+    sym_diff = set(curr_deps).symmetric_difference(last_deps)
+    logger.info(
+        'Reconfigure wanted %s: deps %r -> %r (diff %r)',
+        spec.service_name() if spec else daemon_type,
+        last_deps,
+        curr_deps,
+        sym_diff,
+    )
+    action = utils.Action.RECONFIG
+    # we need only redeploy if secure_monitoring_stack or mgmt-gateway value has changed:
+    # TODO(redo): check if we should just go always with redeploy (it's fast enough)
+    # TODO(jjm) remove this assert when refactoring process WRT
+    # choose_next_action is done.
+    assert daemon_type in [
+        'prometheus',
+        'node-exporter',
+        'alertmanager',
+        'ceph-exporter',
+    ]
+    REDEPLOY_TRIGGERS = ['secure_monitoring_stack', 'mgmt-gateway']
+    # [from: JJM, to: Redo] in different commits you added calls to
+    # symmetric_difference  for the same variables. I have removed this
+    # duplication but please let me know if I overlooked something WRT
+    # to that in case it was intentional.
+    # Also what is this line below trying to check? I struggle with nested
+    # inline comprehensions but its seems to me you just want to know if
+    # the service newly depends on one of these mgmt stack deps?
+    # If so we ought to be able to vastly simplify this...
+    if any(svc in e for e in sym_diff for svc in REDEPLOY_TRIGGERS):
+        action = utils.Action.REDEPLOY
+    return action

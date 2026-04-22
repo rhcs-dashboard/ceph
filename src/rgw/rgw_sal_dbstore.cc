@@ -611,7 +611,20 @@ namespace rgw::sal {
     return 0;
   }
 
+  int MPDBSerializer::try_lock(const DoutPrefixProvider *dpp, ceph::timespan dur, optional_yield y)
+  {
+    locked = true;
+    return 0;
+  }
+
+  int MPDBSerializer::unlock(const DoutPrefixProvider* dpp, optional_yield y)
+  {
+    clear_locked();
+    return 0;
+  }
+
   std::unique_ptr<MPSerializer> DBObject::get_serializer(const DoutPrefixProvider *dpp,
+							 optional_yield y,
 							 const std::string& lock_name)
   {
     return std::make_unique<MPDBSerializer>(dpp, store, this, lock_name);
@@ -772,6 +785,7 @@ namespace rgw::sal {
       std::string* etag,
       void (*progress_cb)(off_t, void *),
       void* progress_data,
+      rgw::sal::DataProcessorFactory* dp_factory,
       const DoutPrefixProvider* dpp,
       optional_yield y)
   {
@@ -2133,6 +2147,12 @@ namespace rgw::sal {
     return -ENOENT;
   }
 
+  std::tuple<rgw::lua::LuaCodeType, int> DBLuaManager::get_script_or_bytecode(const DoutPrefixProvider* dpp, optional_yield y,
+                                                                    const std::string& key)
+  {
+    return std::make_tuple("", -ENOENT);
+  }
+
   int DBLuaManager::put_script(const DoutPrefixProvider* dpp, optional_yield y, const std::string& key, const std::string& script)
   {
     return -ENOENT;
@@ -2162,7 +2182,7 @@ namespace rgw::sal {
   {
     return -ENOENT;
   }
-  
+
 } // namespace rgw::sal
 
 extern "C" {

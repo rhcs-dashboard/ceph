@@ -1045,6 +1045,7 @@ int FilterObject::copy_object(const ACLOwner& owner,
 			      std::string* etag,
 			      void (*progress_cb)(off_t, void *),
 			      void* progress_data,
+			      rgw::sal::DataProcessorFactory* dp_factory,
 			      const DoutPrefixProvider* dpp,
 			      optional_yield y)
 {
@@ -1056,7 +1057,7 @@ int FilterObject::copy_object(const ACLOwner& owner,
 			   mod_ptr, unmod_ptr, high_precision_time, if_match,
 			   if_nomatch, attrs_mod, copy_if_newer, attrs,
 			   category, olh_epoch, delete_at, version_id, tag,
-			   etag, progress_cb, progress_data, dpp, y);
+			   etag, progress_cb, progress_data, dp_factory, dpp, y);
 }
 
 RGWAccessControlPolicy& FilterObject::get_acl()
@@ -1113,10 +1114,10 @@ void FilterObject::gen_rand_obj_instance_name()
   return next->gen_rand_obj_instance_name();
 }
 
-std::unique_ptr<MPSerializer> FilterObject::get_serializer(const DoutPrefixProvider *dpp,
+std::unique_ptr<MPSerializer> FilterObject::get_serializer(const DoutPrefixProvider *dpp, optional_yield y,
 							   const std::string& lock_name)
 {
-  std::unique_ptr<MPSerializer> s = next->get_serializer(dpp, lock_name);
+  std::unique_ptr<MPSerializer> s = next->get_serializer(dpp, y, lock_name);
   return std::make_unique<FilterMPSerializer>(std::move(s));
 }
 
@@ -1383,7 +1384,7 @@ std::unique_ptr<Writer> FilterMultipartUpload::get_writer(
   return std::make_unique<FilterWriter>(std::move(writer), obj);
 }
 
-int FilterMPSerializer::try_lock(const DoutPrefixProvider *dpp, utime_t dur,
+int FilterMPSerializer::try_lock(const DoutPrefixProvider *dpp, ceph::timespan dur,
 				 optional_yield y)
 {
   return next->try_lock(dpp, dur, y);
@@ -1393,7 +1394,7 @@ int FilterMPSerializer::unlock(const DoutPrefixProvider* dpp, optional_yield y)
   return next->unlock(dpp, y);
 }
 
-int FilterLCSerializer::try_lock(const DoutPrefixProvider *dpp, utime_t dur,
+int FilterLCSerializer::try_lock(const DoutPrefixProvider *dpp, ceph::timespan dur,
 				 optional_yield y)
 {
   return next->try_lock(dpp, dur, y);
@@ -1460,7 +1461,7 @@ std::unique_ptr<LCSerializer> FilterLifecycle::get_serializer(
   return std::make_unique<FilterLCSerializer>(std::move(ns));
 }
 
-int FilterRestoreSerializer::try_lock(const DoutPrefixProvider *dpp, utime_t dur,
+int FilterRestoreSerializer::try_lock(const DoutPrefixProvider *dpp, ceph::timespan dur,
 				 optional_yield y)
 {
   return next->try_lock(dpp, dur, y);
@@ -1540,6 +1541,12 @@ int FilterLuaManager::get_script(const DoutPrefixProvider* dpp, optional_yield y
   return next->get_script(dpp, y, key, script);
 }
 
+std::tuple<rgw::lua::LuaCodeType, int> FilterLuaManager::get_script_or_bytecode(const DoutPrefixProvider* dpp, optional_yield y,
+				             const std::string& key)
+{
+  return next->get_script_or_bytecode(dpp, y, key);
+}
+
 int FilterLuaManager::put_script(const DoutPrefixProvider* dpp, optional_yield y,
 				const std::string& key, const std::string& script)
 {
@@ -1581,6 +1588,9 @@ const std::string& FilterLuaManager::luarocks_path() const {
 
 void FilterLuaManager::set_luarocks_path(const std::string& path) {
   next->set_luarocks_path(path);
+}
+void FilterLuaManager::set_lua_background(rgw::lua::Background* background) {
+  next->set_lua_background(background);
 }
 
 } } // namespace rgw::sal

@@ -124,7 +124,7 @@ namespace rgw::dedup {
     ldpp_dout(dpp, 10) << __func__ << "::oid=" << oid << dendl;
     bool exclusive = true; // block overwrite of old objects
     ret = ctl_ioctx.create(oid, exclusive);
-    if (ret >= 0) {
+    if (ret == 0) {
       ldpp_dout(dpp, 10) << __func__ << "::successfully created Epoch object!" << dendl;
       // now try and take ownership
     }
@@ -495,7 +495,7 @@ namespace rgw::dedup {
       ldpp_dout(dpp, 15) << __func__ << "::creating object: " << oid << dendl;
       bool exclusive = true;
       ret = ctl_ioctx.create(oid, exclusive);
-      if (ret >= 0) {
+      if (ret == 0) {
         ldpp_dout(dpp, 15) << __func__ << "::oid=" << oid << " was created!" << dendl;
       }
       else if (ret == -EEXIST) {
@@ -973,7 +973,6 @@ namespace rgw::dedup {
     Formatter::ObjectSection section{*fmt, "dedup_ratio_estimate"};
     fmt->dump_unsigned("s3_bytes_before", s3_bytes_before);
     fmt->dump_unsigned("s3_bytes_after", s3_bytes_after);
-    fmt->dump_unsigned("dup_head_bytes", md5_stats_sum.dup_head_bytes_estimate);
 
     if (s3_bytes_before > s3_bytes_after && s3_bytes_after) {
       double dedup_ratio = (double)s3_bytes_before/s3_bytes_after;
@@ -997,7 +996,6 @@ namespace rgw::dedup {
     Formatter::ObjectSection section{*fmt, "dedup_ratio_actual"};
     fmt->dump_unsigned("s3_bytes_before", s3_bytes_before);
     fmt->dump_unsigned("s3_bytes_after", s3_bytes_after);
-    fmt->dump_unsigned("dup_head_bytes", md5_stats_sum.dup_head_bytes);
     if (s3_bytes_before > s3_bytes_after && s3_bytes_after) {
       double dedup_ratio = (double)s3_bytes_before/s3_bytes_after;
       fmt->dump_float("dedup_ratio", dedup_ratio);
@@ -1124,7 +1122,7 @@ namespace rgw::dedup {
     // create the object to watch (object may already exist)
     bool exclusive = true;
     ret = ctl_ioctx.create(oid, exclusive);
-    if (ret >= 0) {
+    if (ret == 0) {
       ldpp_dout(dpp, 10) << "dedup_bg::watch_reload():" << oid
                          << " was created!" << dendl;
     }

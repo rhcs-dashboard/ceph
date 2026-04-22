@@ -21,6 +21,7 @@
 
 #include <string_view>
 
+#include "common/ceph_mutex.h"
 #include "erasure-code/ErasureCode.h"
 
 using namespace std::literals;
@@ -51,7 +52,8 @@ public:
     flags = FLAG_EC_PLUGIN_PARTIAL_READ_OPTIMIZATION |
       FLAG_EC_PLUGIN_PARTIAL_WRITE_OPTIMIZATION |
       FLAG_EC_PLUGIN_ZERO_INPUT_ZERO_OUTPUT_OPTIMIZATION |
-      FLAG_EC_PLUGIN_PARITY_DELTA_OPTIMIZATION;
+      FLAG_EC_PLUGIN_PARITY_DELTA_OPTIMIZATION |
+      FLAG_EC_PLUGIN_DIRECT_READS;
 
     if (technique == "reed_sol_van"sv) {
       flags |= FLAG_EC_PLUGIN_OPTIMIZED_SUPPORTED;
@@ -123,6 +125,12 @@ public:
 
 protected:
   virtual int parse(ceph::ErasureCodeProfile &profile, std::ostream *ss);
+
+  // The Jerasure library has thread safety issues in functions
+  // like cauchy_good_general_coding_matrix() which use global variables
+  // without proper synchronization. This mutex serializes all prepare()
+  // calls to prevent race conditions during initialization.
+  static ceph::mutex jerasure_init_mutex;
 };
 class ErasureCodeJerasureReedSolomonVandermonde : public ErasureCodeJerasure {
 public:
@@ -305,6 +313,7 @@ public:
   ErasureCodeJerasureBlaumRoth() :
     ErasureCodeJerasureLiberation("blaum_roth")
   {
+    DEFAULT_W = "6"; //The recommended default value of w when using blaum-roth is 6, see Jerasure documentation for more details.
   }
 
   bool check_w(std::ostream *ss) const override;

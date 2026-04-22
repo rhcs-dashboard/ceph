@@ -76,10 +76,7 @@ TMDriver::read_extents_ret TMDriver::read_extents(
 	  pins.begin(),
 	  pins.end(),
 	  [this, &t, &ret](auto &&pin) {
-	    logger().debug(
-	      "read_extents: get_extent {}~{}",
-	      pin.get_val(),
-	      pin.get_length());
+	    logger().debug("read_extents: get_extent {}", pin);
 	    return tm->read_pin<TestBlock>(
 	      t,
 	      std::move(pin)
@@ -148,9 +145,9 @@ void TMDriver::init()
 
   std::vector<Device*> sec_devices;
 #ifndef NDEBUG
-  tm = make_transaction_manager(device.get(), sec_devices, shard_stats, true);
+  tm = make_transaction_manager(device.get(), sec_devices, shard_stats, 0, true);
 #else
-  tm = make_transaction_manager(device.get(), sec_devices, shard_stats, false);
+  tm = make_transaction_manager(device.get(), sec_devices, shard_stats, 0, false);
 #endif
 }
 

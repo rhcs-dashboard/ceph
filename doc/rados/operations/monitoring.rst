@@ -147,7 +147,7 @@ lines from the cluster log.
 Monitoring Health Checks
 ========================
 
-Ceph continuously runs various *health checks*. When
+Ceph continuously runs various :ref:`health-checks`. When
 a health check fails, this failure is reflected in the output of ``ceph status`` and
 ``ceph health``. The cluster log receives messages that
 indicate when a check has failed and when the cluster has recovered.
@@ -188,7 +188,7 @@ between distinct pairs of OSDs are detected, this might indicate a failed
 network switch, a NIC failure, or a layer 1 failure.
 
 By default, a heartbeat time that exceeds 1 second (1000 milliseconds) raises a
-health check (a ``HEALTH_WARN``. For example:
+health check (a ``HEALTH_WARN``). For example:
 
 ::
 
@@ -295,6 +295,7 @@ following command to the mgr:
         },
         ...
 
+.. _rados-monitoring-muting-health-checks:
 
 
 Muting Health Checks
@@ -374,6 +375,8 @@ Most health mutes disappear if the unhealthy condition that triggered the health
 For example, suppose that there is one OSD down and the health check is muted. In that case, if
 one or more additional OSDs go down, then the health mute disappears. This behavior occurs in any health check with a threshold value.
 
+
+.. _rados-monitoring-pool-usage:
 
 Checking a Cluster's Usage Stats
 ================================
@@ -781,6 +784,8 @@ Print active connections and their TCP round trip time and retransmission counte
     248     89      1       mgr.0   863     1677    0
     3       86      2       mon.0   230     278     0
 
+.. _data_availability_score:
+
 Tracking Data Availability Score of a Cluster
 =============================================
 
@@ -840,12 +845,12 @@ it is not possible to set this interval less than the config value set
 for ``paxos_propose_interval``.
 
 
-This feature is on by default. To turn the feature off, e.g. - for an expected
-downtime, the ``enable_availability_tracking`` config option can be set to ``false``.
+This feature is off by default. To turn the feature on, the 
+``enable_availability_tracking`` config option can be set to ``true``.
 
 .. prompt:: bash #
 
-   ceph config set mon enable_availability_tracking false
+   ceph config set mon enable_availability_tracking true
 
 While the feature is turned off, the last calculated score will be preserved. The
 score will again start updating once the feature is turned on again.

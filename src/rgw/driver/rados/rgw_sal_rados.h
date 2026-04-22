@@ -583,6 +583,7 @@ class RadosObject : public StoreObject {
 	       boost::optional<ceph::real_time> delete_at,
                std::string* version_id, std::string* tag, std::string* etag,
                void (*progress_cb)(off_t, void *), void* progress_data,
+               rgw::sal::DataProcessorFactory* dp_factory,
                const DoutPrefixProvider* dpp, optional_yield y) override;
     virtual RGWAccessControlPolicy& get_acl(void) override { return acls; }
     virtual int set_acl(const RGWAccessControlPolicy& acl) override { acls = acl; return 0; }
@@ -622,7 +623,7 @@ class RadosObject : public StoreObject {
     virtual std::unique_ptr<Object> clone() override {
       return std::unique_ptr<Object>(new RadosObject(*this));
     }
-    virtual std::unique_ptr<MPSerializer> get_serializer(const DoutPrefixProvider *dpp,
+    virtual std::unique_ptr<MPSerializer> get_serializer(const DoutPrefixProvider *dpp, optional_yield y,
 							 const std::string& lock_name) override;
     virtual int transition(Bucket* bucket,
 			   const rgw_placement_rule& placement_rule,
@@ -804,9 +805,11 @@ class RadosBucket : public StoreBucket {
         optional_yield y,
         const DoutPrefixProvider *dpp,
         RGWObjVersionTracker* objv_tracker) override;
-    int commit_logging_object(const std::string& obj_name, optional_yield y, const DoutPrefixProvider *dpp, const std::string& prefix, std::string* last_committed) override;
-    int remove_logging_object(const std::string& obj_name, optional_yield y, const DoutPrefixProvider *dpp) override;
-    int write_logging_object(const std::string& obj_name, const std::string& record, optional_yield y, const DoutPrefixProvider *dpp, bool async_completion) override;
+    int commit_logging_object(const std::string& obj_name, optional_yield y,
+	const DoutPrefixProvider *dpp, const std::string& prefix,
+	std::string* last_committed, bool async) override;
+    int remove_logging_object(const std::string& obj_name, const std::string& prefix, optional_yield y, const DoutPrefixProvider *dpp) override;
+    int write_logging_object(const std::string& obj_name, const std::string& record, const std::string& prefix, optional_yield y, const DoutPrefixProvider *dpp, bool async_completion) override;
 
   private:
     int link(const DoutPrefixProvider* dpp, const rgw_owner& new_owner, optional_yield y, bool update_entrypoint = true, RGWObjVersionTracker* objv = nullptr);
@@ -901,13 +904,29 @@ protected:
 };
 
 class MPRadosSerializer : public StoreMPSerializer {
+  const DoutPrefixProvider* dpp;
+  optional_yield y; // context of request coroutine/thread
   librados::IoCtx ioctx;
-  ::rados::cls::lock::Lock lock;
+  ::rados::cls::lock::Lock lock_state;
+
+  // lock renewal state
+  boost::asio::any_io_executor ex; // strand executor for renewal
+  using Timer = boost::asio::basic_waitable_timer<ceph::coarse_mono_clock>;
+  Timer timer;
+  boost::asio::cancellation_signal signal;
+  std::mutex mutex;
+  ceph::async::async_cond<> cond;
+  bool renew_started = false;
+  bool renew_canceled = false;
+  void start_renewal(ceph::timespan dur);
+  void stop_renewal();
 
 public:
-  MPRadosSerializer(const DoutPrefixProvider *dpp, RadosStore* store, RadosObject* obj, const std::string& lock_name);
+  MPRadosSerializer(const DoutPrefixProvider *dpp, optional_yield y,
+                    RadosStore* store, RadosObject* obj, const std::string& lock_name);
+  ~MPRadosSerializer() override;
 
-  virtual int try_lock(const DoutPrefixProvider *dpp, utime_t dur, optional_yield y) override;
+  virtual int try_lock(const DoutPrefixProvider *dpp, ceph::timespan dur, optional_yield y) override;
   virtual int unlock(const DoutPrefixProvider* dpp, optional_yield y) override;
 };
 
@@ -918,7 +937,7 @@ class LCRadosSerializer : public StoreLCSerializer {
 public:
   LCRadosSerializer(RadosStore* store, const std::string& oid, const std::string& lock_name, const std::string& cookie);
 
-  virtual int try_lock(const DoutPrefixProvider *dpp, utime_t dur, optional_yield y) override;
+  virtual int try_lock(const DoutPrefixProvider *dpp, ceph::timespan dur, optional_yield y) override;
   virtual int unlock(const DoutPrefixProvider* dpp, optional_yield y) override;
 };
 
@@ -958,7 +977,7 @@ class RadosRestoreSerializer : public StoreRestoreSerializer {
 public:
   RadosRestoreSerializer(RadosStore* store, const std::string& oid, const std::string& lock_name, const std::string& cookie);
 
-  virtual int try_lock(const DoutPrefixProvider *dpp, utime_t dur, optional_yield y) override;
+  virtual int try_lock(const DoutPrefixProvider *dpp, ceph::timespan dur, optional_yield y) override;
   virtual int unlock(const DoutPrefixProvider* dpp, optional_yield y) override;
 };
 
@@ -1221,19 +1240,48 @@ class RadosLuaManager : public StoreLuaManager {
     std::ostream& gen_prefix(std::ostream& out) const override;
   };
 
+  class ScriptsWatcher : public librados::WatchCtx2, public DoutPrefixProvider {
+    RadosLuaManager* const parent;
+  public:
+    ScriptsWatcher(RadosLuaManager* _parent) :
+      parent(_parent) {}
+    ~ScriptsWatcher() override = default;
+    void handle_notify(uint64_t notify_id, uint64_t cookie,
+                   uint64_t notifier_id, bufferlist& bl) override;
+    void handle_error(uint64_t cookie, int err) override;
+
+    // DoutPrefixProvider iterface
+    CephContext* get_cct() const override;
+    unsigned get_subsys() const override;
+    std::ostream& gen_prefix(std::ostream& out) const override;
+  };
+
   RadosStore* const store;
   rgw_pool pool;
   librados::IoCtx& ioctx;
+  librados::IoCtx ioctx_scripts;
   PackagesWatcher packages_watcher;
+  ScriptsWatcher scripts_watcher;
   void ack_reload(const DoutPrefixProvider* dpp, uint64_t notify_id, uint64_t cookie, int reload_status);
   void handle_reload_notify(const DoutPrefixProvider* dpp, optional_yield y, uint64_t notify_id, uint64_t cookie);
+  void ack_script_update(const DoutPrefixProvider* dpp, uint64_t notify_id, uint64_t cookie, int reload_status);
+  void handle_script_update_notify(const DoutPrefixProvider* dpp, optional_yield y, uint64_t notify_id, uint64_t cookie);
+  int notify_script_update(const DoutPrefixProvider *dpp, const std::string& script_oid, optional_yield y);
+  uint64_t get_watch_handle_for_script(const std::string& script_oid);
+  std::string get_script_for_watch_handle(uint64_t handle);
+
   uint64_t watch_handle = 0;
+  std::map<std::string, uint64_t> script_watches;
+  std::map<uint64_t, std::string> reverse_script_watches;
 
 public:
   RadosLuaManager(RadosStore* _s, const std::string& _luarocks_path);
   ~RadosLuaManager() override = default;
 
+  // To be used by the radosgw-admin process
   int get_script(const DoutPrefixProvider* dpp, optional_yield y, const std::string& key, std::string& script) override;
+  // To be used by the radosgw process
+  std::tuple<rgw::lua::LuaCodeType, int> get_script_or_bytecode(const DoutPrefixProvider* dpp, optional_yield y, const std::string& key) override;
   int put_script(const DoutPrefixProvider* dpp, optional_yield y, const std::string& key, const std::string& script) override;
   int del_script(const DoutPrefixProvider* dpp, optional_yield y, const std::string& key) override;
   int add_package(const DoutPrefixProvider* dpp, optional_yield y, const std::string& package_name) override;
@@ -1242,6 +1290,9 @@ public:
   int reload_packages(const DoutPrefixProvider* dpp, optional_yield y) override;
   int watch_reload(const DoutPrefixProvider* dpp);
   int unwatch_reload(const DoutPrefixProvider* dpp);
+  int watch_script(const DoutPrefixProvider* dpp, const std::string& script_oid);
+  int unwatch_script(const DoutPrefixProvider* dpp, const std::string& script_oid);
+
 };
 
 class RadosRole : public RGWRole {

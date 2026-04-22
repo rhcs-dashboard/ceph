@@ -25,10 +25,12 @@
 
 #include "mon/OSDMonitor.h"
 #include "mon/Monitor.h"
+#include "mon/MonMap.h"
 #include "mon/MDSMonitor.h"
 #include "mon/MgrStatMonitor.h"
 #include "mon/AuthMonitor.h"
 #include "mon/KVMonitor.h"
+#include "mon/Paxos.h"
 
 #include "mon/MonitorDBStore.h"
 #include "mon/Session.h"
@@ -58,14 +60,18 @@
 #include "messages/MMonGetPurgedSnaps.h"
 #include "messages/MMonGetPurgedSnapsReply.h"
 
+#include "msg/Messenger.h"
+
 #include "common/JSONFormatter.h"
 #include "common/TextTable.h"
 #include "common/Timer.h"
 #include "common/ceph_argparse.h"
 #include "common/perf_counters.h"
+#include "common/prime.h"
 #include "common/PriorityCache.h"
 #include "common/strtol.h"
 #include "common/numa.h"
+#include "common/prime.h"
 
 #include "common/config.h"
 #include "common/errno.h"
@@ -682,16 +688,16 @@ void OSDMonitor::create_initial()
   if (newmap.nearfull_ratio > 1.0) newmap.nearfull_ratio /= 100;
 
   // new cluster should require latest by default
-  if (g_conf().get_val<bool>("mon_debug_no_require_tentacle")) {
-    if (g_conf().get_val<bool>("mon_debug_no_require_squid")) {
-      derr << __func__ << " mon_debug_no_require_tentacle and squid=true" << dendl;
-      newmap.require_osd_release = ceph_release_t::reef;
-    } else {
-      derr << __func__ << " mon_debug_no_require_tentacle=true" << dendl;
+  if (g_conf().get_val<bool>("mon_debug_no_require_umbrella")) {
+    if (g_conf().get_val<bool>("mon_debug_no_require_tentacle")) {
+      derr << __func__ << " mon_debug_no_require_umbrella and tentacle=true" << dendl;
       newmap.require_osd_release = ceph_release_t::squid;
+    } else {
+      derr << __func__ << " mon_debug_no_require_umbrella=true" << dendl;
+      newmap.require_osd_release = ceph_release_t::tentacle;
     }
   } else {
-    newmap.require_osd_release = ceph_release_t::tentacle;
+    newmap.require_osd_release = ceph_release_t::umbrella;
   }
 
   ceph_release_t r = ceph_release_from_name(g_conf()->mon_osd_initial_require_min_compat_client);
@@ -3495,26 +3501,26 @@ bool OSDMonitor::preprocess_boot(MonOpRequestRef op)
   ceph_assert(m->get_orig_source_inst().name.is_osd());
 
   // lower bound of N-2
-  if (!HAVE_FEATURE(m->osd_features, SERVER_REEF)) {
+  if (!HAVE_FEATURE(m->osd_features, SERVER_SQUID)) {
     mon.clog->info() << "disallowing boot of OSD "
 		     << m->get_orig_source_inst()
-		     << " because the osd lacks CEPH_FEATURE_SERVER_REEF";
+		     << " because the osd lacks CEPH_FEATURE_SERVER_SQUID";
     goto ignore;
   }
 
   // make sure osd versions do not span more than 3 releases
-  if (HAVE_FEATURE(m->osd_features, SERVER_SQUID) &&
-      osdmap.require_osd_release < ceph_release_t::quincy) {
-    mon.clog->info() << "disallowing boot of squid+ OSD "
-		      << m->get_orig_source_inst()
-		      << " because require_osd_release < quincy";
-    goto ignore;
-  }
   if (HAVE_FEATURE(m->osd_features, SERVER_TENTACLE) &&
       osdmap.require_osd_release < ceph_release_t::reef) {
     mon.clog->info() << "disallowing boot of tentacle+ OSD "
 		      << m->get_orig_source_inst()
 		      << " because require_osd_release < reef";
+    goto ignore;
+  }
+  if (HAVE_FEATURE(m->osd_features, SERVER_UMBRELLA) &&
+    osdmap.require_osd_release < ceph_release_t::squid) {
+    mon.clog->info() << "disallowing boot of umbrella+ OSD "
+                      << m->get_orig_source_inst()
+                      << " because require_osd_release < squid";
     goto ignore;
   }
 
@@ -8269,7 +8275,6 @@ int OSDMonitor::prepare_new_pool(string& name,
     pi->use_gmt_hitset = false;
   if (crimson) {
     pi->set_flag(pg_pool_t::FLAG_CRIMSON);
-    pi->set_flag(pg_pool_t::FLAG_NOPGCHANGE);
   }
 
   pi->size = size;
@@ -8357,6 +8362,8 @@ int OSDMonitor::prepare_new_pool(string& name,
     enable_pool_ec_optimizations(*pi, nullptr, true);
   }
 
+  enable_pool_ec_direct_reads(*pi);
+
   pending_inc.new_pool_names[pool] = name;
   return 0;
 }
@@ -8404,12 +8411,13 @@ int OSDMonitor::enable_pool_ec_optimizations(pg_pool_t &p,
   }
   if (enable) {
     ErasureCodeInterfaceRef erasure_code;
-    unsigned int k, m;
+    unsigned int k, m, chunk_size;
     stringstream tmp;
     int err = get_erasure_code(p.erasure_code_profile, &erasure_code, &tmp);
     if (err == 0) {
       k = erasure_code->get_data_chunk_count();
       m = erasure_code->get_coding_chunk_count();
+      chunk_size = erasure_code->get_chunk_size(p.get_stripe_width());
     } else {
       if (ss) {
         *ss << "get_erasure_code failed: " << tmp.str();
@@ -8420,6 +8428,13 @@ int OSDMonitor::enable_pool_ec_optimizations(pg_pool_t &p,
         ErasureCodeInterface::FLAG_EC_PLUGIN_OPTIMIZED_SUPPORTED) == 0) {
       if (ss) {
         *ss << "ec optimizations not currently supported for pool profile.";
+      }
+      return -EINVAL;
+    }
+
+    if ((chunk_size % 4096) != 0) {
+      if (ss) {
+        *ss << "stripe_unit must be divisible by 4096 to enable ec optimizations";
       }
       return -EINVAL;
     }
@@ -8449,6 +8464,29 @@ int OSDMonitor::enable_pool_ec_optimizations(pg_pool_t &p,
     }
   }
   return 0;
+}
+
+void OSDMonitor::enable_pool_ec_direct_reads(pg_pool_t &p) {
+  if (p.is_erasure()) {
+    ErasureCodeInterfaceRef erasure_code;
+    stringstream tmp;
+    int err = get_erasure_code(p.erasure_code_profile, &erasure_code, &tmp);
+
+    // Once this feature is finished, we will replace this with upgrade code.
+    // The upgrade code will enable the split read flag once all OSDs are at
+    // Umbrella. For now, if the plugin does not support direct reads, we just
+    // disable it.  All plugins and techniques should be capable of supporting
+    // direct reads, but we put in place this capability to reduce the test
+    // matrix for less important plugins/techniques.
+    //
+    // To enable direct reads in development, set the osd_pool_default_flags to
+    // 1<<20 = 0x100000 = 1048576
+    if (err != 0 || !p.allows_ecoptimizations() ||
+          (erasure_code->get_supported_optimizations() &
+            ErasureCodeInterface::FLAG_EC_PLUGIN_DIRECT_READS) == 0) {
+      p.flags &= ~pg_pool_t::FLAG_CLIENT_SPLIT_READS;
+    }
+  }
 }
 
 int OSDMonitor::prepare_command_pool_set(const cmdmap_t& cmdmap,
@@ -8600,6 +8638,18 @@ int OSDMonitor::prepare_command_pool_set(const cmdmap_t& cmdmap,
       ss << "pool pg_num change is disabled; you must unset nopgchange flag for the pool first";
       return -EPERM;
     }
+    // check for Crimson pools
+    // pg merging is not yet supported in Crimson
+    if (p.has_flag(pg_pool_t::FLAG_CRIMSON)) {
+      if (n < (int)p.get_pg_num()) {
+        ss << "crimson-osd does not support decreasing pg_num_actual (shrinking)";
+        return -ENOTSUP;
+      }
+      if (n > (int)p.get_pg_num() && !g_conf().get_val<bool>("crimson_allow_pg_split")) {
+        ss << "crimson_allow_pg_split is false; pg_num_actual increase denied";
+        return -EPERM;
+      }
+    }
     if (interr.length()) {
       ss << "error parsing integer value '" << val << "': " << interr;
       return -EINVAL;
@@ -8650,6 +8700,18 @@ int OSDMonitor::prepare_command_pool_set(const cmdmap_t& cmdmap,
     if (p.has_flag(pg_pool_t::FLAG_NOPGCHANGE)) {
       ss << "pool pg_num change is disabled; you must unset nopgchange flag for the pool first";
       return -EPERM;
+    }
+    // check for Crimson pools
+    // pg merging is not yet supported in Crimson
+    if (p.has_flag(pg_pool_t::FLAG_CRIMSON)) {
+      if (n < (int)p.get_pg_num_target()) {
+        ss << "crimson-osd does not support decreasing pg_num";
+        return -ENOTSUP;
+      }
+      if (n > (int)p.get_pg_num_target() && !g_conf().get_val<bool>("crimson_allow_pg_split")) {
+        ss << "crimson_allow_pg_split is false; pg_num increase denied for crimson pool";
+        return -EPERM;
+      }
     }
     if (interr.length()) {
       ss << "error parsing integer value '" << val << "': " << interr;
@@ -8720,6 +8782,18 @@ int OSDMonitor::prepare_command_pool_set(const cmdmap_t& cmdmap,
       ss << "pool pgp_num change is disabled; you must unset nopgchange flag for the pool first";
       return -EPERM;
     }
+    // check for Crimson pools
+    // pg merging is not yet supported in Crimson
+    if (p.has_flag(pg_pool_t::FLAG_CRIMSON)) {
+      if (n < (int)p.get_pgp_num()) {
+        ss << "crimson-osd does not support decreasing pgp_num_actual";
+        return -ENOTSUP;
+      }
+      if (n > (int)p.get_pgp_num() && !g_conf().get_val<bool>("crimson_allow_pg_split")) {
+        ss << "crimson_allow_pg_split is false; pgp_num_actual increase denied";
+        return -EPERM;
+      }
+    }
     if (interr.length()) {
       ss << "error parsing integer value '" << val << "': " << interr;
       return -EINVAL;
@@ -8742,6 +8816,18 @@ int OSDMonitor::prepare_command_pool_set(const cmdmap_t& cmdmap,
     if (p.has_flag(pg_pool_t::FLAG_NOPGCHANGE)) {
       ss << "pool pgp_num change is disabled; you must unset nopgchange flag for the pool first";
       return -EPERM;
+    }
+    // check for Crimson pools
+    // pg merging is not yet supported in Crimson
+    if (p.has_flag(pg_pool_t::FLAG_CRIMSON)) {
+      if (n < (int)p.get_pgp_num_target()) {
+        ss << "crimson-osd does not support decreasing pgp_num";
+        return -ENOTSUP;
+      }
+      if (n > (int)p.get_pgp_num_target() && !g_conf().get_val<bool>("crimson_allow_pg_split")) {
+        ss << "crimson_allow_pg_split is false; pgp_num increase denied";
+        return -EPERM;
+      }
     }
     if (interr.length()) {
       ss << "error parsing integer value '" << val << "': " << interr;
@@ -8924,7 +9010,7 @@ int OSDMonitor::prepare_command_pool_set(const cmdmap_t& cmdmap,
       return -EINVAL;
     }
     bool was_enabled = p.allows_ecoptimizations();
-    int r = enable_pool_ec_optimizations(p, nullptr, enable);
+    int r = enable_pool_ec_optimizations(p, &ss, enable);
     if (r != 0) {
       return r;
     }
@@ -11664,10 +11750,49 @@ bool OSDMonitor::prepare_command_impl(MonOpRequestRef op,
 
     if (profile_map.find("plugin") == profile_map.end()) {
       ss << "erasure-code-profile " << profile_map
-	 << " must contain a plugin entry" << std::endl;
+      << " must contain a plugin entry" << std::endl;
       err = -EINVAL;
       goto reply_no_propose;
     }
+
+    bool force_no_fake = false;
+    cmd_getval(cmdmap, "yes_i_really_mean_it", force_no_fake);
+
+    //This is the start of the validation for the w value in a blaum_roth profile
+    //this will search the Profile map, which contains the values for the parameters given in the command, for the technique parameter
+    if (auto found = profile_map.find("technique"); found != profile_map.end()) {
+      //if the technique parameter is found then save the value of it
+      string technique = found->second;
+      //then search the profile map again for the w value, which doesnt have to be specified, and if it is found and the technique used is blaum-roth then check that the w value is correct.
+      if (found = profile_map.find("w"); technique == "blaum_roth" 
+      && found != profile_map.end()) {
+        int w = std::stoi(found->second);
+        if ((w <= 2) || (w >= 256)) {
+          ss << "erasure-code-profile: " << profile_map
+          << " The value of w must be greater than 2 and less than 256." << std::endl;
+          err = -EINVAL;
+          goto reply_no_propose;
+        }
+
+        //checks if w+1 is not prime
+        if (!is_prime(w + 1)) {
+          if (force ^ force_no_fake) {
+            err = -EPERM;
+            ss << "Creating a blaum-roth erasure code profile with a w+1 value"
+            << " that is not prime is dangerous, as it can cause data corruption."
+            << " You need to use both --yes-i-really-mean-it and --force flags."
+            << std::endl;
+            goto reply_no_propose;
+          } else if (!force && !force_no_fake) {
+            ss << "erasure-code-profile: " << profile_map 
+            << " must use a w value such that w+1 is prime." << std::endl;
+            err = -EINVAL;
+            goto reply_no_propose;
+          }
+        }
+      }
+    }
+
     string plugin = profile_map["plugin"];
 
     if (pending_inc.has_erasure_code_profile(name)) {
@@ -11689,8 +11814,7 @@ bool OSDMonitor::prepare_command_impl(MonOpRequestRef op,
 	  err = 0;
 	  goto reply_no_propose;
 	}
-	bool force_no_fake = false;
-	cmd_getval(cmdmap, "yes_i_really_mean_it", force_no_fake);
+
 	if (!force) {
 	  err = -EPERM;
 	  ss << "will not override erasure code profile " << name
@@ -12092,7 +12216,7 @@ bool OSDMonitor::prepare_command_impl(MonOpRequestRef op,
       err = 0;
       goto reply_no_propose;
     }
-    if (osdmap.require_osd_release < ceph_release_t::quincy && !sure) {
+    if (osdmap.require_osd_release < ceph_release_t::squid && !sure) {
       ss << "Not advisable to continue since current 'require_osd_release' "
          << "refers to a very old Ceph release. Pass "
 	 << "--yes-i-really-mean-it if you really wish to continue.";
@@ -12105,20 +12229,7 @@ bool OSDMonitor::prepare_command_impl(MonOpRequestRef op,
       err = -EPERM;
       goto reply_no_propose;
     }
-    if (rel == ceph_release_t::reef) {
-      if (!mon.monmap->get_required_features().contains_all(
-	    ceph::features::mon::FEATURE_REEF)) {
-	ss << "not all mons are reef";
-	err = -EPERM;
-	goto reply_no_propose;
-      }
-      if ((!HAVE_FEATURE(osdmap.get_up_osd_features(), SERVER_REEF))
-           && !sure) {
-	ss << "not all up OSDs have CEPH_FEATURE_SERVER_REEF feature";
-	err = -EPERM;
-	goto reply_no_propose;
-      }
-    } else if (rel == ceph_release_t::squid) {
+    if (rel == ceph_release_t::squid) {
       if (!mon.monmap->get_required_features().contains_all(
 	    ceph::features::mon::FEATURE_SQUID)) {
 	ss << "not all mons are squid";
@@ -12143,6 +12254,19 @@ bool OSDMonitor::prepare_command_impl(MonOpRequestRef op,
 	ss << "not all up OSDs have CEPH_FEATURE_SERVER_TENTACLE feature";
 	err = -EPERM;
 	goto reply_no_propose;
+      }
+    } else if (rel == ceph_release_t::umbrella) {
+      if (!mon.monmap->get_required_features().contains_all(
+            ceph::features::mon::FEATURE_UMBRELLA)) {
+        ss << "not all mons are umbrella";
+        err = -EPERM;
+        goto reply_no_propose;
+      }
+      if ((!HAVE_FEATURE(osdmap.get_up_osd_features(), SERVER_UMBRELLA))
+           && !sure) {
+        ss << "not all up OSDs have CEPH_FEATURE_SERVER_UMBRELLA feature";
+        err = -EPERM;
+        goto reply_no_propose;
       }
     } else {
       ss << "not supported for this release";
@@ -12584,6 +12708,8 @@ bool OSDMonitor::prepare_command_impl(MonOpRequestRef op,
 	goto reply_no_propose;
       }
     }
+    // Optimized EC does not cope with pg temp with a mismatched size.
+    pending_inc.new_pg_temp[pgid].resize(osdmap.get_pg_size(pgid), CRUSH_ITEM_NONE);
     goto update;
   } else if (prefix == "osd pg-upmap" ||
              prefix == "osd rm-pg-upmap" ||
@@ -15269,6 +15395,26 @@ int OSDMonitor::_prepare_remove_pool(
     pending_inc.crush.clear();
     newcrush.encode(pending_inc.crush, mon.get_quorum_con_features());
   }
+
+  // remove any crush rules for this pool
+  const pg_pool_t *pi = osdmap.get_pg_pool(pool);
+  if (pi->is_erasure() && newcrush.rule_exists(pi->get_crush_rule())) {
+    int ruleno = pi->get_crush_rule();
+    ceph_assert(ruleno >= 0);
+
+    auto rule_in_use = false;
+    for (const auto &_pool : osdmap.pools) {
+      if (_pool.second.get_crush_rule() == ruleno && pool != _pool.first)
+        rule_in_use = true;
+    }
+    if (!rule_in_use) {
+      dout(10) << __func__ << " removing crush rule for pool " << pool << dendl;
+      newcrush.remove_rule(ruleno);
+      pending_inc.crush.clear();
+      newcrush.encode(pending_inc.crush, mon.get_quorum_con_features());
+    }
+  }
+
   return 0;
 }
 
@@ -15509,23 +15655,26 @@ void OSDMonitor::try_enable_stretch_mode(stringstream& ss, bool *okay,
     return;
   }
   __u8 new_rule = static_cast<__u8>(new_crush_rule_result);
-
-  int weight1 = crush.get_item_weight(subtrees[0]);
-  int weight2 = crush.get_item_weight(subtrees[1]);
-  if (weight1 != weight2) {
-    // TODO: I'm really not sure this is a good idea?
-    ss << "the 2 " << dividing_bucket
-       << "instances in the cluster have differing weights "
-       << weight1 << " and " << weight2
-       <<" but stretch mode currently requires they be the same!";
-    *errcode = -EINVAL;
-    ceph_assert(!commit || (weight1 == weight2));
-    return;
-  }
   if (bucket_count != 2) {
     ss << "currently we only support 2-site stretch clusters!";
     *errcode = -EINVAL;
     ceph_assert(!commit || bucket_count == 2);
+    return;
+  }
+  double stretch_max_weight_delta = g_conf().get_val<double>("mon_stretch_max_bucket_weight_delta");
+  int weight1 = crush.get_item_weight(subtrees[0]);
+  int weight2 = crush.get_item_weight(subtrees[1]);
+  bool exceeds_threshold = abs(weight1 - weight2) >
+      (stretch_max_weight_delta * std::min(weight1, weight2));
+  if (exceeds_threshold) {
+    ss << "the 2 " << dividing_bucket
+       << "instances in the cluster have differing weights "
+       << weight1 << " and " << weight2
+       << " but stretch mode currently" 
+       <<" requires the difference to be no greater than "
+       << stretch_max_weight_delta * 100 << "%";
+    *errcode = -EINVAL;
+    ceph_assert(!commit || !exceeds_threshold);
     return;
   }
   // TODO: check CRUSH rules for pools so that we are appropriately divided

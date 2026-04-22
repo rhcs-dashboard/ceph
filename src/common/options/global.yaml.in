@@ -522,6 +522,9 @@ options:
   type: bool
   level: basic
   desc: send log lines to stderr
+  long_desc: When Ceph runs as a library (e.g., librados), the default value set to false because
+    stderr may not be writable by the application. For daemons, the daemon_default of false is used
+    instead.
   fmt_desc: Determines if logging messages should appear in ``stderr``.
   default: true
   daemon_default: false
@@ -927,7 +930,7 @@ options:
   level: advanced
   desc: Messenger implementation to use for network communication
   fmt_desc: Transport type used by Async Messenger. Can be ``async+posix``,
-    ``async+dpdk`` or ``async+rdma``. Posix uses standard TCP/IP networking and is
+    ``async+dpdk``, ``async+rdma``, or ``async+smc``. Posix uses standard TCP/IP networking and is
     default. Other transports may be experimental and support may be limited.
   default: async+posix
   flags:
@@ -2034,19 +2037,19 @@ options:
   see_also:
   - mon_debug_dump_transactions
   with_legacy: true
-- name: mon_debug_no_require_squid
+- name: mon_debug_no_require_tentacle
   type: bool
   level: dev
-  desc: Do not require the Squid feature for new Monitor clusters
+  desc: Do not require the Tentacle feature for new Monitor clusters
   default: false
   services:
   - mon
   flags:
   - cluster_create
-- name: mon_debug_no_require_tentacle
+- name: mon_debug_no_require_umbrella
   type: bool
   level: dev
-  desc: Do not require the Tentacle feature for new Monitor clusters
+  desc: Do not require the Umbrella feature for new Monitor clusters
   default: false
   services:
   - mon
@@ -3390,7 +3393,7 @@ options:
   with_legacy: true
 # to adjust various transactions that batch smaller items
 - name: osd_target_transaction_size
-  type: int
+  type: uint
   level: advanced
   default: 30
   with_legacy: true
@@ -3826,7 +3829,6 @@ options:
   - bluestore
   - filestore
   - memstore
-  - kstore
   - seastore
   - cyanstore
   flags:
@@ -4349,10 +4351,10 @@ options:
   flags:
   - runtime
   with_legacy: true
-- name: bluefs_check_volume_selector_on_umount
+- name: bluefs_check_volume_selector_on_mount
   type: bool
   level: dev
-  desc: Check validity of volume selector on umount
+  desc: Check validity of volume selector on mount/umount
   long_desc: Checks if volume selector did not diverge from the state it should be in.
     Reference is constructed from bluefs inode table. Asserts on inconsistency.
   default: false
@@ -4367,7 +4369,7 @@ options:
     Reference is constructed from bluefs inode table. Asserts on inconsistency. This is debug feature.
   default: false
   see_also:
-  - bluefs_check_volume_selector_on_umount
+  - bluefs_check_volume_selector_on_mount
   flags:
   - startup
   with_legacy: true
@@ -4512,6 +4514,18 @@ options:
   - bluestore_block_wal_size
   flags:
   - create
+  with_legacy: true
+- name: bluestore_use_ebd
+  type: bool
+  level: advanced
+  desc: EBD plugin used during mkfs is required for mounts.
+  long_desc: The flag has two effects, on mkfs and on mount.
+    If set for mkfs and EBD plugin did attach to the device then save plugin name to OSD metadata.
+    If set when mounting and plugin name is stored in OSD metadata then refuse to mount.
+    The flag has no meaning if the device has no associated EBD plugin.
+  default: true
+  see_also:
+  - osd_extblkdev_plugins
   with_legacy: true
 - name: bluestore_bdev_label_multi
   type: bool
@@ -4670,9 +4684,9 @@ options:
 - name: bluestore_prefer_deferred_size
   type: size
   level: advanced
-  desc: Writes smaller than this size will be written to the journal and then asynchronously
-    written to the device.  This can be beneficial when using rotational media where
-    seeks are expensive, and is helpful both with and without solid state journal/wal
+  desc: Writes smaller than this size will be written to the WAL and then asynchronously
+    written to the block (slow) device.  This can be beneficial when using rotational media where
+    seeks are expensive, and is helpful both with and without SSD WAL.
     devices.
   default: 0
   flags:
@@ -4691,7 +4705,7 @@ options:
 - name: bluestore_prefer_deferred_size_ssd
   type: size
   level: advanced
-  desc: Default bluestore_prefer_deferred_size for non-rotational (solid state) media
+  desc: Default bluestore_prefer_deferred_size for non-rotational (SSD) media
   default: 0
   see_also:
   - bluestore_prefer_deferred_size
@@ -4763,7 +4777,7 @@ options:
   desc: Default value of bluestore_compression_min_blob_size for rotational media
   fmt_desc: Default value of ``bluestore compression min blob size``
     for rotational media.
-  default: 8_K
+  default: 64_K
   see_also:
   - bluestore_compression_min_blob_size
   flags:
@@ -5658,6 +5672,14 @@ options:
   see_also:
   - bluestore_slow_ops_warn_lifetime
   - osd_op_complaint_time
+- name: bluestore_slow_scrub_ops_warn_threshold
+  type: uint
+  level: advanced
+  desc: Set the minimum number of BlueStore slow scrub ops before raising a health warning
+  default: 1
+  with_legacy: true
+  see_also:
+  - bluestore_slow_ops_warn_threshold
 - name: bluestore_fsck_error_on_no_per_pool_omap
   type: bool
   level: advanced
@@ -5686,6 +5708,12 @@ options:
   type: float
   level: advanced
   desc: Log a BlueStore operation if it is slower than this age (seconds)
+  default: 5
+  with_legacy: true
+- name: bluestore_log_scrub_op_age
+  type: float
+  level: advanced
+  desc: Log a BlueStore Scrub operation if it is slower than this age (seconds)
   default: 5
   with_legacy: true
 - name: bluestore_log_omap_iterator_age
@@ -5863,64 +5891,15 @@ options:
   flags:
   - runtime
   with_legacy: true
-- name: kstore_max_ops
-  type: uint
-  level: advanced
-  default: 512
-  with_legacy: true
-- name: kstore_max_bytes
-  type: size
-  level: advanced
-  default: 64_M
-  with_legacy: true
-- name: kstore_backend
-  type: str
-  level: advanced
-  default: rocksdb
-  with_legacy: true
-- name: kstore_rocksdb_options
-  type: str
-  level: advanced
-  desc: Options to pass through when RocksDB is used as the KeyValueDB for kstore.
-  default: compression=kNoCompression
-  with_legacy: true
-- name: kstore_fsck_on_mount
-  type: bool
-  level: advanced
-  desc: Whether or not to run fsck on mount for kstore.
-  default: false
-  with_legacy: true
-- name: kstore_fsck_on_mount_deep
-  type: bool
-  level: advanced
-  desc: Whether or not to run deep fsck on mount for kstore
-  default: true
-  with_legacy: true
-- name: kstore_nid_prealloc
-  type: uint
-  level: advanced
-  default: 1_K
-  with_legacy: true
-- name: kstore_sync_transaction
-  type: bool
-  level: advanced
-  default: false
-  with_legacy: true
-- name: kstore_sync_submit_transaction
-  type: bool
-  level: advanced
-  default: false
-  with_legacy: true
-- name: kstore_onode_map_size
-  type: uint
-  level: advanced
-  default: 1_K
-  with_legacy: true
-- name: kstore_default_stripe_size
-  type: size
-  level: advanced
-  default: 64_K
-  with_legacy: true
+- name: bluestore_bluefs_warn_ratio
+  type: float
+  level: basic
+  desc: The ratio at which BlueFS usage relative to the main device raises a
+    health warning. Set to "1" to disable.
+  default: 0.06
+  with_legacy: false
+  flags:
+  - runtime
 # rocksdb options that will be used for omap(if omap_backend is rocksdb)
 - name: filestore_rocksdb_options
   type: str

@@ -89,7 +89,6 @@ using ceph::crypto::MD5;
 #define RGW_ATTR_CORS		RGW_ATTR_PREFIX "cors"
 #define RGW_ATTR_ETAG RGW_ATTR_PREFIX "etag"
 #define RGW_ATTR_CKSUM          RGW_ATTR_PREFIX "cksum"
-#define RGW_ATTR_SHA256         RGW_ATTR_PREFIX "x-amz-content-sha256"
 #define RGW_ATTR_BLAKE3         RGW_ATTR_PREFIX "blake3"
 #define RGW_ATTR_BUCKETS	RGW_ATTR_PREFIX "buckets"
 #define RGW_ATTR_META_PREFIX	RGW_ATTR_PREFIX RGW_AMZ_META_PREFIX
@@ -369,7 +368,8 @@ inline constexpr const char* RGW_REST_STS_XMLNS =
 #define ERR_ACCOUNT_EXISTS 2403
 
 #define ERR_RESTORE_ALREADY_IN_PROGRESS 2500
-    
+#define ERR_EXPIRED_TOKEN 2501
+
 #ifndef UINT32_MAX
 #define UINT32_MAX (0xffffffffu)
 #endif
@@ -2073,3 +2073,26 @@ extern boost::optional<rgw::IAM::Policy>
 get_iam_policy_from_attr(CephContext* cct,
                          const std::map<std::string, bufferlist>& attrs,
                          const std::string& tenant);
+
+static inline void prepend_bucket_marker(const rgw_bucket& bucket, const std::string& orig_oid, std::string& oid)
+{
+  if (bucket.marker.empty() || orig_oid.empty()) {
+    oid = orig_oid;
+  } else {
+    oid = bucket.marker;
+    oid.append("_");
+    oid.append(orig_oid);
+  }
+}
+
+static inline void get_obj_bucket_and_oid_loc(const rgw_obj& obj, std::string& oid, std::string& locator)
+{
+  const rgw_bucket& bucket = obj.bucket;
+  prepend_bucket_marker(bucket, obj.get_oid(), oid);
+  const std::string& loc = obj.key.get_loc();
+  if (!loc.empty()) {
+    prepend_bucket_marker(bucket, loc, locator);
+  } else {
+    locator.clear();
+  }
+}

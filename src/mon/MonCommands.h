@@ -408,7 +408,6 @@ COMMAND("fs set "
           "|session_autoclose"
           "|session_timeout"
           "|standby_count_wanted"
-          "|allow_referent_inodes"
           " "
 	"name=val,type=CephString "
 	"name=yes_i_really_mean_it,type=CephBool,req=false "
@@ -897,7 +896,7 @@ COMMAND("osd unset "
 	"notieragent|nosnaptrim|noautoscale",
 	"unset <key>", "osd", "rw")
 COMMAND("osd require-osd-release "\
-	"name=release,type=CephChoices,strings=octopus|pacific|quincy|reef|squid|tentacle "
+	"name=release,type=CephChoices,strings=octopus|pacific|quincy|reef|squid|tentacle|umbrella "
         "name=yes_i_really_mean_it,type=CephBool,req=false",
 	"set the minimum allowed OSD release to participate in the cluster",
 	"osd", "rw")
@@ -1452,6 +1451,54 @@ COMMAND("nvme-gw show"
    " name=group,type=CephString",
    " show nvmeof gateways within (pool, group)",
    "mon", "r")
+
+COMMAND("nvme-gw listeners"
+	" name=pool,type=CephString"
+	" name=group,type=CephString",
+	" show all nvmeof gateways listeners within (pool, group)",
+	"mon", "r")
+
+COMMAND("nvme-gw enable"
+   " name=id,type=CephString"
+   " name=pool,type=CephString"
+   " name=group,type=CephString",
+   "administratively enables nvmeof gateway id for (pool, group)",
+   "mgr", "rw")
+
+COMMAND("nvme-gw disable"
+   " name=id,type=CephString"
+   " name=pool,type=CephString"
+   " name=group,type=CephString",
+   "administratively disables nvmeof gateway id for (pool, group)",
+   "mgr", "rw")
+
+COMMAND("nvme-gw set-location"
+   " name=id,type=CephString"
+   " name=pool,type=CephString"
+   " name=group,type=CephString"
+   " name=location,type=CephString",
+   "set location for nvmeof gateway id for (pool, group)",
+   "mgr", "rw")
+
+COMMAND("nvme-gw disaster-set"
+     " name=pool,type=CephString"
+     " name=group,type=CephString"
+     " name=location,type=CephString",
+     " set location to Disaster state",
+     "mgr", "rw")
+
+COMMAND("nvme-gw disaster-clear"
+    " name=pool,type=CephString"
+    " name=group,type=CephString"
+    " name=location,type=CephString",
+    " set location to clear Disaster state - failbacks allowed for recovered location",
+    "mgr", "rw")
+
+COMMAND("nvme-gw set"
+    " name=var,type=CephChoices,strings=beacon-diff"
+    " name=val,type=CephString ",
+    "config nvme-gw",
+    "mgr", "rw")
 
 // these are tell commands that were implemented as CLI commands in
 // the broken pre-octopus way that we want to allow to work when a

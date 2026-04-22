@@ -49,7 +49,8 @@ const BASE_URL = 'osd';
   selector: 'cd-osd-list',
   templateUrl: './osd-list.component.html',
   styleUrls: ['./osd-list.component.scss'],
-  providers: [{ provide: URLBuilderService, useValue: new URLBuilderService(BASE_URL) }]
+  providers: [{ provide: URLBuilderService, useValue: new URLBuilderService(BASE_URL) }],
+  standalone: false
 })
 export class OsdListComponent extends ListWithDetails implements OnInit {
   @ViewChild('osdUsageTpl', { static: true })
@@ -501,7 +502,7 @@ export class OsdListComponent extends ListWithDetails implements OnInit {
     const initialState = {
       selected: this.getSelectedOsds()
     };
-    this.bsModalRef = this.modalService.show(OsdFlagsIndivModalComponent, initialState);
+    this.bsModalRef = this.cdsModalService.show(OsdFlagsIndivModalComponent, initialState);
   }
 
   showConfirmationModal(markAction: string, onSubmit: (id: number) => Observable<any>) {

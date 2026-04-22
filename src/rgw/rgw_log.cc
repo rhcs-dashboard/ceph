@@ -13,7 +13,7 @@
 #include "rgw_client_io.h"
 #include "rgw_rest.h"
 #include "rgw_zone.h"
-#include "rgw_rados.h"
+#include "driver/rados/rgw_rados.h"
 
 #include "services/svc_zone.h"
 
@@ -330,6 +330,11 @@ void rgw_format_ops_log_entry(struct rgw_log_entry& entry, Formatter *formatter)
     formatter->dump_string("subuser", entry.subuser);
   }
   formatter->dump_bool("temp_url", entry.temp_url);
+
+  // Keystone scope information (if present)
+  if (entry.keystone_scope.has_value()) {
+    entry.keystone_scope->dump(formatter);
+  }
 
   if (entry.op == "multi_object_delete") {
     formatter->open_object_section("op_data");
@@ -734,5 +739,8 @@ void rgw_log_entry::dump(Formatter *f) const
   }
   if (!role_id.empty()) {
     f->dump_string("role_id", role_id);
+  }
+  if (keystone_scope.has_value()) {
+    keystone_scope->dump(f);
   }
 }

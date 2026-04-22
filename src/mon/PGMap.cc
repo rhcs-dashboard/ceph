@@ -53,6 +53,9 @@ MEMPOOL_DEFINE_OBJECT_FACTORY(PGMap::Incremental, pgmap_inc, pgmap);
 // ---------------------
 // PGMapDigest
 
+PGMapDigest::PGMapDigest() noexcept = default;
+PGMapDigest::~PGMapDigest() noexcept = default;
+
 void PGMapDigest::encode(bufferlist& bl, uint64_t features) const
 {
   // NOTE: see PGMap::encode_digest
@@ -1008,6 +1011,13 @@ int64_t PGMapDigest::get_pool_free_space(const OSDMap &osd_map,
 
   return avail / osd_map.pool_raw_used_rate(poolid);
 }
+
+PGMap::PGMap() noexcept
+  : version(0),
+    last_osdmap_epoch(0), last_pg_scan(0)
+{}
+
+PGMap::~PGMap() noexcept = default;
 
 int64_t PGMap::get_rule_avail(const OSDMap& osdmap, int ruleno) const
 {
@@ -2013,8 +2023,9 @@ void PGMap::get_stuck_stats(
     }
 
     if ((types & STUCK_PEERING) && (i->second.state & PG_STATE_PEERING)) {
-      if (i->second.last_peered < val)
-	val = i->second.last_peered;
+      utime_t latest = std::max(i->second.last_active, i->second.last_peered);
+      if (latest < val)
+	val = latest;
     }
     // val is now the earliest any of the requested stuck states began
     if (val < cutoff) {
@@ -2508,7 +2519,7 @@ void PGMap::get_health_checks(
     { PG_STATE_DEGRADED,         {DEGRADED,    {}} },
     { PG_STATE_DOWN,             {UNAVAILABLE, {}} },
     // Delayed (wait until stuck) reports
-    { PG_STATE_PEERING,          {UNAVAILABLE, [](const pg_stat_t &p){return p.last_peered;}    } },
+    { PG_STATE_PEERING,          {UNAVAILABLE, [](const pg_stat_t &p){return std::max(p.last_active, p.last_peered);}    } },
     { PG_STATE_UNDERSIZED,       {DEGRADED,    [](const pg_stat_t &p){return p.last_fullsized;} } },
     { PG_STATE_STALE,            {UNAVAILABLE, [](const pg_stat_t &p){return p.last_unstale;}   } },
     // Delayed and inverted reports
@@ -3313,6 +3324,8 @@ void PGMap::get_health_checks(
         summary += " experiencing stalled read in block device of BlueStore";
       } else if (asum.first == "WAL_DEVICE_STALLED_READ_ALERT") {
         summary += " experiencing stalled read in wal device of BlueFS";
+      } else if (asum.first == "BLUESTORE_BLUEFS_OVERSIZED") {
+        summary += " have BlueFS usage exceeding configured ratio of main device size";
       } else if (asum.first == "DB_DEVICE_STALLED_READ_ALERT") {
         summary += " experiencing stalled read in db device of BlueFS";
       } else if (asum.first.find("_DISCARD_QUEUE") != std::string::npos) {

@@ -31,6 +31,8 @@ import { CephfsSubvolumeSnapshotsFormComponent } from './cephfs-subvolume-snapsh
 import { CephfsSnapshotscheduleFormComponent } from './cephfs-snapshotschedule-form/cephfs-snapshotschedule-form.component';
 import { CephfsMountDetailsComponent } from './cephfs-mount-details/cephfs-mount-details.component';
 import { CephfsAuthModalComponent } from './cephfs-auth-modal/cephfs-auth-modal.component';
+import { CephfsMirroringListComponent } from './cephfs-mirroring-list/cephfs-mirroring-list.component';
+import { CephfsMirroringErrorComponent } from './cephfs-mirroring-error/cephfs-mirroring-error.component';
 import {
   ButtonModule,
   CheckboxModule,
@@ -45,16 +47,23 @@ import {
   ModalModule,
   NumberModule,
   PlaceholderModule,
+  RadioModule,
   SelectModule,
+  TagModule,
   TimePickerModule,
+  TilesModule,
   TreeviewModule,
-  TabsModule
+  TabsModule,
+  NotificationModule
 } from 'carbon-components-angular';
 
 import AddIcon from '@carbon/icons/es/add/32';
 import LaunchIcon from '@carbon/icons/es/launch/32';
 import Close from '@carbon/icons/es/close/32';
 import Trash from '@carbon/icons/es/trash-can/32';
+import { CephfsMirroringWizardComponent } from './cephfs-mirroring-wizard/cephfs-mirroring-wizard.component';
+import { CephfsFilesystemSelectorComponent } from './cephfs-filesystem-selector/cephfs-filesystem-selector.component';
+import { CephfsMirroringEntityComponent } from './cephfs-mirroring-entity/cephfs-mirroring-entity.component';
 
 @NgModule({
   imports: [
@@ -85,8 +94,13 @@ import Trash from '@carbon/icons/es/trash-can/32';
     LayoutModule,
     ComboBoxModule,
     IconModule,
+    RadioModule,
     BaseChartDirective,
-    TabsModule
+    TabsModule,
+    RadioModule,
+    TilesModule,
+    TagModule,
+    NotificationModule
   ],
   declarations: [
     CephfsDetailComponent,
@@ -106,7 +120,12 @@ import Trash from '@carbon/icons/es/trash-can/32';
     CephfsSnapshotscheduleFormComponent,
     CephfsSubvolumeSnapshotsFormComponent,
     CephfsMountDetailsComponent,
-    CephfsAuthModalComponent
+    CephfsAuthModalComponent,
+    CephfsMirroringListComponent,
+    CephfsMirroringWizardComponent,
+    CephfsFilesystemSelectorComponent,
+    CephfsMirroringErrorComponent,
+    CephfsMirroringEntityComponent
   ],
   providers: [provideCharts(withDefaultRegisterables())]
 })

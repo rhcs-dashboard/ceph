@@ -65,6 +65,9 @@ private:
   std::vector<pg_shard_t> get_replica_recovery_order() const {
     return pg->get_replica_recovery_order();
   }
+  hobject_t get_temp_recovery_object(
+    const hobject_t& target,
+    eversion_t version);
   RecoveryBackend::interruptible_future<> recover_missing(
     RecoveryBackend::RecoveryBlockingEvent::TriggerI&,
     const hobject_t &soid,
@@ -98,6 +101,7 @@ private:
     const ObjectRecoveryInfo &recovery_info);
   void _committed_pushed_object(epoch_t epoch,
 				eversion_t last_complete);
+  friend class RecoveryBackend;
   friend class ReplicatedRecoveryBackend;
   friend class crimson::osd::UrgentRecovery;
 
@@ -132,6 +136,9 @@ private:
     const pg_shard_t& target,
     const hobject_t& obj,
     const eversion_t& v) final;
+  void send_recovery_deletes(
+    const hobject_t& obj,
+    const std::vector<pg_shard_t>& peers) final;
   void maybe_flush() final;
   void update_peers_last_backfill(
     const hobject_t& new_last_backfill) final;

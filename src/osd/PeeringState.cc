@@ -30,6 +30,7 @@ using std::hex;
 using std::make_pair;
 using std::map;
 using std::ostream;
+using std::ostringstream;
 using std::pair;
 using std::set;
 using std::string;
@@ -38,6 +39,19 @@ using std::vector;
 
 using ceph::Formatter;
 using ceph::make_message;
+
+static int get_max_prio_for_base(int base) {
+  static const std::map<int, int> max_prio_map = {
+    {OSD_BACKFILL_PRIORITY_BASE, OSD_BACKFILL_DEGRADED_PRIORITY_BASE - 1},
+    {OSD_BACKFILL_DEGRADED_PRIORITY_BASE, OSD_RECOVERY_PRIORITY_BASE - 1},
+    {OSD_RECOVERY_PRIORITY_BASE, OSD_BACKFILL_INACTIVE_PRIORITY_BASE - 1},
+    {OSD_RECOVERY_INACTIVE_PRIORITY_BASE, OSD_RECOVERY_PRIORITY_MAX},
+    {OSD_BACKFILL_INACTIVE_PRIORITY_BASE, OSD_RECOVERY_PRIORITY_MAX}
+  };
+  auto it = max_prio_map.find(base);
+  ceph_assert(it != max_prio_map.end());
+  return it->second;
+}
 
 BufferedRecoveryMessages::BufferedRecoveryMessages(PeeringCtx &ctx)
   // steal messages from ctx
@@ -1165,7 +1179,7 @@ unsigned PeeringState::get_recovery_priority()
     int64_t pool_recovery_priority = 0;
     pool.info.opts.get(pool_opts_t::RECOVERY_PRIORITY, &pool_recovery_priority);
 
-    ret = clamp_recovery_priority(ret, pool_recovery_priority, max_prio_map[base]);
+    ret = clamp_recovery_priority(ret, pool_recovery_priority, get_max_prio_for_base(base));
   }
   psdout(20) << "recovery priority is " << ret << dendl;
   return static_cast<unsigned>(ret);
@@ -1200,7 +1214,7 @@ unsigned PeeringState::get_backfill_priority()
     int64_t pool_recovery_priority = 0;
     pool.info.opts.get(pool_opts_t::RECOVERY_PRIORITY, &pool_recovery_priority);
 
-    ret = clamp_recovery_priority(ret, pool_recovery_priority, max_prio_map[base]);
+    ret = clamp_recovery_priority(ret, pool_recovery_priority, get_max_prio_for_base(base));
   }
 
   psdout(20) << "backfill priority is " << ret << dendl;
@@ -1515,8 +1529,18 @@ bool PeeringState::needs_recovery() const
       continue;
     }
     if (pm->second.num_missing()) {
-      psdout(10) << "osd." << peer << " has "
-		 << pm->second.num_missing() << " missing" << dendl;
+      std::ostringstream ss;
+      ss << "osd." << peer << " has "
+         << pm->second.num_missing() << " missing";
+
+      const auto &items = pm->second.get_items();
+      if (!items.empty()) {
+        const auto &first = *items.begin();
+        const hobject_t &oid = first.first;
+        ss << ", first missing oid=" << oid;
+      }
+
+      psdout(10) << ss.str() << dendl;
       return true;
     }
   }
@@ -1546,17 +1570,21 @@ bool PeeringState::needs_backfill() const
 }
 
 /**
-* Returns whether a particular object can be safely read on this replica
+* Returns whether a particular object can be safely read
 */
-bool PeeringState::can_serve_replica_read(const hobject_t &hoid)
+bool PeeringState::can_serve_read(const hobject_t &hoid)
 {
   ceph_assert(!is_primary());
+  std::string_view storage_object = "replica";
+  if (pool.info.is_erasure()) {
+    storage_object = "shard";
+  }
   if (!pg_log.get_log().has_write_since(
       hoid, pg_committed_to)) {
-    psdout(20) << "can be safely read on this replica" << dendl;
+    psdout(20) << "can be safely read on this " << storage_object << dendl;
     return true;
   } else {
-    psdout(20) << "can't read object on this replica" << dendl;
+    psdout(20) << "can't read object on this " << storage_object << dendl;
     return false;
   }
 }
@@ -2892,6 +2920,10 @@ void PeeringState::activate(
   send_notify = false;
 
   if (is_primary()) {
+    // Update the epoch so that pwlc used by the primary during
+    // peering becomes the definitive copy of pwlc
+    info.partial_writes_last_complete_epoch = get_osdmap_epoch();
+
     // only update primary last_epoch_started if we will go active
     if (acting_set_writeable()) {
       ceph_assert(cct->_conf->osd_find_best_info_ignore_history_les ||
@@ -3274,7 +3306,7 @@ void PeeringState::rewind_divergent_log(
   PGLog::LogEntryHandlerRef rollbacker{pl->get_log_handler(t)};
   pg_log.rewind_divergent_log(
     newhead, info, rollbacker.get(), dirty_info, dirty_big_info,
-    pool.info.allows_ecoptimizations());
+    pool.info.allows_ecoptimizations(), pg_whoami);
 }
 
 
@@ -3347,9 +3379,6 @@ void PeeringState::consider_rollback_pwlc(eversion_t last_complete)
 		 << info.partial_writes_last_complete[shard] << dendl;
     }
   }
-  // Update the epoch so that pwlc adjustments made by the whole
-  // proc_master_log process are recognized as the newest updates
-  info.partial_writes_last_complete_epoch = get_osdmap_epoch();
 }
 
 void PeeringState::proc_master_log(
@@ -3482,7 +3511,12 @@ void PeeringState::proc_master_log(
   // log to be authoritative (i.e., their entries are by definitely
   // non-divergent).
   merge_log(t, oinfo, std::move(olog), from);
+  if (info.last_backfill.is_max() &&
+      pool.info.is_nonprimary_shard(from.shard)) {
+    invalidate_stats = true;
+  }
   info.stats.stats_invalid |= invalidate_stats;
+  increment_stats_invalidations_counter(invalidate_stats);
   peer_info[from] = oinfo;
   psdout(10) << " peer osd." << from << " now " << oinfo
 	     << " " << omissing << dendl;
@@ -3521,7 +3555,7 @@ void PeeringState::proc_replica_log(
     apply_pwlc(info.partial_writes_last_complete[from.shard], from, oinfo,
 	       &olog);
   }
-  pg_log.proc_replica_log(oinfo, olog, omissing, from, pool.info.allows_ecoptimizations());
+  pg_log.proc_replica_log(oinfo, olog, omissing, from, pg_whoami, pool.info.allows_ecoptimizations());
 
   peer_info[from] = oinfo;
   update_peer_info(from, oinfo);
@@ -3736,6 +3770,9 @@ void PeeringState::split_into(
   child->info.stats.snaptrim_duration = 0.0;
   child->info.last_epoch_started = info.last_epoch_started;
   child->info.last_interval_started = info.last_interval_started;
+
+  increment_stats_invalidations_counter(info.stats.stats_invalid);
+  increment_stats_invalidations_counter(child->info.stats.stats_invalid);
 
   // There can't be recovery/backfill going on now
   int primary, up_primary;
@@ -4407,6 +4444,12 @@ std::optional<pg_stat_t> PeeringState::prepare_stats_for_publish(
   }
 }
 
+void PeeringState::increment_stats_invalidations_counter(bool invalidation_state) {
+  if (invalidation_state) {
+    pl->get_peering_perf().inc(rs_stats_invalidated);
+  }
+}
+
 void PeeringState::init(
   int role,
   const vector<int>& newup, int new_up_primary,
@@ -4500,8 +4543,13 @@ void PeeringState::dump_peering_state(Formatter *f)
 void PeeringState::update_stats(
   std::function<bool(pg_history_t &, pg_stat_t &)> f,
   ObjectStore::Transaction *t) {
+  bool previous_stats_invalidation = info.stats.stats_invalid;
   if (f(info.history, info.stats)) {
     pl->publish_stats_to_osd();
+  }
+
+  if (previous_stats_invalidation != info.stats.stats_invalid) {
+    increment_stats_invalidations_counter(info.stats.stats_invalid);
   }
 
   if (t) {
@@ -4550,7 +4598,7 @@ bool PeeringState::append_log_entries_update_missing(
     info.last_complete = info.last_update;
   }
   info.stats.stats_invalid = info.stats.stats_invalid || invalidate_stats;
-
+  increment_stats_invalidations_counter(invalidate_stats);
   psdout(20) << "trim_to bool = " << bool(trim_to)
 	     << " trim_to = " << (trim_to ? *trim_to : eversion_t()) << dendl;
   if (trim_to) {
@@ -4604,6 +4652,7 @@ void PeeringState::merge_new_log_entries(
       dpp);
     pinfo.last_update = info.last_update;
     pinfo.stats.stats_invalid = pinfo.stats.stats_invalid || invalidate_stats;
+    increment_stats_invalidations_counter(invalidate_stats);
     rebuild_missing = rebuild_missing || invalidate_stats;
   }
 
@@ -5661,9 +5710,9 @@ boost::statechart::result
 PeeringState::Backfilling::react(const RemoteReservationRevoked &)
 {
   DECLARE_LOCALS;
-  ps->state_set(PG_STATE_BACKFILL_WAIT);
-  suspend_backfill();
   if (ps->needs_backfill()) {
+    ps->state_set(PG_STATE_BACKFILL_WAIT);
+    suspend_backfill();
     return transit<WaitLocalBackfillReserved>();
   } else {
     // raced with MOSDPGBackfill::OP_BACKFILL_FINISH, ignore
@@ -6312,6 +6361,7 @@ boost::statechart::result
 PeeringState::Recovering::react(const AllReplicasRecovered &evt)
 {
   DECLARE_LOCALS;
+  psdout(10) << "handling AllReplicasRecovered" << dendl;
   ps->state_clear(PG_STATE_FORCED_RECOVERY);
   release_reservations();
   pl->cancel_local_background_io_reservation();
@@ -6360,6 +6410,8 @@ PeeringState::Recovering::react(const DeferRecovery &evt)
       ps->get_osdmap_epoch(),
       DoRecovery()),
     evt.delay);
+  psdout(10) << "DeferRecovery: transitioning to NotRecovering, "
+	     << "any pending AllReplicasRecovered will be lost" << dendl;
   return transit<NotRecovering>();
 }
 
@@ -6395,6 +6447,8 @@ PeeringState::Recovered::Recovered(my_context ctx)
 
   DECLARE_LOCALS;
 
+  psdout(10) << "Recovered::Recovered: entering Recovered state" << dendl;
+
   ceph_assert(!ps->needs_recovery());
 
   // if we finished backfill, all acting are active; recheck if
@@ -6418,6 +6472,8 @@ PeeringState::Recovered::Recovered(my_context ctx)
   if (context< Active >().all_replicas_activated  &&
       ps->async_recovery_targets.empty())
     post_event(GoClean());
+
+  psdout(10) << "Recovered::Recovered: exiting Recovered constructor" << dendl;
 }
 
 void PeeringState::Recovered::exit()
@@ -6993,6 +7049,15 @@ boost::statechart::result PeeringState::ReplicaActive::react(
   } else {
     ps->state_set(PG_STATE_PEERED);
   }
+  /* Update the state in the stats. This will normally get overwritten when the next write
+   * transaction is applied, but if the PG is idle then these stats may get copied to the
+   * next primary (see PG::merge_log). The state update ensures that prepare_stats_for_publish
+   * will update last_active when the primary changes and this stops health check generating
+   * false positive stuck in peering alerts.
+   */
+  if (ps->info.stats.state != ps->state) {
+    ps->info.stats.state = ps->state;
+  }
   pl->on_activate_committed();
 
   return discard_event();
@@ -7333,7 +7398,8 @@ PeeringState::Deleting::Deleting(my_context ctx)
   // clear log
   PGLog::LogEntryHandlerRef rollbacker{pl->get_log_handler(t)};
   ps->pg_log.roll_forward(&ps->info, rollbacker.get());
-
+  // invalidate pwlc
+  ps->info.partial_writes_last_complete.clear();
   // adjust info to backfill
   ps->info.set_last_backfill(hobject_t());
   ps->pg_log.reset_backfill();

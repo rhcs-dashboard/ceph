@@ -1,3 +1,4 @@
+#include <boost/asio/system_executor.hpp>
 #include "common/async/completion.h"
 #include "common/errno.h"
 #include "common/async/blocked_completion.h"
@@ -297,9 +298,7 @@ int SSDDriver::restore_blocks_objects(const DoutPrefixProvider* dpp, ObjectDataC
 					    obj_key.name = object_name;
 					    if (attrs.find(RGW_CACHE_ATTR_VERSION_ID) != attrs.end()) {
 						std::string instance = attrs[RGW_CACHE_ATTR_VERSION_ID].to_str();
-						if (instance != "null") {
-						    obj_key.instance = instance;
-						}
+                            obj_key.instance = instance;
 					    }
 					    if (attrs.find(RGW_CACHE_ATTR_OBJECT_NS) != attrs.end()) {
 						obj_key.ns = attrs[RGW_CACHE_ATTR_OBJECT_NS].to_str();
@@ -371,7 +370,7 @@ int SSDDriver::restore_blocks_objects(const DoutPrefixProvider* dpp, ObjectDataC
     return 0;
 }
 
-uint64_t SSDDriver::get_free_space(const DoutPrefixProvider* dpp)
+uint64_t SSDDriver::get_free_space(const DoutPrefixProvider* dpp, optional_yield y)
 {
     efs::space_info space = efs::space(partition_info.location);
     return (space.available < partition_info.reserve_size) ? 0 : (space.available - partition_info.reserve_size);

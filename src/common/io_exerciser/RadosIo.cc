@@ -8,6 +8,7 @@
 #include "DataGenerator.h"
 #include "IoOp.h"
 #include "common/ceph_json.h"
+#include "common/io_exerciser/IoSequence.h"
 #include "common/json/OSDStructures.h"
 #include "librados/librados_asio.h"
 
@@ -15,6 +16,8 @@
 
 using RadosIo = ceph::io_exerciser::RadosIo;
 using ConsistencyChecker = ceph::consistency::ConsistencyChecker;
+
+using GenerationType = ceph::io_exerciser::data_generation::GenerationType;
 
 namespace {
 template <typename S>
@@ -46,18 +49,20 @@ RadosIo::RadosIo(librados::Rados& rados, boost::asio::io_context& asio,
                  const std::string& pool, const std::string& primary_oid, const std::string& secondary_oid,
                  uint64_t block_size, int seed, int threads, ceph::mutex& lock,
                  ceph::condition_variable& cond, bool is_replicated_pool,
-                 bool ec_optimizations)
-    : Model(primary_oid, secondary_oid, block_size),
+                 bool ec_optimizations, GenerationType data_generation_type,
+                 std::shared_ptr<ceph::io_exerciser::IoSequence> seq, bool delete_objects)
+    : Model(primary_oid, secondary_oid, block_size, delete_objects),
       rados(rados),
       asio(asio),
-      om(std::make_unique<ObjectModel>(primary_oid, secondary_oid, block_size, seed)),
+      om(std::make_unique<ObjectModel>(primary_oid, secondary_oid, block_size, seed, delete_objects)),
       db(data_generation::DataGenerator::create_generator(
-          data_generation::GenerationType::HeaderedSeededRandom, *om)),
+          data_generation_type, *om)),
       pool(pool),
       threads(threads),
       lock(lock),
       cond(cond),
-      outstanding_io(0) {
+      outstanding_io(0),
+      seq(seq) {
   int rc;
   rc = rados.ioctx_create(pool.c_str(), io);
   ceph_assert(rc == 0);
@@ -161,6 +166,11 @@ void RadosIo::applyIoOp(IoOp& op) {
     }
 
     case OpType::Remove: {
+      if (!delete_objects) {
+        const std::string new_primary_oid = primary_oid_base + "_" + std::to_string(++num_objects);
+        set_primary_oid(new_primary_oid);
+        break;
+      }
       start_io();
       auto op_info = std::make_shared<AsyncOpInfo<0>>();
       librados::ObjectWriteOperation wop;
@@ -255,7 +265,9 @@ void RadosIo::applyReadWriteOp(IoOp& op) {
       ceph_assert(ec == boost::system::errc::success);
       for (int i = 0; i < N; i++) {
         ceph_assert(db->validate(op_info->bufferlist[i], op_info->offset[i],
-                                 op_info->length[i]));
+                                 op_info->length[i], pool,
+                                 seq ? seq->get_id() : Sequence::SEQUENCE_END,
+                                 seq ? seq->get_step() : -1));
       }
       finish_io();
     };

@@ -20,7 +20,6 @@
 #include <unistd.h>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/process.hpp>
 
 #include <fmt/core.h>
 
@@ -41,6 +40,7 @@
 #include "rgw_aio_throttle.h"
 #include "rgw_bucket.h"
 #include "rgw_bucket_logging.h"
+#include "rgw_bl_rados.h"
 #include "rgw_lc.h"
 #include "rgw_lc_tier.h"
 #include "rgw_lc_tier.h"
@@ -64,6 +64,7 @@
 #include "rgw_tracer.h"
 #include "rgw_zone.h"
 #include "rgw_restore.h"
+#include "rgw_multipart_meta_filter.h"
 
 #include "services/svc_bilog_rados.h"
 #include "services/svc_bi_rados.h"
@@ -1096,6 +1097,7 @@ int RadosBucket::remove_topics(RGWObjVersionTracker* objv_tracker,
 
 
 #define RGW_ATTR_COMMITTED_LOGGING_OBJ RGW_ATTR_PREFIX "committed-logging-obj"
+#define RGW_ATTR_LOGGING_EC_POOL RGW_ATTR_PREFIX "logging-ec-pool"
 
 int get_committed_logging_object(RadosStore* store,
     const std::string& obj_name_oid,
@@ -1144,6 +1146,88 @@ int set_committed_logging_object(RadosStore* store,
   op.assert_exists();
   op.setxattr(RGW_ATTR_COMMITTED_LOGGING_OBJ, std::move(bl));
   return rgw_rados_operate(dpp, io_ctx, obj_name_oid, std::move(op), y);
+}
+
+int get_logging_temp_object_pool (const DoutPrefixProvider *dpp,
+    RadosBucket* bucket,
+    RadosStore* rados_store,
+    const std::string& obj_name_oid,
+    rgw_pool& data_pool, bool& is_ec_pool, optional_yield y) {
+
+  int ret;
+  rgw_obj obj {bucket->get_key(), "dummy"};
+  if (!rados_store->getRados()->get_obj_data_pool(bucket->get_placement_rule(), obj, &data_pool)) {
+    ldpp_dout(dpp, 1) << "ERROR: failed to get data pool for bucket '" << bucket->get_key() <<
+        "' when writing logging object" << dendl;
+    return -EIO;
+  }
+
+  // Find out if the log bucket is on an EC pool
+  // Use an attribute on the logging name object instead of the bucket so
+  // it is not synced in a multi-site setup
+
+  librados::Rados* rados = rados_store->getRados()->get_rados_handle();
+  librados::IoCtx io_ctx;
+  if (ret = rgw_init_ioctx(dpp, rados, data_pool, io_ctx); ret < 0) {
+    ldpp_dout(dpp, 1) << "ERROR: get data pool ioctx for bucket '" << bucket->get_key() <<
+        "' when writing logging object. ret = " << ret << dendl;
+    return ret;
+  }
+  if (!io_ctx.is_valid()) {
+    ldpp_dout(dpp, 1) << "ERROR: invalid data pool ioctx for bucket '" << bucket->get_key() <<
+        "' when writing logging object" << dendl;
+    return ret;
+  }
+
+  is_ec_pool = false;
+  bufferlist bl;
+  librados::ObjectReadOperation op;
+  int rval;
+  op.getxattr(RGW_ATTR_LOGGING_EC_POOL, &bl, &rval);
+  ret = rgw_rados_operate(dpp, io_ctx, obj_name_oid, std::move(op), nullptr, y);
+  if (ret == 0) {
+    try {
+      ceph::decode(is_ec_pool, bl);
+    } catch (buffer::error& err) {
+      ldpp_dout(dpp, 1) << "ERROR: failed to decode " << RGW_ATTR_LOGGING_EC_POOL
+                        << " attr for bucket '" << bucket->get_key()
+                        << "'. error = " << err.what() << dendl;
+      return -EINVAL;
+    }
+  } else if (ret < 0){
+    // Try to find out if it is an EC pool
+    ret = rados->mon_command(
+      "{\"prefix\": \"osd pool get\", \"pool\": \"" +
+      data_pool.name + "\", \"var\": \"erasure_code_profile\"}",
+      {}, NULL, NULL);
+    if (ret == -EACCES) {
+      is_ec_pool = false;
+    } else if (ret == 0){
+      is_ec_pool = true;
+    } else {
+      ldpp_dout(dpp, 10) << __func__ << " ERROR: failed to find out if pool"
+                         << data_pool.name << " is erasure coded. ret = "
+                         << ret << dendl;
+      return ret;
+    }
+    bufferlist bl;
+    ceph::encode(is_ec_pool, bl);
+    librados::ObjectWriteOperation op;
+    // if object does not exist, we should not create the attribute
+    op.assert_exists();
+    op.setxattr(RGW_ATTR_LOGGING_EC_POOL, std::move(bl));
+    if (const int ret = rgw_rados_operate(dpp, io_ctx, obj_name_oid, std::move(op), y); ret < 0){
+      // Don't return an error as we know if it is an ec pool
+      ldpp_dout(dpp, 10) << "ERROR: failed to set is_ec_pool attr on :" << obj_name_oid
+                         << " ret: " << ret << dendl;
+    }
+  }
+  // If the target log bucket is on an EC pool, the temp
+  // logging object will be created in the default.rgw.log pool
+  if (is_ec_pool) {
+    data_pool = rados_store->svc()->zone->get_zone_params().bucket_logging_pool;
+  }
+  return 0;
 }
 
 int RadosBucket::get_logging_object_name(std::string& obj_name,
@@ -1242,14 +1326,14 @@ std::string to_temp_object_name(const rgw::sal::Bucket* bucket, const std::strin
       obj_name);
 }
 
-int RadosBucket::remove_logging_object(const std::string& obj_name, optional_yield y, const DoutPrefixProvider *dpp) {
+int RadosBucket::remove_logging_object(const std::string& obj_name, const std::string& prefix, optional_yield y, const DoutPrefixProvider *dpp) {
   rgw_pool data_pool;
-  const rgw_obj head_obj{get_key(), obj_name};
-  const auto placement_rule = get_placement_rule();
-
-  if (!store->getRados()->get_obj_data_pool(placement_rule, head_obj, &data_pool)) {
-    ldpp_dout(dpp, 1) << "ERROR: failed to get data pool for bucket '" << get_key() <<
-      "' when deleting logging object"  << dendl;
+  const auto obj_name_oid = bucketlogging::object_name_oid(this, prefix);
+  bool is_ec_pool;
+  auto ret = get_logging_temp_object_pool (dpp, this, store, obj_name_oid, data_pool, is_ec_pool, y);
+  if (ret < 0) {
+    ldpp_dout(dpp, 1) << "ERROR: failed to get temp data pool for bucket '" << get_key() <<
+      "' when deleting logging object: " << obj_name << ". ret: " << ret << dendl;
     return -EIO;
   }
 
@@ -1265,7 +1349,7 @@ int RadosBucket::commit_logging_object(const std::string& obj_name,
     optional_yield y,
     const DoutPrefixProvider *dpp,
     const std::string& prefix,
-    std::string* last_committed) {
+    std::string* last_committed, bool async) {
   rgw_pool data_pool;
   const rgw_obj head_obj{get_key(), obj_name};
   const auto placement_rule = get_placement_rule();
@@ -1275,9 +1359,10 @@ int RadosBucket::commit_logging_object(const std::string& obj_name,
       "' when committing logging object"  << dendl;
     return -EIO;
   }
+  int ret;
   const auto obj_name_oid = bucketlogging::object_name_oid(this, prefix);
   if (last_committed) {
-    if (const int ret = get_committed_logging_object(store,
+    if (ret = get_committed_logging_object(store,
           obj_name_oid,
           data_pool,
           y,
@@ -1295,11 +1380,34 @@ int RadosBucket::commit_logging_object(const std::string& obj_name,
   }
 
   const auto temp_obj_name = to_temp_object_name(this, obj_name);
+  rgw_pool temp_data_pool;
+  bool is_ec_pool = false;
+
+  ret = get_logging_temp_object_pool (dpp, this, store, obj_name_oid, temp_data_pool, is_ec_pool, y);
+  if (ret < 0) {
+    ldpp_dout(dpp, 1) << "ERROR: failed to get data pool for bucket '"
+                      << get_key() << "' when committing logging object: "
+                      << obj_name << ". ret: " << ret << dendl;
+    return -EIO;
+  }
+  if (async) {
+    ret = rgw::bucketlogging::add_commit_target_entry(dpp, store, this, prefix,
+                                                      obj_name, temp_obj_name,
+                                                      temp_data_pool, y);
+    if (ret < 0){
+      return ret;
+    }
+
+    ldpp_dout(dpp, 20) << "INFO: added logging object entry " << obj_name
+                       << " to commit list object." << dendl;
+    return 0;
+  }
+
   std::map<string, bufferlist> obj_attrs;
   ceph::real_time mtime;
   bufferlist bl_data;
-  if (auto ret = rgw_get_system_obj(store->svc()->sysobj,
-                     data_pool,
+  if (ret = rgw_get_system_obj(store->svc()->sysobj,
+                     temp_data_pool,
                      temp_obj_name,
                      bl_data,
                      nullptr,
@@ -1315,6 +1423,36 @@ int RadosBucket::commit_logging_object(const std::string& obj_name,
     }
     mtime = ceph::real_time::clock::now();
     ldpp_dout(dpp, 20) << "INFO: temporary logging object '" << temp_obj_name << "' does not exist. committing it empty" << dendl;
+  } else if (is_ec_pool) {
+    if (ret = rgw_put_system_obj(dpp, store->svc()->sysobj,
+                             data_pool,
+                             temp_obj_name,
+                             bl_data,
+                             true,
+                             nullptr,
+                             mtime,
+                             y,
+                             &obj_attrs); ret < 0){
+
+      if (ret == -EEXIST) {
+        ldpp_dout(dpp, 5) << "WARNING: race detected in committing logging object '" << temp_obj_name << dendl;
+      } else {
+        ldpp_dout(dpp, 1) << "ERROR: failed to write logging data when committing object '" << temp_obj_name
+                          << ". error: " << ret << dendl;
+      }
+      return ret;
+    }
+    ldpp_dout(dpp, 20) << "INFO: wrote logging data when committing object '" << temp_obj_name << dendl;
+
+    if (ret = rgw_delete_system_obj(dpp, store->svc()->sysobj,
+                                temp_data_pool,
+                                temp_obj_name,
+                                nullptr,
+                                y); ret < 0 && ret != -ENOENT) {
+      ldpp_dout(dpp, 1) << "ERROR: failed to delete temp logging object when "
+                        << "committing object '" << temp_obj_name
+                        << ". error: " << ret << dendl;
+    }
   }
 
   uint64_t size = bl_data.length();
@@ -1423,22 +1561,29 @@ void bucket_logging_completion(rados_completion_t completion, void* args) {
 
 int RadosBucket::write_logging_object(const std::string& obj_name,
     const std::string& record,
+    const std::string& prefix,
     optional_yield y,
     const DoutPrefixProvider *dpp,
     bool async_completion) {
   const auto temp_obj_name = to_temp_object_name(this, obj_name);
   rgw_pool data_pool;
-  rgw_obj obj{get_key(), obj_name};
-  if (!store->getRados()->get_obj_data_pool(get_placement_rule(), obj, &data_pool)) {
-    ldpp_dout(dpp, 1) << "ERROR: failed to get data pool for bucket '" << get_key() <<
-      "' when writing logging object" << dendl;
+
+  bool is_ec_pool = false;
+  const auto obj_name_oid = bucketlogging::object_name_oid(this, prefix);
+  int ret = get_logging_temp_object_pool (dpp, this, store, obj_name_oid, data_pool, is_ec_pool, y);
+  if (ret < 0) {
+    ldpp_dout(dpp, 1) << "ERROR: failed to get data pool for bucket '"
+                      << get_key() << "' when writing logging object "
+                      << temp_obj_name << ", ret: " << ret << dendl;
     return -EIO;
   }
+
   librados::IoCtx io_ctx;
-  if (const auto ret = rgw_init_ioctx(dpp, store->getRados()->get_rados_handle(), data_pool, io_ctx); ret < 0) {
+  if (const auto ret = rgw_init_ioctx(dpp, store->getRados()->get_rados_handle(), data_pool, io_ctx, true); ret < 0) {
     ldpp_dout(dpp, 1) << "ERROR: failed to get IO context for logging object from data pool:" << data_pool.to_str() << dendl;
     return -EIO;
   }
+
   bufferlist bl;
   bl.append(record);
   bl.append("\n");
@@ -3048,9 +3193,9 @@ int RadosObject::chown(User& new_user, const DoutPrefixProvider* dpp, optional_y
   return 0;
 }
 
-std::unique_ptr<MPSerializer> RadosObject::get_serializer(const DoutPrefixProvider *dpp, const std::string& lock_name)
+std::unique_ptr<MPSerializer> RadosObject::get_serializer(const DoutPrefixProvider *dpp, optional_yield y, const std::string& lock_name)
 {
-  return std::make_unique<MPRadosSerializer>(dpp, store, this, lock_name);
+  return std::make_unique<MPRadosSerializer>(dpp, y, store, this, lock_name);
 }
 
 int RadosObject::transition(Bucket* bucket,
@@ -3702,6 +3847,7 @@ int RadosObject::copy_object(const ACLOwner& owner,
 				std::string* etag,
 				void (*progress_cb)(off_t, void *),
 				void* progress_data,
+				rgw::sal::DataProcessorFactory* dp_factory,
 				const DoutPrefixProvider* dpp,
 				optional_yield y)
 {
@@ -3734,6 +3880,7 @@ int RadosObject::copy_object(const ACLOwner& owner,
 				     etag,
 				     progress_cb,
 				     progress_data,
+				     dp_factory,
 				     dpp,
 				     y,
                                      dest_object->get_trace());
@@ -4485,8 +4632,15 @@ std::unique_ptr<Writer> RadosMultipartUpload::get_writer(
 				 ptail_placement_rule, part_num, part_num_str, obj->get_trace());
 }
 
-MPRadosSerializer::MPRadosSerializer(const DoutPrefixProvider *dpp, RadosStore* store, RadosObject* obj, const std::string& lock_name) :
-  lock(lock_name)
+MPRadosSerializer::MPRadosSerializer(const DoutPrefixProvider *dpp, optional_yield y,
+                                     RadosStore* store, RadosObject* obj,
+                                     const std::string& lock_name)
+  : dpp(dpp),
+    y(y),
+    lock_state(lock_name),
+    ex(boost::asio::make_strand(store->get_io_context())),
+    timer(ex),
+    cond(ex)
 {
   rgw_pool meta_pool;
   rgw_raw_obj raw_obj;
@@ -4498,24 +4652,147 @@ MPRadosSerializer::MPRadosSerializer(const DoutPrefixProvider *dpp, RadosStore* 
   store->getRados()->open_pool_ctx(dpp, meta_pool, ioctx, true, true);
 }
 
-int MPRadosSerializer::try_lock(const DoutPrefixProvider *dpp, utime_t dur, optional_yield y)
+MPRadosSerializer::~MPRadosSerializer()
+{
+  // stop the renewal coroutine if unlock() wasn't called
+  stop_renewal();
+}
+
+static void renewal(const DoutPrefixProvider* dpp,
+                    rgw::sal::MPSerializer& serializer,
+                    librados::IoCtx& ioctx,
+                    const std::string& oid,
+                    rados::cls::lock::Lock lock,
+                    auto& timer,
+                    ceph::timespan dur,
+                    boost::asio::yield_context yield)
+{
+  const ceph::timespan renew_every = dur / 2;
+  lock.set_duration(dur);
+  lock.set_must_renew(true);
+
+  // run the renewal loop until canceled
+  while (yield.get_cancellation_state().cancelled() == boost::asio::cancellation_type::none) {
+    boost::system::error_code ec;
+    timer.expires_after(renew_every);
+    timer.async_wait(yield[ec]);
+    if (ec) {
+      break;
+    }
+
+    // for renewal testing, inject an error from lock renewal
+    ceph_assert(dpp->get_cct());
+    int ret = dpp->get_cct()->_conf.get_val<int64_t>("rgw_mp_lock_inject_renewal_error");
+    if (ret < 0) {
+      ldpp_dout(dpp, 0) << "MPSerializer lock renewal on "
+          << oid << " failed with injected error " << ret << dendl;
+      serializer.clear_locked();
+      return;
+    }
+
+    librados::ObjectWriteOperation op;
+    op.assert_exists();
+    lock.lock_exclusive(&op);
+    ret = rgw_rados_operate(dpp, ioctx, oid, std::move(op), yield);
+    if (ret < 0) {
+      ldpp_dout(dpp, 0) << "ERROR: MPSerializer lock renewal on "
+          << oid << " failed with " << ret << ". If this upload completes, "
+          "a racing request may overwrite and corrupt it." << dendl;
+      serializer.clear_locked();
+      return;
+    }
+  }
+  ldpp_dout(dpp, 20) << "MPSerializer lock renewal canceled" << dendl;
+}
+
+void MPRadosSerializer::start_renewal(ceph::timespan dur)
+{
+  auto lock = std::lock_guard{mutex};
+  renew_started = true;
+
+  // spawn a cancellable lock renewal coroutine that notifies a condition
+  // variable on completion
+  struct renewal_completion {
+    std::mutex& mutex;
+    ceph::async::async_cond<>& cond;
+    bool& done;
+
+    void operator()(std::exception_ptr) {
+      auto lock = std::unique_lock{mutex};
+      done = true;
+      cond.notify(lock);
+    }
+  };
+  auto completion = renewal_completion{mutex, cond, renew_canceled};
+
+  using namespace boost::asio;
+  spawn(ex,
+      [this, dur] (yield_context yield) {
+        renewal(this->dpp, *this, ioctx, oid, lock_state, timer, dur, yield);
+      }, bind_cancellation_slot(signal.slot(),
+                                bind_executor(ex, std::move(completion))));
+}
+
+void MPRadosSerializer::stop_renewal()
+{
+  auto lock = std::unique_lock{mutex};
+  if (!renew_started || // never started
+      renew_canceled) { // already done
+    return;
+  }
+
+  // signal cancellation
+  boost::asio::post(ex, [this] {
+      signal.emit(boost::asio::cancellation_type::terminal); });
+
+  // wait for notification of completion
+  boost::system::error_code ec_ignored;
+  if (y) {
+    cond.async_wait(lock, y.get_yield_context()[ec_ignored]);
+  } else {
+    maybe_warn_about_blocking(dpp);
+    cond.async_wait(lock, ceph::async::use_blocked[ec_ignored]);
+  }
+}
+
+int MPRadosSerializer::try_lock(const DoutPrefixProvider *dpp, ceph::timespan dur, optional_yield y)
 {
   librados::ObjectWriteOperation op;
   op.assert_exists();
-  lock.set_duration(dur);
-  lock.lock_exclusive(&op);
+  lock_state.set_duration(dur);
+  lock_state.set_may_renew(false);
+  lock_state.lock_exclusive(&op);
   int ret = rgw_rados_operate(dpp, ioctx, oid, std::move(op), y);
   if (! ret) {
     locked = true;
+
+    start_renewal(dur);
+
+    // for renewal testing, inject a delay after lock acquisition
+    ceph_assert(dpp->get_cct());
+    const auto inject_delay = dpp->get_cct()->_conf.get_val<int64_t>("rgw_mp_lock_inject_delay");
+    if (inject_delay) {
+      ldpp_dout(dpp, 10) << "MPSerializer injecting delay after lock..." << dendl;
+      auto timer = Timer{ex, std::chrono::seconds(inject_delay)};
+      if (y) {
+        timer.async_wait(y.get_yield_context());
+      } else {
+        timer.wait();
+      }
+      ldpp_dout(dpp, 10) << "MPSerializer waking up after injected delay" << dendl;
+    }
   }
   return ret;
 }
 
 int MPRadosSerializer::unlock(const DoutPrefixProvider *dpp, optional_yield y)
 {
+  // wait for the renewal coroutine to finish so it doesn't race with unlock
+  stop_renewal();
+
   librados::ObjectWriteOperation op;
   op.assert_exists();
-  lock.unlock(&op);
+  lock_state.unlock(&op);
   return rgw_rados_operate(dpp, ioctx, oid, std::move(op), y);
 }
 
@@ -4527,7 +4804,7 @@ LCRadosSerializer::LCRadosSerializer(RadosStore* store, const std::string& _oid,
   lock.set_cookie(cookie);
 }
 
-int LCRadosSerializer::try_lock(const DoutPrefixProvider *dpp, utime_t dur, optional_yield y)
+int LCRadosSerializer::try_lock(const DoutPrefixProvider *dpp, ceph::timespan dur, optional_yield y)
 {
   librados::ObjectWriteOperation op;
   lock.set_duration(dur);
@@ -4711,7 +4988,7 @@ RadosRestoreSerializer::RadosRestoreSerializer(RadosStore* store, const std::str
   lock.set_cookie(cookie);
 }
 
-int RadosRestoreSerializer::try_lock(const DoutPrefixProvider *dpp, utime_t dur, optional_yield y)
+int RadosRestoreSerializer::try_lock(const DoutPrefixProvider *dpp, ceph::timespan dur, optional_yield y)
 {
   lock.set_duration(dur);
   return lock.lock_exclusive((librados::IoCtx*)(&ioctx), oid);
@@ -5188,8 +5465,86 @@ RadosLuaManager::RadosLuaManager(RadosStore* _s, const std::string& _luarocks_pa
   store(_s),
   pool((store->svc() && store->svc()->zone) ? store->svc()->zone->get_zone_params().log_pool : rgw_pool()),
   ioctx(*store->getRados()->get_lc_pool_ctx()),
-  packages_watcher(this)
-{ }
+  packages_watcher(this),
+  scripts_watcher(this)
+{
+  if (!pool.empty()) {
+    //TODO: error check
+    // The packages and script rados objects are in different namespaces
+    rgw_init_ioctx(&scripts_watcher, store->getRados()->get_rados_handle(), pool, ioctx_scripts);
+  }
+}
+
+uint64_t RadosLuaManager::get_watch_handle_for_script(const std::string& script_oid) {
+  auto search = script_watches.find(script_oid);
+  if (search != script_watches.end()) {
+    return search->second;
+  }
+  return 0;
+}
+
+std::string RadosLuaManager::get_script_for_watch_handle(uint64_t handle) {
+  auto search = reverse_script_watches.find(handle);
+  if (search != reverse_script_watches.end()) {
+    return search->second;
+  }
+  return {};
+}
+
+int RadosLuaManager::watch_script(const DoutPrefixProvider* dpp, const std::string& script_oid) {
+  if(!lua_background) {
+    return 0;
+  }
+
+  if (get_watch_handle_for_script(script_oid) == 0) {
+    uint64_t w_handle;
+    auto r = ioctx_scripts.watch2(script_oid, &w_handle, &scripts_watcher);
+    if (r < 0) {
+      ldpp_dout(dpp, 1) << "ERROR: failed to watch " << script_oid
+                        << ". error: " << cpp_strerror(r) << dendl;
+      if (r == -ENOENT) {
+        // Let the background thread know to update the script cache
+        lua_background->process_script_add(script_oid);
+      }
+    // Return error?
+      return r;
+    }
+    ldpp_dout(dpp, 20) << "INFO: inited watch on " << script_oid  << " with handle " << w_handle << dendl;
+    script_watches.emplace(script_oid, w_handle);
+    reverse_script_watches.emplace(w_handle, script_oid);
+  }
+  return 0;
+}
+
+int RadosLuaManager::unwatch_script(const DoutPrefixProvider* dpp, const std::string& script_oid) {
+  if(!lua_background) {
+    return 0;
+  }
+  if (!ioctx_scripts.is_valid()) {
+    ldpp_dout(dpp, 1) << "ERROR: invalid pool when unwatch Lua script " << script_oid << dendl;
+    return 0;
+  }
+
+  auto w_handle = get_watch_handle_for_script(script_oid);
+  if (w_handle == 0) {
+    return 0;
+  }
+
+  const auto r = ioctx_scripts.unwatch2(w_handle);
+  if (r < 0 && r != -ENOENT) {
+    ldpp_dout(dpp, 1) << "ERROR: failed to unwatch Lua script " << script_oid
+        << ". error: " << cpp_strerror(r) << dendl;
+    return r;
+  }
+
+  script_watches.erase(script_oid);
+  reverse_script_watches.erase(w_handle);
+
+  ldpp_dout(dpp, 20) << "Stopped watching for updates of Lua script " << script_oid
+    << " with handle: " << w_handle << dendl;
+
+  return 0;
+}
 
 int RadosLuaManager::get_script(const DoutPrefixProvider* dpp, optional_yield y, const std::string& key, std::string& script)
 {
@@ -5214,7 +5569,55 @@ int RadosLuaManager::get_script(const DoutPrefixProvider* dpp, optional_yield y,
   return 0;
 }
 
-int RadosLuaManager::put_script(const DoutPrefixProvider* dpp, optional_yield y, const std::string& key, const std::string& script)
+std::tuple<rgw::lua::LuaCodeType, int> RadosLuaManager::get_script_or_bytecode(const DoutPrefixProvider* dpp, optional_yield y,
+                                                                               const std::string& key)
+{
+  if (pool.empty()) {
+    ldpp_dout(dpp, 10) << "WARNING: missing pool when reading Lua script " << dendl;
+    return std::make_tuple("", 0);
+  }
+
+  if (lua_background) {
+    std::vector<char> lua_bytecode;
+    lua_bytecode.clear();
+    // First try to get the bytecode
+    int r = lua_background->get_script_bytecode(key, lua_bytecode);
+    if (r == 0) {
+      return std::make_tuple(lua_bytecode, 0);
+    }
+  }
+  std::string script;
+  bufferlist bl;
+  int r = rgw_get_system_obj(store->svc()->sysobj, pool, key, bl, nullptr, nullptr, y, dpp);
+  if (r < 0) {
+    return std::make_tuple("", r);
+  }
+
+  // The bytecode has not been cached yet. Let the lua background know.
+  if (lua_background) {
+    lua_background->process_script_add(key);
+  }
+
+  auto iter = bl.cbegin();
+  try {
+    ceph::decode(script, iter);
+  } catch (buffer::error& err) {
+    ldpp_dout(dpp, 1) << "ERROR : failed to decode Lua script " << key
+                      <<  ", error = " << err.what() << dendl;
+    return std::make_tuple("", -EIO);
+  }
+
+  r = watch_script(dpp, key);
+  if (r < 0) {
+    ldpp_dout(dpp, 10) << "WARNING: failed to watch Lua script: " << key << ", err:"
+                       << r << dendl;
+  }
+
+  return std::make_tuple(script, 0);
+}
+
+int RadosLuaManager::put_script(const DoutPrefixProvider* dpp, optional_yield y,
+                                const std::string& key, const std::string& script)
 {
   if (pool.empty()) {
     ldpp_dout(dpp, 10) << "WARNING: missing pool when writing Lua script " << dendl;
@@ -5228,6 +5631,11 @@ int RadosLuaManager::put_script(const DoutPrefixProvider* dpp, optional_yield y,
     return r;
   }
 
+  r = notify_script_update(dpp, key, y);
+  if (r < 0) {
+    ldpp_dout(dpp, 10) << "WARNING: failed to send Lua script update notification :" << key << ", err:" << r << dendl;
+    return r;
+  }
   return 0;
 }
 
@@ -5243,6 +5651,42 @@ int RadosLuaManager::del_script(const DoutPrefixProvider* dpp, optional_yield y,
   }
 
   return 0;
+}
+
+void RadosLuaManager::ack_script_update(const DoutPrefixProvider* dpp,
+                                        uint64_t notify_id, uint64_t cookie,
+                                        int update_status)
+{
+  if (!ioctx_scripts.is_valid()) {
+    ldpp_dout(dpp, 10) << "WARNING: missing pool when acking Lua script update" << dendl;
+    return;
+  }
+
+  std::string script_oid = get_script_for_watch_handle(cookie);
+  if (script_oid.empty()) {
+    ldpp_dout(dpp, 10) << "WARNING: failed to find script when acking Lua script update" << dendl;
+    return;
+  }
+
+  bufferlist reply;
+  ceph::encode(update_status, reply);
+  ioctx_scripts.notify_ack(script_oid, notify_id, cookie, reply);
+}
+
+void RadosLuaManager::handle_script_update_notify(const DoutPrefixProvider* dpp,
+                                                  optional_yield y, uint64_t notify_id,
+                                                  uint64_t cookie)
+{
+  std::string key = get_script_for_watch_handle(cookie);
+  if (key.empty()) {
+    ldpp_dout(dpp, 10) << "WARNING: missing Lua script for watch handle: " << cookie << dendl;
+    return;
+  }
+  // Let the background thread know to remove the bytecode from the cache
+  if (lua_background) {
+    lua_background->process_script_add(key);
+  }
+  ack_script_update(dpp, notify_id, cookie, 0);
 }
 
 const std::string PACKAGE_LIST_OBJECT_NAME = "lua_package_allowlist";
@@ -5458,6 +5902,49 @@ int RadosLuaManager::reload_packages(const DoutPrefixProvider *dpp, optional_yie
   return 0;
 }
 
+int RadosLuaManager::notify_script_update(const DoutPrefixProvider *dpp, const std::string& script_oid, optional_yield y)
+{
+  if (!ioctx_scripts.is_valid()) {
+    ldpp_dout(dpp, 10) << "WARNING: missing pool when attempting Lua script update notification" << dendl;
+    return -ENOENT;
+  }
+  bufferlist empty_bl;
+  bufferlist reply_bl;
+  const uint64_t timeout_ms = 0;
+  auto r = rgw_rados_notify(dpp,
+      ioctx_scripts,
+      script_oid,
+      empty_bl, timeout_ms, &reply_bl, y);
+  if (r < 0) {
+    ldpp_dout(dpp, 1) << "ERROR: failed to notify update on " << script_oid
+        << ". error: " << cpp_strerror(r) << dendl;
+    return r;
+  }
+
+  std::vector<librados::notify_ack_t> acks;
+  std::vector<librados::notify_timeout_t> timeouts;
+  ioctx_scripts.decode_notify_response(reply_bl, &acks, &timeouts);
+  if (timeouts.size() > 0) {
+    ldpp_dout(dpp, 1) << "ERROR: failed to notify update on " << script_oid
+      << ". error: timeout" << dendl;
+    return -EAGAIN;
+  }
+  for (auto& ack : acks) {
+    try {
+      auto iter = ack.payload_bl.cbegin();
+      ceph::decode(r, iter);
+    } catch (buffer::error& err) {
+      ldpp_dout(dpp, 1) << "ERROR: couldn't decode Lua script update status for "
+                        << script_oid << ", error: " << err.what() << dendl;
+      return -EINVAL;
+    }
+    if (r < 0) {
+      return r;
+    }
+  }
+  return 0;
+}
+
 void RadosLuaManager::PackagesWatcher::handle_notify(uint64_t notify_id, uint64_t cookie, uint64_t notifier_id, bufferlist &bl)
 {
   parent->handle_reload_notify(this, null_yield, notify_id, cookie);
@@ -5484,6 +5971,38 @@ unsigned RadosLuaManager::PackagesWatcher::get_subsys() const {
 
 std::ostream& RadosLuaManager::PackagesWatcher::gen_prefix(std::ostream& out) const {
   return out << "rgw lua package reloader: ";
+}
+
+CephContext* RadosLuaManager::ScriptsWatcher::get_cct() const {
+  return parent->store->ctx();
+}
+
+unsigned RadosLuaManager::ScriptsWatcher::get_subsys() const {
+  return dout_subsys;
+}
+
+std::ostream& RadosLuaManager::ScriptsWatcher::gen_prefix(std::ostream& out) const {
+  return out << "rgw lua scripts watcher: ";
+}
+
+void RadosLuaManager::ScriptsWatcher::handle_notify(uint64_t notify_id, uint64_t cookie, uint64_t notifier_id, bufferlist &bl)
+{
+  parent->handle_script_update_notify(this, null_yield, notify_id, cookie);
+}
+
+void RadosLuaManager::ScriptsWatcher::handle_error(uint64_t cookie, int err)
+{
+  std::string script_oid = parent->get_script_for_watch_handle(cookie);
+  if (script_oid.empty()) {
+    ldpp_dout(this, 5) << "ERROR: failed to find the script for watch handle: "
+                       << cookie << dendl;
+    return;
+  }
+  ldpp_dout(this, 5) << "WARNING: restarting watch handler for script: "
+                     << script_oid << ", err:" << err << dendl;
+
+  parent->unwatch_script(this, script_oid);
+  parent->watch_script(this, script_oid);
 }
 
 int RadosRole::store_info(const DoutPrefixProvider *dpp, bool exclusive, optional_yield y)

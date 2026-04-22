@@ -12,7 +12,7 @@ the source snapshot.
 Requirements
 ------------
 
-The primary (local) and secondary (remote) Ceph clusters version should be Pacific or later.
+The primary (local) and secondary (remote) Ceph cluster versions should be Pacific or later.
 
 .. _cephfs_mirroring_creating_users:
 
@@ -164,11 +164,11 @@ the remote filesystem as a peer to the primary filesystem ``primary_fs``:
 
 To avoid having to maintain the remote cluster configuration file and remote
 ceph user keyring in the primary cluster, users can bootstrap a peer (which
-stores the relevant remote cluster details in the monitor config store on the
+stores the relevant remote cluster details in the Monitor config store on the
 primary cluster). See the :ref:`Bootstrap
 Peers<cephfs_mirroring_bootstrap_peers>` section.
 
-The ``peer_add`` command supports passing the remote cluster monitor address
+The ``peer_add`` command supports passing the remote cluster Monitor address
 and the user key. However, bootstrapping a peer is the recommended way to add a
 peer.
 
@@ -238,7 +238,7 @@ Bootstrap Peers
 ---------------
 
 Adding a peer via the ``peer_add`` subcommand requires the peer cluster configuration and
-user keyring to be available in the primary cluster (manager host and hosts running the
+user keyring to be available in the primary cluster (Manager host and hosts running the
 mirror daemon). This can be avoided by bootstrapping and importing a peer token. Peer
 bootstrap involves creating a bootstrap token on the peer cluster via::
 
@@ -290,7 +290,9 @@ CephFS mirroring module provides ``mirror daemon status`` interface to check mir
               "remote": {
                 "client_name": "client.mirror_remote",
                 "cluster_name": "ceph",
-                "fs_name": "backup_fs"
+                "fs_name": "backup_fs",
+                "mon_host": "[v2:192.168.64.5:40183,v1:192.168.64.5:40184]",
+                "fsid": "5682c8e5-50cd-4cfd-b75c-5354dcdda487"
               },
               "stats": {
                 "failure_count": 1,
@@ -304,8 +306,9 @@ CephFS mirroring module provides ``mirror daemon status`` interface to check mir
   ]
 
 An entry per mirror daemon instance is displayed along with information such as configured
-peers and basic stats. For more detailed stats, use the admin socket interface as detailed
-below.
+peers and basic stats. The peer information includes the remote file system name (``fs_name``),
+cluster's Monitor addresses (``mon_host``) and cluster FSID (``fsid``). For more detailed
+stats, use the admin socket interface as detailed below.
 
 CephFS mirror daemons provide admin socket commands for querying mirror status. To check
 available commands for mirror status use::
@@ -475,7 +478,7 @@ In the remote filesystem::
 When the snapshot or the directory is removed from the remote filesystem, the mirror daemon will
 clear the failed state upon successful synchronization of the pending snapshots, if any.
 
-.. note:: Setting snap-schedule on the remote flle system for directories that are being mirrored will
+.. note:: Setting snap-schedule on the remote file system for directories that are being mirrored will
           cause the mirror daemon to report errors like ``invalid metadata``.
 
 .. note:: Treat the remote filesystem as read-only. Nothing is inherently enforced by CephFS.
@@ -552,6 +555,7 @@ Configuration Options
 ---------------------
 
 .. confval:: cephfs_mirror_max_concurrent_directory_syncs
+.. confval:: cephfs_mirror_max_datasync_threads
 .. confval:: cephfs_mirror_action_update_interval
 .. confval:: cephfs_mirror_restart_mirror_on_blocklist_interval
 .. confval:: cephfs_mirror_max_snapshot_sync_per_cycle
@@ -561,6 +565,7 @@ Configuration Options
 .. confval:: cephfs_mirror_restart_mirror_on_failure_interval
 .. confval:: cephfs_mirror_mount_timeout
 .. confval:: cephfs_mirror_perf_stats_prio
+.. confval:: cephfs_mirror_blockdiff_min_file_size
 
 Re-adding Peers
 ---------------
@@ -572,3 +577,14 @@ in the command output). Also, it is recommended to purge synchronized directorie
 from the peer  before re-adding it to another file system (especially those directories
 which might exist in the new primary file system). This is not required if re-adding
 a peer to the same primary file system it was earlier synchronized from.
+
+Multi-threaded snapshot sync
+----------------------------
+
+CephFS mirroring now utilizes a multi-threaded architecture to improve synchronization
+performance. The workload is split into two distinct thread pools: a crawler thread pool, which
+manages snapshot crawl and a data synchronization thread pool, which handles concurrent file
+transfers. Users can fine-tune these operations using configuration parameters:
+- ``cephfs_mirror_max_concurrent_directory_syncs``: controls the number of concurrent snapshots being crawled.
+- ``cephfs_mirror_max_datasync_threads``: controls the total threads available for data sync.
+For more information, see https://tracker.ceph.com/issues/73452

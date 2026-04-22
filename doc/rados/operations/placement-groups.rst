@@ -116,7 +116,7 @@ The output will resemble the following::
   among multiple pools.
 
 - **RATIO** is the ratio of (1) the storage consumed by the pool to (2) the
-  total raw storage capacity. In order words, RATIO is defined as 
+  total raw storage capacity. In other words, RATIO is defined as 
   (SIZE * RATE) / RAW CAPACITY and may be thought of as a fullness percentage.
 
 - **TARGET RATIO** (if present) is the ratio of the expected storage of this
@@ -153,7 +153,11 @@ The output will resemble the following::
 - **NEW PG_NUM** (if present) is the value that the system recommends that the
   ``pg_num`` of the pool should be. It is always a power of two, and it
   is present only if the recommended value varies from the current value by
-  more than the default factor of ``3``.
+  more than the scaling threshold. This threshold defaults to the configured
+  factor of ``3``. While scaling down uses only the configured factor, the
+  threshold is dynamically reduced when scaling up: it is set to 1.0 if the
+  recommended NEW PG_NUM is 512 or 1024, and to 2.0 if the recommended
+  NEW PG_NUM is 2048.
   To adjust this multiple (in the following example, it is changed
   to ``2``), run a command of the following form:
 
@@ -207,8 +211,10 @@ automatically scale each pool's ``pg_num`` in accordance with usage. Ceph consid
 total available storage, the target number of PG replicas for each OSD,
 and how much data is stored in each pool, then apportions PGs accordingly.
 The system is conservative with its approach, making changes to a pool only
-when the current number of PGs (``pg_num``) varies by more than a factor of 3
-from the recommended number.
+when the current number of PGs (``pg_num``) varies by more than the scaling threshold
+from the recommended number. When scaling down, only this configured factor is used.
+However, when scaling up, the threshold is dynamically reduced: it's automatically
+set to 1.0 when the recommended NEW PG_NUM is 512 or 1024, and to 2.0 when it is 2048.
 
 The target number of PGs per OSD is determined by the ``mon_target_pg_per_osd``
 parameter (default: 100), which can be adjusted by running the following
@@ -471,7 +477,7 @@ from the old ones.
 Factors Relevant To Specifying pg_num
 =====================================
 
-Performance and and even data distribution across
+Performance and even data distribution across
 OSDs weigh in favor of a higher number of PGs. Conserving CPU resources and
 minimizing memory usage weigh in favor of a lower number of PGs.
 The latter was more of a concern before Filestore OSDs were deprecated, so
@@ -625,7 +631,7 @@ For this reason, limiting the number of PGs saves significant resources.
 Choosing the Number of PGs
 ==========================
 
-.. note: It is rarely necessary to do the math in this section by hand.
+.. note:: It is rarely necessary to do the math in this section by hand.
    Instead, use the ``ceph osd pool autoscale-status`` command in combination
    with the ``target_size_bytes`` or ``target_size_ratio`` pool properties. For
    more information, see :ref:`pg-autoscaler`.
@@ -681,7 +687,7 @@ Setting the Number of PGs
 :ref:`Placement Group Link <pgcalc>`
 
 Setting the initial number of PGs in a pool is done implicitly or explicitly
-at the time a pool is created. See `Create a Pool`_ for details. 
+at the time a pool is created. See :ref:`createpool` for details.
 
 However, after a pool is created, if the ``pg_autoscaler`` is not being
 used to manage ``pg_num`` values, you can change the number of PGs by running a
@@ -969,5 +975,4 @@ about it entirely (if it is too new to have a previous version). To mark the
         pg-concepts
 
 
-.. _Create a Pool: ../pools#createpool
 .. _Mapping PGs to OSDs: ../../../architecture#mapping-pgs-to-osds

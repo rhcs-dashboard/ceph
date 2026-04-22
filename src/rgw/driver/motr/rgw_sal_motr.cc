@@ -1542,6 +1542,7 @@ int MotrObject::copy_object(const ACLOwner& owner,
     std::string* tag,
     std::string* etag,
     void (*progress_cb)(off_t, void *),
+    rgw::sal::DataProcessorFactory* dp_factory,
     void* progress_data,
     const DoutPrefixProvider* dpp,
     optional_yield y)
@@ -3876,6 +3877,12 @@ int MotrStore::init_metadata_cache(const DoutPrefixProvider *dpp,
   int MotrLuaManager::get_script(const DoutPrefixProvider* dpp, optional_yield y, const std::string& key, std::string& script)
   {
     return -ENOENT;
+  }
+
+  std::tuple<rgw::lua::LuaCodeType, int> MotrLuaManager::get_script_or_bytecode(const DoutPrefixProvider* dpp, optional_yield y,
+                                                                                const std::string& key)
+  {
+    return std::make_tuple("", -ENOENT);
   }
 
   int MotrLuaManager::put_script(const DoutPrefixProvider* dpp, optional_yield y, const std::string& key, const std::string& script)

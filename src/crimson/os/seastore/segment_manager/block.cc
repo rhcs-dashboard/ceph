@@ -4,6 +4,8 @@
 #include <sys/mman.h>
 #include <string.h>
 
+#include <boost/range/irange.hpp>
+
 #include <fmt/format.h>
 
 #include <seastar/core/metrics.hh>
@@ -12,7 +14,7 @@
 #include "include/buffer.h"
 
 #include "crimson/common/config_proxy.h"
-#include "crimson/common/errorator-loop.h"
+#include "crimson/common/errorator-utils.h"
 #include "crimson/common/coroutine.h"
 
 #include "crimson/os/seastore/logging.h"
@@ -148,6 +150,43 @@ static read_ertr::future<> do_read(
     offset,
     bptr.c_str(),
     len
+  ).handle_exception(
+    //FIXME: this is a little bit tricky, since seastar::future<T>::handle_exception
+    //	returns seastar::future<T>, to return an crimson::ct_error, we have to create
+    //	a seastar::future<T> holding that crimson::ct_error. This is not necessary
+    //	once seastar::future<T>::handle_exception() returns seastar::futurize_t<T>
+    [FNAME, device_id, offset, len](auto e) -> read_ertr::future<size_t>
+  {
+    ERROR("{} poffset=0x{:x}~0x{:x} got error -- {}",
+          device_id_printer_t{device_id}, offset, len, e);
+    return crimson::ct_error::input_output_error::make();
+  }).then([FNAME, device_id, offset, len](auto result) -> read_ertr::future<> {
+    if (result != len) {
+      ERROR("{} poffset=0x{:x}~0x{:x} read len=0x{:x} inconsistent",
+            device_id_printer_t{device_id}, offset, len, result);
+      return crimson::ct_error::input_output_error::make();
+    }
+    TRACE("{} poffset=0x{:x}~0x{:x} done", device_id_printer_t{device_id}, offset, len);
+    return read_ertr::now();
+  });
+}
+
+static read_ertr::future<> do_readv(
+  device_id_t device_id,
+  seastar::file &device,
+  uint64_t offset,
+  std::vector<bufferptr> ptrs)
+{
+  LOG_PREFIX(block_do_readv);
+  std::vector<iovec> iov;
+  size_t len = 0;
+  for (auto &ptr : ptrs) {
+    iov.emplace_back(ptr.c_str(), ptr.length());
+    len += ptr.length();
+  }
+  TRACE("{} poffset=0x{:x}~0x{:x} {} buffers",
+    device_id_printer_t{device_id}, offset, len, ptrs.size());
+  return device.dma_read(offset, std::move(iov)
   ).handle_exception(
     //FIXME: this is a little bit tricky, since seastar::future<T>::handle_exception
     //	returns seastar::future<T>, to return an crimson::ct_error, we have to create
@@ -442,13 +481,53 @@ BlockSegmentManager::~BlockSegmentManager()
 {
 }
 
+seastar::future<> BlockSegmentManager::start(uint32_t shard_nums)
+{
+  LOG_PREFIX(BlockSegmentManager::start);
+  device_shard_nums = shard_nums;
+  auto num_shard_services = (device_shard_nums + seastar::smp::count - 1 ) / seastar::smp::count;
+  INFO("device_shard_nums={} seastar::smp={}, num_shard_services={}", device_shard_nums, seastar::smp::count, num_shard_services);
+  return shard_devices.start(num_shard_services, device_path, superblock.config.spec.dtype);
+
+}
+
+seastar::future<> BlockSegmentManager::stop()
+{
+  return shard_devices.stop();
+}
+
+Device& BlockSegmentManager::get_sharded_device(store_index_t store_index)
+{
+  assert(store_index < shard_devices.local().mshard_devices.size());
+  return *shard_devices.local().mshard_devices[store_index];
+}
+
+SegmentManager::read_ertr::future<uint32_t> BlockSegmentManager::get_shard_nums()
+{
+  return open_device(
+    device_path
+  ).safe_then([this](auto p) {
+    device = std::move(p.first);
+    auto sd = p.second;
+    return read_superblock(device, sd);
+  }).safe_then([](auto sb) {
+    return read_ertr::make_ready_future<uint32_t>(sb.shard_num);
+  }).handle_error(
+    crimson::ct_error::assert_all{
+      "Invalid error in BlockSegmentManager::get_shard_nums"
+    }
+  );
+}
+
 BlockSegmentManager::mount_ret BlockSegmentManager::mount()
 {
   return shard_devices.invoke_on_all([](auto &local_device) {
-    return local_device.shard_mount(
-    ).handle_error(
-      crimson::ct_error::assert_all{
-        "Invalid error in BlockSegmentManager::mount"
+    return seastar::do_for_each(local_device.mshard_devices, [](auto& mshard_device) {
+      return mshard_device->shard_mount(
+      ).handle_error(
+        crimson::ct_error::assert_all{
+          "Invalid error in BlockSegmentManager::mount"
+      });
     });
   });
 }
@@ -462,9 +541,17 @@ BlockSegmentManager::mount_ret BlockSegmentManager::shard_mount()
     device = std::move(p.first);
     auto sd = p.second;
     return read_superblock(device, sd);
-  }).safe_then([=, this](auto sb) {
+  }).safe_then([=, this](auto sb) ->mount_ertr::future<> {
     set_device_id(sb.config.spec.id);
-    shard_info = sb.shard_infos[seastar::this_shard_id()];
+    if(seastar::this_shard_id() + seastar::smp::count * store_index >= sb.shard_num) {
+      INFO("{} shard_id {} out of range {}",
+      device_id_printer_t{get_device_id()},
+        seastar::this_shard_id() + seastar::smp::count * store_index,
+        sb.shard_num);
+      store_active = false;
+      return mount_ertr::now();
+    }
+    shard_info = sb.shard_infos[seastar::this_shard_id() + seastar::smp::count * store_index];
     INFO("{} read {}", device_id_printer_t{get_device_id()}, shard_info);
     sb.validate();
     superblock = sb;
@@ -491,20 +578,22 @@ BlockSegmentManager::mount_ret BlockSegmentManager::shard_mount()
     });
   }).safe_then([this, FNAME] {
     INFO("{} complete", device_id_printer_t{get_device_id()});
-    register_metrics();
+    register_metrics(store_index);
   });
 }
 
 BlockSegmentManager::mkfs_ret BlockSegmentManager::mkfs(
   device_config_t sm_config)
 {
-  return shard_devices.local().primary_mkfs(sm_config
+  return shard_devices.local().mshard_devices[0]->primary_mkfs(sm_config
   ).safe_then([this] {
     return shard_devices.invoke_on_all([](auto &local_device) {
-      return local_device.shard_mkfs(
-      ).handle_error(
-        crimson::ct_error::assert_all{
-          "Invalid error in BlockSegmentManager::mkfs"
+      return seastar::do_for_each(local_device.mshard_devices, [](auto& mshard_device) {
+        return mshard_device->shard_mkfs(
+        ).handle_error(
+          crimson::ct_error::assert_all{
+            "Invalid error in BlockSegmentManager::mkfs"
+        });
       });
     });
   });
@@ -637,6 +726,58 @@ SegmentManager::release_ertr::future<> BlockSegmentManager::release(
       shard_info.tracker_offset);
 }
 
+SegmentManager::read_ertr::future<> BlockSegmentManager::readv(
+  paddr_t addr,
+  std::vector<bufferptr> ptrs)
+{
+  LOG_PREFIX(BlockSegmentManager::readv);
+  size_t len = 0;
+  for (auto &ptr : ptrs) {
+    len += ptr.length();
+  }
+  auto& seg_addr = addr.as_seg_paddr();
+  auto id = seg_addr.get_segment_id();
+  auto s_id = id.device_segment_id();
+  auto s_off = seg_addr.get_segment_off();
+  auto p_off = get_offset(addr);
+  DEBUG("{} offset=0x{:x}~0x{:x} poffset=0x{:x} ...", id, s_off, len, p_off);
+
+  assert(addr.get_device_id() == get_device_id());
+
+  if (s_off % superblock.block_size != 0 ||
+      len % superblock.block_size != 0) {
+    ERROR("{} offset=0x{:x}~0x{:x} poffset=0x{:x} invalid read", id, s_off, len, p_off);
+    return crimson::ct_error::invarg::make();
+  }
+
+  if (s_id >= get_num_segments()) {
+    ERROR("{} offset=0x{:x}~0x{:x} poffset=0x{:x} segment-id out of range {}",
+          id, s_off, len, p_off, get_num_segments());
+    return crimson::ct_error::invarg::make();
+  }
+
+  if (s_off + len > superblock.segment_size) {
+    ERROR("{} offset=0x{:x}~0x{:x} poffset=0x{:x} read out of range 0x{:x}",
+          id, s_off, len, p_off, superblock.segment_size);
+    return crimson::ct_error::invarg::make();
+  }
+
+  if (tracker->get(s_id) == segment_state_t::EMPTY) {
+    // XXX: not an error during scanning,
+    // might need refactor to increase the log level
+    DEBUG("{} offset=0x{:x}~0x{:x} poffset=0x{:x} invalid state {}",
+          id, s_off, len, p_off, tracker->get(s_id));
+    return crimson::ct_error::enoent::make();
+  }
+
+  stats.data_read.increment(len);
+  return do_readv(
+    get_device_id(),
+    device,
+    p_off,
+    std::move(ptrs));
+}
+
 SegmentManager::read_ertr::future<> BlockSegmentManager::read(
   paddr_t addr,
   size_t len,
@@ -687,14 +828,23 @@ SegmentManager::read_ertr::future<> BlockSegmentManager::read(
     out);
 }
 
-void BlockSegmentManager::register_metrics()
+void BlockSegmentManager::register_metrics(store_index_t store_index)
 {
   LOG_PREFIX(BlockSegmentManager::register_metrics);
+  if (!store_active) {
+    INFO("{} shard {} is not active, skip registering metrics",
+         device_id_printer_t{get_device_id()}, store_index);
+    return;
+  }
+
   DEBUG("{}", device_id_printer_t{get_device_id()});
   namespace sm = seastar::metrics;
   std::vector<sm::label_instance> label_instances;
   label_instances.push_back(sm::label_instance("device_id", get_device_id()));
+  label_instances.push_back(
+    sm::label_instance("shard_device_index", std::to_string(store_index)));
   stats.reset();
+
   metrics.add_group(
     "segment_manager",
     {
@@ -702,61 +852,61 @@ void BlockSegmentManager::register_metrics()
         "data_read_num",
         stats.data_read.num,
         sm::description("total number of data read"),
-	label_instances
+        label_instances
       ),
       sm::make_counter(
         "data_read_bytes",
         stats.data_read.bytes,
         sm::description("total bytes of data read"),
-	label_instances
+        label_instances
       ),
       sm::make_counter(
         "data_write_num",
         stats.data_write.num,
         sm::description("total number of data write"),
-	label_instances
+        label_instances
       ),
       sm::make_counter(
         "data_write_bytes",
         stats.data_write.bytes,
         sm::description("total bytes of data write"),
-	label_instances
+        label_instances
       ),
       sm::make_counter(
         "metadata_write_num",
         stats.metadata_write.num,
         sm::description("total number of metadata write"),
-	label_instances
+        label_instances
       ),
       sm::make_counter(
         "metadata_write_bytes",
         stats.metadata_write.bytes,
         sm::description("total bytes of metadata write"),
-	label_instances
+        label_instances
       ),
       sm::make_counter(
         "opened_segments",
         stats.opened_segments,
         sm::description("total segments opened"),
-	label_instances
+        label_instances
       ),
       sm::make_counter(
         "closed_segments",
         stats.closed_segments,
         sm::description("total segments closed"),
-	label_instances
+        label_instances
       ),
       sm::make_counter(
         "closed_segments_unused_bytes",
         stats.closed_segments_unused_bytes,
         sm::description("total unused bytes of closed segments"),
-	label_instances
+        label_instances
       ),
       sm::make_counter(
         "released_segments",
         stats.released_segments,
         sm::description("total segments released"),
-	label_instances
+	      label_instances
       ),
     }
   );

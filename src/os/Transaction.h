@@ -626,7 +626,7 @@ public:
     return !data.ops;
   }
   /// Number of operations in the transaction
-  int get_num_ops() {
+  uint64_t get_num_ops() {
     return data.ops;
   }
 
@@ -746,7 +746,8 @@ public:
       using ceph::decode;
       decode(aset, data_misaligned_bl_p);
     }
-    void decode_attrset(std::map<std::string,ceph::buffer::list>& aset) {
+    template <class CmpT>
+    void decode_attrset(std::map<std::string,ceph::buffer::list,CmpT>& aset) {
       using ceph::decode;
       decode(aset, data_misaligned_bl_p);
     }

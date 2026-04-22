@@ -211,7 +211,7 @@ The build process is based on `Node.js <https://nodejs.org/>`_ and requires the
 Prerequisites
 ~~~~~~~~~~~~~
 
- * Node 20.18.1 or higher
+ * Node 22.21.1 or higher
  * NPM 10.5.2 or higher
 
 nodeenv:
@@ -2636,7 +2636,9 @@ The available Interfaces are:
   of ``Options()``. The options returned here are added to the
   ``MODULE_OPTIONS``.
 - ``HasCommands``: requires overriding ``register_commands()`` hook by defining
-  the commands the plug-in can handle and decorating them with ``@CLICommand``.
+  the commands the plug-in can handle and decorating them with the dashboard's
+  command registry ``@DBCLICommand``, defined in
+  ``src/pybind/mgr/dashboard/cli.py``.
   The commands can be optionally returned, so that they can be invoked
   externally (which makes unit testing easier).
 - ``HasControllers``: requires overriding ``get_controllers()`` hook by defining
@@ -2660,7 +2662,8 @@ A sample plugin implementation would look like this:
   from . import PLUGIN_MANAGER as PM
   from . import interfaces as I
 
-  from mgr_module import CLICommand, Option
+  from ..cli import DBCLICommand
+  from mgr_module import Option
   import cherrypy
 
   @PM.add_plugin
@@ -2676,7 +2679,7 @@ A sample plugin implementation would look like this:
 
     @PM.add_hook
     def register_commands(self):
-      @CLICommand("dashboard mute")
+      @DBCLICommand("dashboard mute")
       def _(mgr):
         self.mute = True
         self.mgr.set_module_option('mute', True)

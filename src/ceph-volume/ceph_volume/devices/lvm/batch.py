@@ -290,6 +290,14 @@ class Batch(object):
             default=None,
             help="Additional cryptsetup luksOpen options (use the same syntax as the cryptsetup CLI)",
         )
+        parser.add_argument(
+            '--osd-type',
+            dest='osd_type',
+            help='The Ceph OSD type to use.',
+            default='classic',
+            choices=['classic', 'crimson'],
+            type=str,
+        )
         self.args = parser.parse_args(argv)
         if self.args.bluestore:
             self.args.objectstore = 'bluestore'
@@ -386,6 +394,7 @@ class Batch(object):
         defaults = common.get_default_args()
         global_args = [
             'objectstore',
+            'osd_type',
             'bluestore',
             'dmcrypt',
             'with_tpm',
@@ -438,8 +447,8 @@ class Batch(object):
                                                  num_osds,
                                                  fast_type)
         if fast_devices and not fast_allocations:
-            mlogger.info('{} fast devices were passed, but none are available'.format(len(fast_devices)))
-            return []
+            mlogger.error('{} fast devices were passed, but none are available'.format(len(fast_devices)))
+            exit(1)
         if fast_devices and not len(fast_allocations) == num_osds:
             mlogger.error('{} fast allocations != {} num_osds'.format(
                 len(fast_allocations), num_osds))
@@ -450,8 +459,8 @@ class Batch(object):
                                                       num_osds,
                                                       'block_wal')
         if very_fast_devices and not very_fast_allocations:
-            mlogger.info('{} very fast devices were passed, but none are available'.format(len(very_fast_devices)))
-            return []
+            mlogger.error('{} very fast devices were passed, but none are available'.format(len(very_fast_devices)))
+            exit(1)
         if very_fast_devices and not len(very_fast_allocations) == num_osds:
             mlogger.error('{} very fast allocations != {} num_osds'.format(
                 len(very_fast_allocations), num_osds))

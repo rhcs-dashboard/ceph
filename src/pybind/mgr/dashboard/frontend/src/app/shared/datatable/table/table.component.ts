@@ -22,7 +22,8 @@ import { BehaviorSubject, Observable, of, Subject, Subscription } from 'rxjs';
 
 import { TableStatus } from '~/app/shared/classes/table-status';
 import { CellTemplate } from '~/app/shared/enum/cell-template.enum';
-import { Icons } from '~/app/shared/enum/icons.enum';
+import { Icons, IconSize, EMPTY_STATE_IMAGE } from '~/app/shared/enum/icons.enum';
+
 import { CdTableColumn } from '~/app/shared/models/cd-table-column';
 import { CdTableColumnFilter } from '~/app/shared/models/cd-table-column-filter';
 import { CdTableColumnFiltersChange } from '~/app/shared/models/cd-table-column-filters-change';
@@ -47,7 +48,8 @@ type TPaginationOutput = { start: number; end: number };
   selector: 'cd-table',
   templateUrl: './table.component.html',
   styleUrls: ['./table.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class TableComponent implements AfterViewInit, OnInit, OnChanges, OnDestroy {
   @ViewChild('tableCellBoldTpl', { static: true })
@@ -167,7 +169,7 @@ export class TableComponent implements AfterViewInit, OnInit, OnChanges, OnDestr
   // Allows other components to specify which type of selection they want,
   // e.g. 'single' or 'multi'.
   @Input()
-  selectionType: string = undefined;
+  selectionType: 'single' | 'multiClick' | 'singleRadio' = undefined;
   // By default selected item details will be updated on table refresh, if data has changed
   @Input()
   updateSelectionOnRefresh: 'always' | 'never' | 'onChange' = 'onChange';
@@ -226,6 +228,22 @@ export class TableComponent implements AfterViewInit, OnInit, OnChanges, OnDestr
   scrollable: boolean = true;
 
   /**
+   * Title to be displayed when there is no data
+   */
+  @Input()
+  emptyStateTitle: string = $localize`No data available`;
+  /**
+   * Helper text to be displayed when there is no data
+   */
+  @Input()
+  emptyStateMessage: string = $localize`There are currently no records to display.`;
+  /**
+   * Illustration image to be displayed when there is no data
+   */
+  @Input()
+  emptyStateImage: string = EMPTY_STATE_IMAGE.default;
+
+  /**
    * Should be a function to update the input data if undefined nothing will be triggered
    *
    * Sometimes it's useful to only define fetchData once.
@@ -267,6 +285,9 @@ export class TableComponent implements AfterViewInit, OnInit, OnChanges, OnDestr
     row: any;
   }>();
 
+  @Output()
+  isCellEditingEvent = new EventEmitter<boolean>();
+
   /**
    * Use this variable to access the selected row(s).
    */
@@ -295,11 +316,11 @@ export class TableComponent implements AfterViewInit, OnInit, OnChanges, OnDestr
   }
 
   get showSelectionColumn() {
-    return this.selectionType === 'multiClick';
+    return this.selectionType === 'multiClick' || this.selectionType === 'singleRadio';
   }
 
   get enableSingleSelect() {
-    return this.selectionType === 'single';
+    return this.selectionType === 'single' || this.selectionType === 'singleRadio';
   }
 
   get headerTitle(): string | TemplateRef<any> {
@@ -362,6 +383,7 @@ export class TableComponent implements AfterViewInit, OnInit, OnChanges, OnDestr
   }
 
   icons = Icons;
+  iconSize = IconSize;
   cellTemplates: {
     [key: string]: TemplateRef<any>;
   } = {};
@@ -1104,7 +1126,7 @@ export class TableComponent implements AfterViewInit, OnInit, OnChanges, OnDestr
   }
 
   onSelect(selectedRowIndex: number) {
-    if (this.selectionType === 'single') {
+    if (this.selectionType === 'single' || this.selectionType === 'singleRadio') {
       this.model.selectAll(false);
       this.selection.selected = [_.get(this.model.data?.[selectedRowIndex], [0, 'selected'])];
       this.model.selectRow(selectedRowIndex, true);
@@ -1127,7 +1149,7 @@ export class TableComponent implements AfterViewInit, OnInit, OnChanges, OnDestr
 
   onDeselect(deselectedRowIndex: number) {
     this.model.selectRow(deselectedRowIndex, false);
-    if (this.selectionType === 'single') {
+    if (this.selectionType === 'single' || this.selectionType === 'singleRadio') {
       return;
     }
     this._toggleSelection(deselectedRowIndex, false);
@@ -1214,7 +1236,8 @@ export class TableComponent implements AfterViewInit, OnInit, OnChanges, OnDestr
     this.userConfig.sorts = sorts;
     if (this.serverSide) {
       this.userConfig.offset = 0;
-      this.reloadData();
+      this.loadingIndicator = true;
+      this.debouncedSearch();
     }
 
     this.doSorting(columnIndex);
@@ -1425,6 +1448,7 @@ export class TableComponent implements AfterViewInit, OnInit, OnChanges, OnDestr
     }
     this.formGroup?.get(key).setValue(value);
     this.editStates[rowId][column.prop] = value;
+    this.isCellEditingEvent.emit(true);
   }
 
   saveCellItem(row: any, colProp: string) {
@@ -1450,5 +1474,28 @@ export class TableComponent implements AfterViewInit, OnInit, OnChanges, OnDestr
 
   valueChange(rowId: string, colProp: string, value: string) {
     this.editStates[rowId][colProp] = value;
+  }
+
+  cancelCellEdit(rowId: string, colProp: string, event?: Event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    const key = `${rowId}-${colProp}`;
+    if (!this.formGroup.controls[key]) {
+      return;
+    }
+
+    if (this.editStates[rowId]) {
+      delete this.editStates[rowId][colProp];
+    }
+    this.editingCells.clear();
+    this.isCellEditingEvent.emit(false);
+
+    setTimeout(() => {
+      if (this.formGroup.controls[key]) {
+        this.formGroup.removeControl(key);
+      }
+    }, 0);
   }
 }

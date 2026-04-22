@@ -8,7 +8,9 @@ import threading
 from typing import Any, Dict, List, Optional, Set, Tuple, TYPE_CHECKING, Union
 import uuid
 from prettytable import PrettyTable
-from mgr_module import HealthChecksT, CLIReadCommand, CLIWriteCommand, CRUSHMap, MgrModule, Option, OSDMap
+from mgr_module import HealthChecksT, CRUSHMap, MgrModule, Option, OSDMap
+
+from .cli import PGAutoscalerCLICommand
 
 """
 Some terminology is made up for the purposes of this module:
@@ -113,6 +115,7 @@ class CrushSubtreeResourceStatus:
 
 
 class PgAutoscaler(MgrModule):
+    CLICommand = PGAutoscalerCLICommand
     """
     PG autoscaler.
     """
@@ -163,7 +166,7 @@ class PgAutoscaler(MgrModule):
             self.log.debug(' mgr option %s = %s',
                            opt['name'], getattr(self, opt['name']))
 
-    @CLIReadCommand('osd pool autoscale-status')
+    @PGAutoscalerCLICommand.Read('osd pool autoscale-status')
     def _command_autoscale_status(self, format: str = 'plain') -> Tuple[int, str, str]:
         """
         report on pool pg_num sizing recommendation and intent
@@ -236,7 +239,7 @@ class PgAutoscaler(MgrModule):
                 ])
             return 0, table.get_string(), ''
 
-    @CLIWriteCommand("osd pool set threshold")
+    @PGAutoscalerCLICommand.Write("osd pool set threshold")
     def set_scaling_threshold(self, num: float) -> Tuple[int, str, str]:
         """
         set the autoscaler threshold 
@@ -248,7 +251,7 @@ class PgAutoscaler(MgrModule):
         self.set_module_option("threshold", num)
         return 0, "threshold updated", ""
 
-    @CLIReadCommand("osd pool get threshold")
+    @PGAutoscalerCLICommand.Read("osd pool get threshold")
     def get_scaling_threshold(self) -> Tuple[int, str, str]:
         """
         return the autoscaler threshold value
@@ -277,7 +280,7 @@ class PgAutoscaler(MgrModule):
         else:
             return False
 
-    @CLIWriteCommand("osd pool get noautoscale")
+    @PGAutoscalerCLICommand.Write("osd pool get noautoscale")
     def get_noautoscale(self) -> Tuple[int, str, str]:
         """
         Get the noautoscale flag to see if all pools
@@ -289,7 +292,7 @@ class PgAutoscaler(MgrModule):
         else:
             return 0, "", "noautoscale is off"
 
-    @CLIWriteCommand("osd pool unset noautoscale")
+    @PGAutoscalerCLICommand.Write("osd pool unset noautoscale")
     def unset_noautoscale(self) -> Tuple[int, str, str]:
         """
         Unset the noautoscale flag so all pools will
@@ -311,7 +314,7 @@ class PgAutoscaler(MgrModule):
             })
             return 0, "", "noautoscale is unset, all pools now back to its previous mode"
 
-    @CLIWriteCommand("osd pool set noautoscale")
+    @PGAutoscalerCLICommand.Write("osd pool set noautoscale")
     def set_noautoscale(self) -> Tuple[int, str, str]:
         """
         set the noautoscale for all pools (including
@@ -527,6 +530,17 @@ class PgAutoscaler(MgrModule):
         ))
         return final_ratio, pool_pg_target, final_pg_target
 
+    def get_dynamic_threshold(
+            self,
+            final_pg_num: int,
+            default_threshold: float,
+    ) -> float:
+        if final_pg_num in (512, 1024):
+            return 1.0
+        elif final_pg_num == 2048:
+            return 2.0
+        return default_threshold
+
     def _get_pool_pg_targets(
             self,
             osdmap: OSDMap,
@@ -615,12 +629,27 @@ class PgAutoscaler(MgrModule):
                 continue
 
             adjust = False
-            if (final_pg_target > p['pg_num_target'] * threshold or
-                    final_pg_target < p['pg_num_target'] / threshold) and \
-                    final_ratio >= 0.0 and \
-                    final_ratio <= 1.0 and \
-                    p['pg_autoscale_mode'] == 'on':
-                adjust = True
+
+            # Dynamic threshold only applies to scaling UP, otherwise use the default threshold.
+            if final_pg_target is not None and \
+               final_pg_target > p['pg_num_target']:
+                dynamic_threshold = self.get_dynamic_threshold(final_pg_target, threshold)
+                adjust = final_pg_target > p['pg_num_target'] * dynamic_threshold
+            else:
+                adjust = final_pg_target < p['pg_num_target'] / threshold
+
+            if adjust and \
+               final_ratio >= 0.0 and \
+               final_ratio <= 1.0 and \
+               p['pg_autoscale_mode'] == 'on':
+                    adjust = True
+            else:
+                if final_pg_target != p['pg_num_target']:
+                    self.log.warning("pool %s won't scale because recommended PG_NUM target"
+                                     " value varies from current PG_NUM value by"
+                                     " more than '%f' scaling threshold",
+                                     pool_name,
+                                     dynamic_threshold if final_pg_target > p['pg_num_target'] else threshold)
 
             assert pool_pg_target is not None
             ret.append({

@@ -17,6 +17,7 @@
 #include "Monitor.h"
 
 #include "common/Timer.h"
+#include "include/Context.h"
 #include "MonitorDBStore.h"
 #include "messages/MMonElection.h"
 #include "messages/MMonPing.h"
@@ -454,6 +455,10 @@ void Elector::handle_nak(MonOpRequestRef op)
 void Elector::begin_peer_ping(int peer)
 {
   dout(20) << __func__ << " with " << peer << dendl;
+  if (peer < 0) {
+    dout(20) << __func__ << " ignoring negative peer " << peer << dendl;
+    return;
+  }
   if (live_pinging.count(peer)) {
     // This peer is already being pinged
     // so we don't need to schedule another ping_check
@@ -497,7 +502,7 @@ void Elector::begin_peer_ping(int peer)
 bool Elector::send_peer_ping(int peer, const utime_t *n)
 {
   dout(10) << __func__ << " to peer " << peer << dendl;
-  if (peer >= ssize(mon->monmap->ranks)) {
+  if (peer < 0 || peer >= ssize(mon->monmap->ranks)) {
     // Monitor no longer exists in the monmap,
     // therefore, we shouldn't ping this monitor
     // since we cannot lookup the address!
@@ -616,12 +621,17 @@ void Elector::handle_ping(MonOpRequestRef op)
   MMonPing *m = static_cast<MMonPing*>(op->get_req());
   int prank = mon->monmap->get_rank(m->get_source_addr());
   dout(20) << __func__ << " from: " << prank << dendl;
+  if (prank < 0) {
+    dout(5) << __func__ << " from unknown addr " << m->get_source_addr()
+           << " mapped to rank " << prank << " (likely removed monitor) - dropping message" << dendl;
+    return;
+  }
   begin_peer_ping(prank);
   assimilate_connection_reports(m->tracker_bl);
   switch(m->op) {
   case MMonPing::PING:
     {
-      dout(30) << "recieved PING from "
+      dout(30) << "received PING from "
         << prank << ", sending PING_REPLY back!" << dendl;
       MMonPing *reply = new MMonPing(MMonPing::PING_REPLY, m->stamp, peer_tracker.get_encoded_bl());
       m->get_connection()->send_message(reply);
@@ -629,7 +639,7 @@ void Elector::handle_ping(MonOpRequestRef op)
     break;
 
   case MMonPing::PING_REPLY:
-    dout(30) << "recieved PING_REPLY from " << prank << dendl;
+    dout(30) << "received PING_REPLY from " << prank << dendl;
     const utime_t& previous_acked = peer_acked_ping[prank];
     const utime_t& newest = peer_sent_ping[prank];
 
@@ -640,11 +650,11 @@ void Elector::handle_ping(MonOpRequestRef op)
     }
 
     if (m->stamp > previous_acked) {
-      dout(30) << "recieved good PING_REPLY!" << dendl;
+      dout(30) << "received good PING_REPLY!" << dendl;
       peer_tracker.report_live_connection(prank, m->stamp - previous_acked);
       peer_acked_ping[prank] = m->stamp;
     } else {
-      dout(30) << "recieved bad PING_REPLY! it's the same or older "
+      dout(30) << "received bad PING_REPLY! it's the same or older "
         << "than the most recent ack we got." << dendl;
     }
     utime_t now = ceph_clock_now();

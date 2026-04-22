@@ -17,9 +17,9 @@
           formControlName="selectedZonegroup"
           [disabled]="action === actionLabels.EDIT ? true : null"
           (change)="onZoneGroupChange($event.target.value)"
-          label="Zone group"
+          label="Zonegroup"
           i18n
-          >Zone group
+          >Zonegroup
           <option
             *ngFor="let zonegroupName of zonegroupList"
             [value]="zonegroupName.name"
@@ -73,7 +73,7 @@
           i18n
           [disabled]="action === actionLabels.EDIT ? true : null"
           >Mark as default zone
-          <cd-help-text *ngIf="disableDefault && action === actionLabels.CREATE">Default zone can only exist in a default zone group.
+          <cd-help-text *ngIf="disableDefault && action === actionLabels.CREATE">Default zone can only exist in a default zonegroup.
           </cd-help-text>
           <cd-help-text *ngIf="isDefaultZone">
             <span>You cannot unset the default flag.</span>
@@ -94,7 +94,7 @@
           [disabled]="action === actionLabels.EDIT ? true : null"
           i18n
           >Master
-          <cd-help-text *ngIf="disableMaster">Master zone already exist for the selected zone group.
+          <cd-help-text *ngIf="disableMaster">Master zone already exist for the selected zonegroup.
           </cd-help-text>
           <cd-help-text *ngIf="isMasterZone">
             <span>You cannot unset the master flag. </span>
@@ -106,6 +106,58 @@
             >
           </cd-help-text>
         </cds-checkbox>
+      </div>
+      <div class="form-item">
+        <cds-checkbox
+          id="archive_zone"
+          formControlName="archive_zone"
+          cdOptionalField="Archive"
+          (checkedChange)="onArchiveZoneChange($event)"
+          i18n
+          >Archive
+          <cd-help-text>
+            <span
+              >Enable archival storage to keep all object versions and protect data from deletion or corruption.</span
+            >
+          </cd-help-text>
+        </cds-checkbox>
+      </div>
+      <div class="form-item">
+        <cds-checkbox
+          id="sync_from_all"
+          formControlName="sync_from_all"
+          cdOptionalField="Sync from all"
+          (checkedChange)="onZoneGroupChange(multisiteZoneForm.getValue('selectedZonegroup'))"
+          i18n
+          >Sync from all zones
+          <cd-help-text>
+            <span
+              >Enable this option to synchronize data from all zones.</span
+            >
+          </cd-help-text>
+          <div class="cds-mt-3">
+            <cd-alert-panel *ngIf="multisiteZoneForm.get('archive_zone')?.value === true"
+                            type="warning">
+                “Sync from all zones” is disabled to avoid duplicate objects in archive zones. Please select specific zones instead.
+            </cd-alert-panel>
+          </div>
+        </cds-checkbox>
+      </div>
+      <div *ngIf="multisiteZoneForm.get('sync_from_all')?.value === false"
+           class="form-item">
+        <cds-combo-box type="multi"
+                       selectionFeedback="top-after-reopen"
+                       label="Sync from zones"
+                       formControlName="sync_from_zones"
+                       id="sync_from_zones"
+                       [appendInline]="true"
+                       [items]="syncFromZonesOptions"
+                       i18n>
+          <cds-dropdown-list></cds-dropdown-list>
+        </cds-combo-box>
+        <cd-help-text>
+          <span i18n>Select specific zones to synchronize data from when "Sync from all zones" is disabled.</span>
+        </cd-help-text>
       </div>
       <div class="form-item">
         <cds-text-label

@@ -3,9 +3,11 @@
 
 #include "./scrub_job.h"
 
-#include "pg_scrubber.h"
-
 #include "common/debug.h"
+
+#include "common/Formatter.h"
+
+#include "pg_scrubber.h"
 
 using must_scrub_t = Scrub::must_scrub_t;
 using sched_params_t = Scrub::sched_params_t;
@@ -16,6 +18,20 @@ using ScrubJob = Scrub::ScrubJob;
 using namespace std::chrono;
 
 using SchedEntry = Scrub::SchedEntry;
+
+// ////////////////////////////////////////////////////////////////////////// //
+// SchedEntry
+
+void SchedEntry::dump(ceph::Formatter& f) const
+{
+  f.dump_named_fmt("pgid", "{}", pgid);
+  f.dump_string("level", level == scrub_level_t::shallow ? "shallow" : "deep");
+  f.dump_named_fmt("urgency", "{}", urgency);
+  f.dump_named_fmt("sched_time", "{}", schedule.not_before);
+  f.dump_named_fmt("orig_sched_time", "{}", schedule.scheduled_at);
+  f.dump_named_fmt("last_issue", "{}", last_issue);
+  f.dump_bool("forced", urgency >= urgency_t::operator_requested);
+}
 
 // ////////////////////////////////////////////////////////////////////////// //
 // SchedTarget
@@ -280,20 +296,19 @@ SchedTarget& ScrubJob::delay_on_failure(
     delay_cause_t delay_cause,
     utime_t scrub_clock_now)
 {
-  seconds delay = seconds(cct->_conf.get_val<int64_t>("osd_scrub_retry_delay"));
+  const char* delay_param = "osd_scrub_retry_delay";
   switch (delay_cause) {
     case delay_cause_t::flags:
-      delay =
-	  seconds(cct->_conf.get_val<int64_t>("osd_scrub_retry_after_noscrub"));
+      delay_param = "osd_scrub_retry_after_noscrub";
       break;
     case delay_cause_t::pg_state:
-      delay = seconds(cct->_conf.get_val<int64_t>("osd_scrub_retry_pg_state"));
+      delay_param = "osd_scrub_retry_pg_state";
       break;
     case delay_cause_t::snap_trimming:
-      delay = seconds(cct->_conf.get_val<int64_t>("osd_scrub_retry_trimming"));
+      delay_param = "osd_scrub_retry_trimming";
       break;
     case delay_cause_t::interval:
-      delay = seconds(cct->_conf.get_val<int64_t>("osd_scrub_retry_new_interval"));
+      delay_param = "osd_scrub_retry_new_interval";
       break;
     case delay_cause_t::local_resources:
     case delay_cause_t::aborted:
@@ -301,6 +316,7 @@ SchedTarget& ScrubJob::delay_on_failure(
       // for all other possible delay causes: use the default delay
       break;
   }
+  const seconds delay = seconds(cct->_conf.get_val<int64_t>(delay_param));
 
   auto& delayed_target =
       (level == scrub_level_t::deep) ? deep_target : shallow_target;
@@ -348,17 +364,6 @@ std::string ScrubJob::scheduling_state(utime_t now_is) const
 std::ostream& ScrubJob::gen_prefix(std::ostream& out, std::string_view fn) const
 {
   return out << log_msg_prefix << fn << ": ";
-}
-
-void ScrubJob::dump(ceph::Formatter* f) const
-{
-  const auto& entry = earliest_target().sched_info;
-  const auto& sch = entry.schedule;
-  Formatter::ObjectSection scrubjob_section{*f, "scrub"sv};
-  f->dump_stream("pgid") << pgid;
-  f->dump_stream("sched_time") << get_sched_time();
-  f->dump_stream("orig_sched_time") << sch.scheduled_at;
-  f->dump_bool("forced", entry.urgency >= urgency_t::operator_requested);
 }
 
 // a set of static functions to determine, given a scheduling target's urgency,

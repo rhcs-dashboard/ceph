@@ -39,9 +39,12 @@
 #include "include/ceph_assert.h" // Because intrusive_ptr clobbers our assert...
 #include "include/buffer.h"
 #include "include/utime.h"
-#include "msg/Connection.h"
 #include "msg/MessageRef.h"
 #include "msg_types.h"
+
+#ifndef WITH_CRIMSON
+#include "msg/Connection.h"
+#endif
 
 // monitor internal
 #define MSG_MON_SCRUB              64
@@ -551,6 +554,16 @@ public:
 
   void encode(uint64_t features, int crcflags, bool skip_header_crc = false);
 };
+
+inline void intrusive_ptr_add_ref(Message* m)
+{
+  m->get();
+}
+
+inline void intrusive_ptr_release(Message* m)
+{
+  m->put();
+}
 
 extern Message *decode_message(CephContext *cct,
                                int crcflags,

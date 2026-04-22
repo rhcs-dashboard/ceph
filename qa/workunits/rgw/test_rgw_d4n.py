@@ -7,10 +7,16 @@ a multipart object of a randomly generated size. Each test runs the following wo
 1. Upload the object
 2. Perform a GET call (object should be retrieved from backend)
 3. Compare the cached object's contents to the original object
-4. Check the directory contents
+4. Check the directory contents for the object's block entries
 5. Perform another GET call (object should be retrieved from datacache)
 6. Compare the cached object's contents to the original object
-7. Check the directory contents once more
+7. Check the directory contents for the object's block entries
+8. Perform a multi-object delete on the test bucket
+9. Delete the bucket
+10. Ensure the directory no longer holds entries related to the test objects
+
+Note: After the delete, the cache entries are ignored because they will be present in the cache
+ until they are evicted.
 '''
 
 import logging as log
@@ -48,7 +54,7 @@ def exec_cmd(cmd):
         return False
 
 def get_radosgw_endpoint():
-    out = exec_cmd('sudo netstat -nltp | egrep "rados|valgr"')  # short for radosgw/valgrind
+    out = exec_cmd('sudo ss -nltp | egrep "rados|valgr|memcheck-"')  # short for radosgw/valgrind
     x = out.decode('utf8').split(" ")
     port = [i for i in x if ':' in i][0].split(':')[1]
     log.info('radosgw port: %s' % port)
@@ -190,7 +196,7 @@ def test_small_object(r, client, s3):
         assert(data.get('objName') == 'test.txt')
         assert(data.get('bucketName') == bucketID)
         assert(data.get('dirty') == '0')
-        assert(data.get('hosts') == '127.0.0.1:6379')
+        assert(data.get('hosts') == '127.0.0.1:8000')
 
     # second get call
     response_get = obj.get()
@@ -225,7 +231,7 @@ def test_small_object(r, client, s3):
         assert(data.get('objName') == 'test.txt')
         assert(data.get('bucketName') == bucketID)
         assert(data.get('dirty') == '0')
-        assert(data.get('hosts') == '127.0.0.1:6379')
+        assert(data.get('hosts') == '127.0.0.1:8000')
 
     r.flushall()
 
@@ -286,7 +292,7 @@ def test_large_object(r, client, s3):
             assert(data.get('objName') == '_:null_mymultipart')
             assert(data.get('bucketName') == bucketID)
             assert(data.get('dirty') == '0')
-            assert(data.get('hosts') == '127.0.0.1:6379')
+            assert(data.get('hosts') == '127.0.0.1:8000')
             continue
 
         assert(data.get('blockID') == entry_name[2])
@@ -296,7 +302,7 @@ def test_large_object(r, client, s3):
         assert(data.get('objName') == 'mymultipart')
         assert(data.get('bucketName') == bucketID)
         assert(data.get('dirty') == '0')
-        assert(data.get('hosts') == '127.0.0.1:6379')
+        assert(data.get('hosts') == '127.0.0.1:8000')
 
     # second get
     try:
@@ -340,7 +346,7 @@ def test_large_object(r, client, s3):
             assert(data.get('objName') == '_:null_mymultipart')
             assert(data.get('bucketName') == bucketID)
             assert(data.get('dirty') == '0')
-            assert(data.get('hosts') == '127.0.0.1:6379')
+            assert(data.get('hosts') == '127.0.0.1:8000')
             continue
 
         assert(data.get('blockID') == entry_name[2])
@@ -350,7 +356,7 @@ def test_large_object(r, client, s3):
         assert(data.get('objName') == 'mymultipart')
         assert(data.get('bucketName') == bucketID)
         assert(data.get('dirty') == '0')
-        assert(data.get('hosts') == '127.0.0.1:6379')
+        assert(data.get('hosts') == '127.0.0.1:8000')
 
     r.flushall()
 
@@ -405,7 +411,19 @@ def main():
     # Run large object test
     test_large_object(r, client, s3)
     
-    # close filter client
+    # Bucket deletion 
+    response_delete = bucket.object_versions.delete();
+    for res in response_delete:
+        assert(res.get('ResponseMetadata').get('HTTPStatusCode') == 200)
+
+    response_delete = bucket.delete();
+    assert(response_delete.get('ResponseMetadata').get('HTTPStatusCode') == 204)
+
+    data = list(r.scan_iter(match='*test.txt*'))
+    assert(len(data) == 0)
+
+
+    # Close filter client
     filter_client = [client for client in r.client_list()
                        if client.get('name') in ['D4N.Filter']]
     r.client_kill_filter(_id=filter_client[0].get('id'))

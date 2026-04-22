@@ -180,7 +180,7 @@ By default, erasure-coded pools work only with operations that
 perform full RADOS object writes, for example, RGW.
 
 Since Luminous, partial writes for an erasure-coded pool may be
-enabled with a per-pool setting. This lets RBD, CephFS, and librados  store
+enabled with a per-pool setting. This lets RBD, CephFS, and librados store
 data in an erasure-coded pool:
 
 .. prompt:: bash $
@@ -308,7 +308,7 @@ tolerable write and recovery performance impact.
 .. note:: CephFS and RGW deployments with a significant proportion
           of very small user files/objects may wish to plan carefully as
           erasure-coded data pools can result in considerable additional space
-          ampliificaton.  Both CephFS and RGW support multiple data pools
+          amplification.  Both CephFS and RGW support multiple data pools
           with different media, performance, and data protection strategies,
           which can enable efficient and effective deployments.  An RGW
 	  deployment might for example provision a modest complement of

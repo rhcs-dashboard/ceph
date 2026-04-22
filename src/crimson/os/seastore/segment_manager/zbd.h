@@ -35,7 +35,7 @@ namespace crimson::os::seastore::segment_manager::zbd {
   };
 
   struct zbd_sm_metadata_t {
-    unsigned int shard_num = 0;
+    uint32_t shard_num = 0;
     size_t segment_size = 0;
     size_t segment_capacity = 0;
     size_t zones_per_segment = 0;
@@ -74,7 +74,6 @@ namespace crimson::os::seastore::segment_manager::zbd {
     }
 
     void validate() const {
-      ceph_assert_always(shard_num == seastar::smp::count);
       for (unsigned int i = 0; i < seastar::smp::count; i++) {
         ceph_assert_always(shard_infos[i].size > 0);
         ceph_assert_always(shard_infos[i].size <= DEVICE_OFF_MAX);
@@ -102,12 +101,12 @@ namespace crimson::os::seastore::segment_manager::zbd {
   public:
     ZBDSegment(ZBDSegmentManager &man, segment_id_t i) : manager(man), id(i){};
 
-    segment_id_t get_segment_id() const final { return id; }
-    segment_off_t get_write_capacity() const final;
-    segment_off_t get_write_ptr() const final { return write_pointer; }
-    close_ertr::future<> close() final;
-    write_ertr::future<> write(segment_off_t offset, ceph::bufferlist bl) final;
-    write_ertr::future<> advance_wp(segment_off_t offset) final;
+    segment_id_t get_segment_id() const override { return id; }
+    segment_off_t get_write_capacity() const override;
+    segment_off_t get_write_ptr() const override { return write_pointer; }
+    close_ertr::future<> close() override;
+    write_ertr::future<> write(segment_off_t offset, ceph::bufferlist bl) override;
+    write_ertr::future<> advance_wp(segment_off_t offset) override;
 
     ~ZBDSegment() {}
   private:
@@ -121,50 +120,51 @@ namespace crimson::os::seastore::segment_manager::zbd {
   class ZBDSegmentManager final : public SegmentManager{
   // interfaces used by Device
   public:
-    seastar::future<> start() {
-      return shard_devices.start(device_path);
-    }
+    seastar::future<> start(uint32_t shard_nums) override;
 
-    seastar::future<> stop() {
-      return shard_devices.stop();
-    }
+    seastar::future<> stop() override;
 
-    Device& get_sharded_device() final {
-      return shard_devices.local();
-    }
+    Device& get_sharded_device(store_index_t store_index = 0) override;
 
-    mount_ret mount() final;
-    mkfs_ret mkfs(device_config_t meta) final;
+    mount_ret mount() override;
+    mkfs_ret mkfs(device_config_t meta) override;
 
-    ZBDSegmentManager(const std::string &path) : device_path(path) {}
+    ZBDSegmentManager(const std::string &path, store_index_t store_index = 0)
+    : device_path(path),
+      store_index(store_index) {}
 
-    ~ZBDSegmentManager() final = default;
+    ~ZBDSegmentManager() override = default;
 
   //interfaces used by each shard device
   public:
-    open_ertr::future<SegmentRef> open(segment_id_t id) final;
-    close_ertr::future<> close() final;
+    open_ertr::future<SegmentRef> open(segment_id_t id) override;
+    close_ertr::future<> close() override;
 
-    release_ertr::future<> release(segment_id_t id) final;
+    release_ertr::future<> release(segment_id_t id) override;
 
     read_ertr::future<> read(
       paddr_t addr, 
       size_t len, 
       ceph::bufferptr &out) final;
+    read_ertr::future<> readv(
+      paddr_t addr,
+      std::vector<bufferptr> ptrs) override;
 
-    device_type_t get_device_type() const final {
+    read_ertr::future<uint32_t> get_shard_nums() override;
+
+    device_type_t get_device_type() const override {
       return device_type_t::ZBD;
     }
 
-    size_t get_available_size() const final {
+    size_t get_available_size() const override {
       return shard_info.size;
     };
 
-    extent_len_t get_block_size() const final {
+    extent_len_t get_block_size() const override {
       return metadata.block_size;
     };
 
-    segment_off_t get_segment_size() const final {
+    segment_off_t get_segment_size() const override {
       return metadata.segment_capacity;
     };
 
@@ -172,11 +172,11 @@ namespace crimson::os::seastore::segment_manager::zbd {
       return metadata.meta;
     };
 
-    device_id_t get_device_id() const final;
+    device_id_t get_device_id() const override;
 
-    secondary_device_set_t& get_secondary_devices() final;
+    secondary_device_set_t& get_secondary_devices() override;
 
-    magic_t get_magic() const final;
+    magic_t get_magic() const override;
 
     Segment::write_ertr::future<> segment_write(
     paddr_t addr,
@@ -214,7 +214,7 @@ namespace crimson::os::seastore::segment_manager::zbd {
       }
     } stats;
 
-    void register_metrics();
+    void register_metrics(store_index_t store_index);
     seastar::metrics::metric_group metrics;
 
     Segment::close_ertr::future<> segment_close(
@@ -234,7 +234,28 @@ namespace crimson::os::seastore::segment_manager::zbd {
 
     mount_ret shard_mount();
 
-    seastar::sharded<ZBDSegmentManager> shard_devices;
+    uint32_t device_shard_nums = 0;
+    store_index_t store_index = 0;
+    bool shard_status = true;
+    class MultiShardDevices {
+    public:
+      std::vector<std::unique_ptr<ZBDSegmentManager>> mshard_devices;
+
+    public:
+    MultiShardDevices(size_t count,
+                      const std::string path)
+    : mshard_devices() {
+      mshard_devices.reserve(count);
+      for (size_t store_index = 0; store_index < count; ++store_index) {
+        mshard_devices.emplace_back(std::make_unique<ZBDSegmentManager>(
+          path, store_index));
+      }
+    }
+    ~MultiShardDevices() {
+     mshard_devices.clear();
+    }
+  };
+  seastar::sharded<MultiShardDevices> shard_devices;
   };
 
 }

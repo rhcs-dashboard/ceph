@@ -9,7 +9,7 @@
 #include "rgw_common.h"
 #include "rgw_auth.h"
 #include "rgw_quota.h"
-#include "rgw_user.h"
+#include "driver/rados/rgw_user.h"
 #include "rgw_http_client.h"
 #include "rgw_iam_managed_policy.h"
 #include "rgw_keystone.h"
@@ -961,6 +961,10 @@ void rgw::auth::RemoteApplier::write_ops_log_entry(rgw_log_entry& entry) const
     entry.account_id = account->id;
   }
   entry.user = info.keystone_user;
+
+  if (info.keystone_scope.has_value()) {
+    entry.keystone_scope = info.keystone_scope;
+  }
 }
 
 /* TODO(rzarzynski): we need to handle display_name changes. */

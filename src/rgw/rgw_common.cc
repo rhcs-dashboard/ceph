@@ -18,7 +18,6 @@
 #include "rgw_string.h"
 #include "rgw_http_errors.h"
 #include "rgw_arn.h"
-#include "rgw_data_sync.h"
 
 #include "global/global_init.h"
 #include "common/ceph_crypto.h"
@@ -33,8 +32,6 @@
 #include "rgw_crypt_sanitize.h"
 #include "rgw_bucket_sync.h"
 #include "rgw_sync_policy.h"
-
-#include "services/svc_zone.h"
 
 #include <sstream>
 
@@ -148,6 +145,7 @@ rgw_http_errors rgw_http_s3_errors({
     { ERR_ACLS_NOT_SUPPORTED, {400, "AccessControlListNotSupported"}},
     { ERR_INVALID_BUCKET_ACL, {400, "InvalidBucketAclWithObjectOwnership"}},
     { ERR_NO_SUCH_OWNERSHIP_CONTROLS, {404, "OwnershipControlsNotFoundError"}},
+    { ERR_EXPIRED_TOKEN, {400, "ExpiredToken"}},
 });
 
 rgw_http_errors rgw_http_swift_errors({
@@ -2886,7 +2884,7 @@ void RGWUserInfo::dump(Formatter *f) const
     encode_json("admin", (bool)admin, f);
   }
   encode_json("default_placement", default_placement.name, f);
-  encode_json("default_storage_class", default_placement.storage_class, f);
+  encode_json("default_storage_class", default_placement.get_storage_class(), f);
   encode_json("placement_tags", placement_tags, f);
   encode_json("bucket_quota", quota.bucket_quota, f);
   encode_json("user_quota", quota.user_quota, f);

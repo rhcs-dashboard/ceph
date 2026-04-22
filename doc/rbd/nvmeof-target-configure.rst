@@ -40,11 +40,11 @@ Complete the following steps to install the Ceph NVME-oF gateway:
    
       rbd pool init NVME-OF_POOL_NAME
 
-#. Deploy the NVMe-oF gateway daemons on a specific set of nodes:
+#. Deploy the NVMe-oF gateway daemons on a specific set of nodes, and with a unique group name:
 
    .. prompt:: bash #
    
-      ceph orch apply nvmeof NVME-OF_POOL_NAME --placement="host01, host02"
+      ceph orch apply nvmeof NVME-OF_POOL_NAME NVME_OF_GROUP_NAME --placement="host01, host02"
 
 Configuration
 =============

@@ -408,6 +408,75 @@ public:
     }
   }
 
+  std::pair<bool, bool> pre_stable_extent_paddr_mod(
+    read_set_item_t<Transaction> &item)
+  {
+    LOG_PREFIX(Transaction::pre_stable_extent_paddr_mod);
+    SUBTRACET(seastore_t, "{}", *this, *item.ref);
+#ifndef NDEBUG
+    auto [existed, it] = lookup_trans_from_read_extent(item.ref);
+    assert(existed);
+    assert(item.ref.get() == it->ref.get());
+    assert(item.t = it->t);
+#endif
+
+    if (!item.is_extent_attached_to_trans()) {
+      return {false, false};
+    }
+    auto &extent = *item.ref;
+    read_set.erase(read_extent_set_t<Transaction>::s_iterator_to(item));
+    auto where1 = retired_set.find(extent.get_paddr());
+    bool retired = (where1 != retired_set.end());
+    if (where1 != retired_set.end()) {
+      retired_set.erase(where1);
+    }
+    return {true, retired};
+  }
+  void post_stable_extent_paddr_mod(
+    read_set_item_t<Transaction> &item,
+    bool retired) {
+    read_set.insert(item);
+    if (retired) {
+      retired_set.emplace(item.ref, trans_id);
+    }
+  }
+  void maybe_update_pending_paddr(
+    const paddr_t &old_paddr,
+    const paddr_t &new_paddr,
+    extent_len_t len) {
+    assert(new_paddr.is_absolute());
+
+    std::vector<CachedExtent*> exts;
+    for (auto [bottom, top] = write_set.get_overlap(old_paddr, len);
+         bottom != top;
+         bottom++) {
+      auto &mextent = *bottom;
+      if (mextent.is_initial_pending()) {
+        continue;
+      }
+      exts.emplace_back(&mextent);
+    }
+    for (auto i : exts) {
+      auto &mextent = *i;
+      write_set.erase(mextent);
+      extent_len_t off = 0;
+      if (new_paddr.is_absolute_segmented()) {
+        assert(mextent.get_paddr().as_seg_paddr().get_segment_id()
+          == old_paddr.as_seg_paddr().get_segment_id());
+        assert(mextent.get_paddr().as_seg_paddr().get_segment_off()
+          >= old_paddr.as_seg_paddr().get_segment_off());
+        off = mextent.get_paddr().as_seg_paddr().get_segment_off()
+          - old_paddr.as_seg_paddr().get_segment_off();
+      } else {
+        assert(new_paddr.is_absolute_random_block());
+        off = mextent.get_paddr().as_blk_paddr().get_device_off() -
+          old_paddr.as_blk_paddr().get_device_off();
+      }
+      mextent.set_paddr(new_paddr + off);
+      write_set.insert(mextent);
+    }
+  }
+
   template <typename F>
   auto for_each_finalized_fresh_block(F &&f) const {
     std::for_each(ool_block_list.begin(), ool_block_list.end(), f);
@@ -503,6 +572,7 @@ public:
     ool_write_stats = {};
     rewrite_stats = {};
     conflicted = false;
+    need_wait_rewrite = false;
     assert(backref_entries.empty());
     if (!has_reset) {
       has_reset = true;
@@ -620,6 +690,8 @@ public:
   }
 
   btree_cursor_stats_t cursor_stats;
+  bool need_wait_rewrite = false;
+
 private:
   friend class Cache;
   friend Ref make_test_transaction();
@@ -710,7 +782,7 @@ private:
 
     // step 2: attach extent to transaction to become visible
     assert(!read_set.count(ref->get_paddr(), extent_cmp_t{}));
-    auto [iter, inserted] = read_set.insert(*it);
+    [[maybe_unused]] auto [iter, inserted] = read_set.insert(*it);
     assert(inserted);
   }
 
@@ -729,7 +801,7 @@ private:
     }
 
     // step 2: attach extent to transaction to become visible
-    auto [iter, inserted] = read_set.insert(read_items.back());
+    [[maybe_unused]] auto [iter, inserted] = read_set.insert(read_items.back());
     assert(inserted);
 
     // added

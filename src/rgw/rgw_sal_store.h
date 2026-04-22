@@ -267,9 +267,9 @@ class StoreBucket : public Bucket {
         optional_yield y,
         const DoutPrefixProvider *dpp,
         RGWObjVersionTracker* objv_tracker) override { return 0; }
-    int commit_logging_object(const std::string& obj_name, optional_yield y, const DoutPrefixProvider *dpp, const std::string& prefix, std::string* last_committed) override { return 0; }
-    int remove_logging_object(const std::string& obj_name, optional_yield y, const DoutPrefixProvider *dpp) override { return 0; }
-    int write_logging_object(const std::string& obj_name, const std::string& record, optional_yield y, const DoutPrefixProvider *dpp, bool async_completion) override {
+    int commit_logging_object(const std::string& obj_name, optional_yield y, const DoutPrefixProvider *dpp, const std::string& prefix, std::string* last_committed, bool async) override { return 0; }
+    int remove_logging_object(const std::string& obj_name, const std::string& prefix, optional_yield y, const DoutPrefixProvider *dpp) override { return 0; }
+    int write_logging_object(const std::string& obj_name, const std::string& record, const std::string& prefix, optional_yield y, const DoutPrefixProvider *dpp, bool async_completion) override {
       return 0;
     }
 
@@ -430,7 +430,7 @@ public:
 
 class StoreMPSerializer : public MPSerializer {
 protected:
-  bool locked;
+  std::atomic<bool> locked;
   std::string oid;
 public:
   StoreMPSerializer() : locked(false) {}
@@ -519,6 +519,7 @@ class StoreZone : public Zone {
 class StoreLuaManager : public LuaManager {
 protected:
   std::string _luarocks_path;
+  rgw::lua::Background* lua_background;
 public:
   const std::string& luarocks_path() const override {
     return _luarocks_path;
@@ -526,9 +527,14 @@ public:
   void set_luarocks_path(const std::string& path) override {
     _luarocks_path = path;
   }
+
+  void set_lua_background(rgw::lua::Background* background) override {
+    lua_background = background;
+  }
+
   StoreLuaManager() = default;
   StoreLuaManager(const std::string& __luarocks_path) :
-    _luarocks_path(__luarocks_path) {}
+    _luarocks_path(__luarocks_path), lua_background(nullptr) {}
   virtual ~StoreLuaManager() = default;
 };
 

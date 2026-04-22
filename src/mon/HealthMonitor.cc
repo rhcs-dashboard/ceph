@@ -25,13 +25,17 @@
 #include "include/stringify.h"
 
 #include "mon/Monitor.h"
+#include "mon/MonMap.h"
 #include "mon/HealthMonitor.h"
 #include "mon/OSDMonitor.h"
+#include "osd/OSDMap.h"
+
 
 #include "messages/MMonCommand.h"
 #include "messages/MMonHealthChecks.h"
 
 #include "common/Formatter.h"
+#include "common/prime.h"
 
 #define dout_subsys ceph_subsys_mon
 #undef dout_prefix
@@ -749,11 +753,47 @@ bool HealthMonitor::check_leader_health()
   // STRETCH MODE
   check_mon_crush_loc_stretch_mode(&next);
 
+  //CHECK_ERASURE_CODE_PROFILE
+  check_erasure_code_profiles(&next);
+
+  // MON_COLOCATED
+  if (g_conf().get_val<bool>("mon_warn_on_colocated_monitors")) {
+    check_for_colocated_monitors(&next);
+  }
+
   if (next != leader_checks) {
     changed = true;
     leader_checks = next;
   }
   return changed;
+}
+
+void HealthMonitor::check_for_colocated_monitors(health_check_map_t *checks)
+{
+  std::unordered_map<std::string, std::vector<std::string>> unique_addrs;
+  for (auto& [mon_id, mon_info] : mon.monmap->mon_info) {
+    std::string ip = mon_info.public_addrs.msgr2_addr().ip_only_to_str();
+    unique_addrs[ip].push_back(mon_id);
+  }
+
+  bool has_colocated_mon = false;
+  ostringstream ss, ds;
+  for (const auto& [ip, mon_ids]: unique_addrs) {
+    unsigned size = mon_ids.size();
+    if (size > 1) {
+      has_colocated_mon = true;
+      fmt::print(ss, "{} monitors ({}) share the same ip = {}\n",
+                 size, fmt::join(mon_ids, ","), ip);
+      for (const auto& name: mon_ids) {
+        ds << "mon." << name << " is on the same node as another monitor\n";
+      }
+    }
+  }
+  
+  if (has_colocated_mon) {
+    auto& d = checks->add("MON_COLOCATED", HEALTH_WARN, ss.str(), 1);
+    d.detail.push_back(ds.str());
+  }
 }
 
 void HealthMonitor::check_for_older_version(health_check_map_t *checks)
@@ -811,29 +851,37 @@ void HealthMonitor::check_for_mon_down(health_check_map_t *checks, std::set<std:
 {
   int max = mon.monmap->size();
   int actual = mon.get_quorum().size();
+  const auto mon_down_mkfs_grace = g_conf().get_val<std::chrono::seconds>("mon_down_mkfs_grace");
+  const auto mon_down_uptime_grace = g_conf().get_val<std::chrono::seconds>("mon_down_uptime_grace");
+  const auto mon_down_added_grace = g_conf().get_val<std::chrono::seconds>("mon_down_added_grace");
+
   const auto rcnow = ceph::real_clock::now();
   const auto created = mon.monmap->created.to_real_time();
   const auto mcnow = ceph::coarse_mono_clock::now();
   const auto starttime = mon.get_starttime();
 
-  if (actual < max &&
-      (rcnow - created) > g_conf().get_val<std::chrono::seconds>("mon_down_mkfs_grace") &&
-      (mcnow - starttime) > g_conf().get_val<std::chrono::seconds>("mon_down_uptime_grace")) {
-    ostringstream ss;
-    ss << (max-actual) << "/" << max << " mons down, quorum "
-       << mon.get_quorum_names();
-    auto& d = checks->add("MON_DOWN", HEALTH_WARN, ss.str(), max - actual);
-    set<int> q = mon.get_quorum();
+  if (actual < max && ((rcnow - created) > mon_down_mkfs_grace) && ((mcnow - starttime) > mon_down_uptime_grace)) {
+    auto q = mon.get_quorum();
+    std::list<std::string> details;
     for (int i=0; i<max; i++) {
       if (q.count(i) == 0) {
-	ostringstream ss;
-  std::string mon_name = mon.monmap->get_name(i);
-  mon_downs.insert(mon_name);
-	ss << "mon." << mon_name << " (rank " << i
-	   << ") addr " << mon.monmap->get_addrs(i)
-	   << " is down (out of quorum)";
-	d.detail.push_back(ss.str());
+        ostringstream ss;
+        std::string mon_name = mon.monmap->get_name(i);
+        auto const& info = mon.monmap->get(mon_name);
+        if ((rcnow - info.time_added) > mon_down_added_grace) {
+          mon_downs.insert(mon_name);
+	  ss << "mon." << mon_name << " (rank " << i
+	     << ") addr " << mon.monmap->get_addrs(i)
+	     << " is down (out of quorum)";
+	  details.push_back(ss.str());
+        }
       }
+    }
+    if (details.size()) {
+      ostringstream ss;
+      ss << (max-actual) << "/" << max << " mons down, quorum " << mon.get_quorum_names();
+      auto& d = checks->add("MON_DOWN", HEALTH_WARN, ss.str(), max - actual);
+      d.detail = std::move(details);
     }
   }
 }
@@ -1312,5 +1360,44 @@ void HealthMonitor::check_netsplit(health_check_map_t *checks, std::set<std::str
       first = false;
     }
     *_dout << "}" << dendl;
+  }
+}
+
+void HealthMonitor::check_erasure_code_profiles(health_check_map_t *checks)
+{
+  list<string> details;
+  
+  //This is a loop that will go through all the erasure code profiles 
+  for (auto& erasure_code_profile : mon.osdmon()->osdmap.get_erasure_code_profiles()) {
+    dout(20) << "check_erasure_code_profiles " << "checking " << erasure_code_profile << dendl;
+
+    //This will look at the erasure code profiles technique is blaum_roth 
+    //and will check that the w key exists
+    auto technique = erasure_code_profile.second.find("technique");
+    if (technique != erasure_code_profile.second.end()) {
+      if (erasure_code_profile.second.at("technique") == "blaum_roth" && 
+      erasure_code_profile.second.count("w") == 1) {
+        //Read the w value from the profile and convert it to an int 
+        int w = std::stoi(erasure_code_profile.second.at("w"));
+        if ((w <= 2) || (w >= 256)) {
+          ostringstream ds;
+          ds << "The value of w must be greater than 2 and less than 256";
+          details.push_back(ds.str());
+        }
+        if (!is_prime(w + 1)) {
+          ostringstream ds;
+          ds << "w+1="<< w+1 << " for the EC profile " << erasure_code_profile.first 
+            << " is not prime and could lead to data corruption";
+          details.push_back(ds.str());
+        }
+      }
+    }
+  }
+  if (!details.empty()) {
+    ostringstream ss;
+    ss << "1 or more EC profiles have a w value such that w+1 is not prime."
+      << " This can result in data corruption";
+    auto &d = checks->add("BLAUM_ROTH_W_IS_NOT_PRIME", HEALTH_WARN, ss.str(), details.size());
+    d.detail.swap(details);
   }
 }

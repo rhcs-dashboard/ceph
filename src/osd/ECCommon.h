@@ -30,16 +30,10 @@
 #include "osd/OSDMap.h"
 #include "osd/osd_op_util.h"
 
-struct ECTransaction {
-  struct WritePlan {
-    bool invalidates_cache = false; // Yes, both are possible
-    std::map<hobject_t,extent_set> to_read;
-    std::map<hobject_t,extent_set> will_write;
-  };
-};
 
 typedef void* OpRequestRef;
 typedef crimson::osd::ObjectContextRef ObjectContextRef;
+#include "ECTransaction.h"
 #else
 #include "common/WorkQueue.h"
 #endif
@@ -72,7 +66,7 @@ struct ECCommon {
   static inline const uint32_t scrub_fadvise_flags{
       CEPH_OSD_OP_FLAG_FADVISE_SEQUENTIAL |
       CEPH_OSD_OP_FLAG_FADVISE_DONTNEED |
-      CEPH_OSD_OP_FLAG_BYPASS_CLEAN_CACHE};
+      CEPH_OSD_OP_FLAG_SCRUB};
 
   virtual ~ECCommon() = default;
 
@@ -533,7 +527,10 @@ struct ECCommon {
       std::list<ECExtentCache::OpRef> cache_ops;
       RMWPipeline *pipeline;
 
+      Op(RMWPipeline &pipeline) : tid(), plan(), pipeline(&pipeline) {}
+#ifndef WITH_CRIMSON
       Op() : tid(), plan(), pipeline(nullptr) {}
+#endif
 
       /// Callbacks
       Context *on_all_commit = nullptr;
@@ -549,7 +546,8 @@ struct ECCommon {
           std::map<hobject_t, ECUtil::shard_extent_map_t> *written,
           shard_id_map<ceph::os::Transaction> *transactions,
           DoutPrefixProvider *dpp,
-          const OSDMapRef &osdmap) = 0;
+          const OSDMapRef &osdmap,
+          bool &first_write_in_interval) = 0;
 
       virtual bool skip_transaction(
           std::set<shard_id_t> &pending_roll_forward,
@@ -662,6 +660,11 @@ struct ECCommon {
     ECExtentCache extent_cache;
     uint64_t ec_pdw_write_mode;
     bool next_write_all_shards = false;
+
+    // Set by on_change, forces first write in each interval to be
+    // a full write to avoid PWLC spanning intervals. Fixes
+    // https://tracker.ceph.com/issues/73891
+    bool first_write_in_interval;
 
     RMWPipeline(CephContext *cct,
                 ceph::ErasureCodeInterfaceRef ec_impl,
@@ -788,7 +791,11 @@ struct ECCommon {
             << " missing_on_shards=" << missing_on_shards
             << " recovery_info=" << recovery_info
             << " recovery_progress=" << recovery_progress
+#ifndef WITH_CRIMSON
             << " obc refcount=" << obc.use_count()
+#else
+            << " obc refcount=" << obc->get_use_count()
+#endif
             << " state=" << ECCommon::RecoveryBackend::RecoveryOp::tostr(state)
             << " waiting_on_pushes=" << waiting_on_pushes
             << ")";

@@ -179,6 +179,7 @@
             [expandable]="model.isRowExpandable(i)"
             [expanded]="model.isRowExpanded(i)"
             [showSelectionColumn]="showSelectionColumn"
+            [enableSingleSelect]="enableSingleSelect"
             [skeleton]="loadingIndicator"
             (selectRow)="onSelect(i)"
             (deselectRow)="onDeselect(i)"
@@ -223,8 +224,24 @@
           class="no-data"
           cdstabledata
           [attr.colspan]="visibleColumns.length + 2">
-        <span class="d-flex justify-content-center align-items-center"
-              i18n>No data to display</span>
+        <div class="empty-state cds-ml-3"
+             cdsStack="vertical"
+             gap="11">
+          <div></div>
+          <div cdsStack="vertical"
+               gap="1">
+            <div>
+              <img src="{{ emptyStateImage }}"
+                   alt="No data available" />
+            </div>
+            <legend class="cds--type-body-compact-02">
+              <ng-container>{{ emptyStateTitle }}</ng-container>
+              <cd-help-text class="cds--type-label-01">
+                {{ emptyStateMessage }}
+              </cd-help-text>
+            </legend>
+          </div>
+        </div>
       </td>
     </tr>
   </tbody>
@@ -302,7 +319,7 @@
 
 <ng-template #checkIconTpl
              let-value="data.value">
-@if (value | boolean) {
+  @if (value | boolean) {
   <cd-icon type="check"></cd-icon>
 }
 </ng-template>
@@ -337,13 +354,14 @@
     </cds-tag>
   </span>
 </ng-template>
+
 <ng-template #tagTpl
              let-column="data.column"
              let-value="data.value">
   <span *ngFor="let item of (value | array); last as last">
     <cds-tag [size]="'md'"
              class="table-tag"
-             [class]="(column?.customTemplateConfig?.map && column?.customTemplateConfig?.map[item]?.class) ? column.customTemplateConfig.map[item].class : (column?.customTemplateConfig?.class ? column.customTemplateConfig.class : 'tags-primary')"
+             [class]="(column?.customTemplateConfig?.map && column?.customTemplateConfig?.map[item]?.class) ? column.customTemplateConfig.map[item].class : (column?.customTemplateConfig?.class ? column.customTemplateConfig.class : 'tag-primary')"
              *ngIf="(column?.customTemplateConfig?.map && column?.customTemplateConfig?.map[item]?.value) ? column.customTemplateConfig.map[item].value : column?.customTemplateConfig?.prefix ? column.customTemplateConfig.prefix + item : item">
       {{(column?.customTemplateConfig?.map && column?.customTemplateConfig?.map[item]?.value) ? column.customTemplateConfig.map[item].value : column?.customTemplateConfig?.prefix ? column.customTemplateConfig.prefix + item : item }}
     </cds-tag>
@@ -449,13 +467,22 @@
       <div cdsCol
            [columnNumbers]="{sm:1}"
            class="cds-p-0 cds-pt-3">
-        <button cdsButton="ghost"
-                size="sm"
-                id="cell-inline-save-btn"
-                type="button"
-                (click)="saveCellItem(row, column?.prop)">
+        <div cdsRow>
+        <cds-icon-button kind="tertiary"
+                         size="sm"
+                         id="cell-inline-save-btn"
+                         type="button"
+                         (click)="saveCellItem(row, column?.prop)">
           <cd-icon type="check"></cd-icon>
-        </button>
+        </cds-icon-button>
+        <cds-icon-button kind="ghost"
+                         size="sm"
+                         id="cell-inline-cancel-btn"
+                         type="button"
+                         (click)="cancelCellEdit(row[identifier], column?.prop)">
+          <cd-icon type="destroy"></cd-icon>
+        </cds-icon-button>
+        </div>
       </div>
     </div>
   </form>
@@ -468,12 +495,12 @@
     <div cdsCol
          [columnNumbers]="{lg: 5}"
          class="edit-btn">
-      <button cdsButton="ghost"
-              size="sm"
-              id="cell-inline-edit-btn"
-              (click)="editCellItem(row[identifier], column, value)">
+      <cds-icon-button kind="ghost"
+                       size="sm"
+                       id="cell-inline-edit-btn"
+                       (click)="editCellItem(row[identifier], column, value)">
         <cd-icon type="edit"></cd-icon>
-      </button>
+      </cds-icon-button>
     </div>
   </div>
   }
@@ -481,6 +508,13 @@
 
 <ng-template #redirectTpl
              let-value="data.value"
+             let-row="data.row"
              let-column="data.column">
+@if (column.customTemplateConfig?.customRowProperty && row[column.customTemplateConfig?.customRowProperty]) {
+  <a [routerLink]="row[column.customTemplateConfig?.customRowProperty]">{{value}}</a>
+} @else if (column.customTemplateConfig?.redirectLink) {
   <a [routerLink]="column.customTemplateConfig?.redirectLink | redirectLinkResolver:value">{{value}}</a>
+} @else {
+  {{ value }}
+}
 </ng-template>

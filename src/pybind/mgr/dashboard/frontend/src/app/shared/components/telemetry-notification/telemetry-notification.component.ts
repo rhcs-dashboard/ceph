@@ -1,4 +1,6 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 
 import _ from 'lodash';
 
@@ -11,23 +13,28 @@ import { TelemetryNotificationService } from '~/app/shared/services/telemetry-no
 @Component({
   selector: 'cd-telemetry-notification',
   templateUrl: './telemetry-notification.component.html',
-  styleUrls: ['./telemetry-notification.component.scss']
+  styleUrls: ['./telemetry-notification.component.scss'],
+  standalone: false
 })
 export class TelemetryNotificationComponent implements OnInit, OnDestroy {
   displayNotification = false;
-  notificationSeverity = 'warning';
+  notificationSeverity = 'info';
+  private visibilitySubscription: Subscription;
 
   constructor(
     private mgrModuleService: MgrModuleService,
     private authStorageService: AuthStorageService,
     private notificationService: NotificationService,
-    private telemetryNotificationService: TelemetryNotificationService
+    private telemetryNotificationService: TelemetryNotificationService,
+    private router: Router
   ) {}
 
   ngOnInit() {
-    this.telemetryNotificationService.update.subscribe((visible: boolean) => {
-      this.displayNotification = visible;
-    });
+    this.visibilitySubscription = this.telemetryNotificationService.update.subscribe(
+      (visible: boolean) => {
+        this.displayNotification = visible;
+      }
+    );
 
     if (!this.isNotificationHidden()) {
       const configOptPermissions = this.authStorageService.getPermissions().configOpt;
@@ -43,6 +50,7 @@ export class TelemetryNotificationComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.telemetryNotificationService.setVisibility(false);
+    this.visibilitySubscription?.unsubscribe();
   }
 
   isNotificationHidden(): boolean {
@@ -58,5 +66,9 @@ export class TelemetryNotificationComponent implements OnInit, OnDestroy {
       $localize`You can activate the module on the Telemetry configuration \
 page (<b>Dashboard Settings</b> -> <b>Telemetry configuration</b>) at any time.`
     );
+  }
+
+  onConfigure(): void {
+    this.router.navigate(['/telemetry']);
   }
 }

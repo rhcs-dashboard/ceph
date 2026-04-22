@@ -12,7 +12,7 @@ from orchestrator import DaemonDescription, DeviceLightLoc, HostSpec, \
 from .. import mgr
 from ._paginate import ListPaginator
 
-logger = logging.getLogger('orchestrator')
+logger = logging.getLogger(__name__)
 
 
 # pylint: disable=abstract-method
@@ -220,6 +220,11 @@ class CertStoreManager(ResourceManager):
                 ignore_missing_exception: bool = False) -> str:
         return self.api.cert_store_get_key(entity, service_name, hostname,
                                            no_exception_when_missing=ignore_missing_exception)
+
+    @wait_api_result
+    def cert_ls(self, filter_by: str = '', show_details: bool = False,
+                include_cephadm_signed: bool = False) -> Dict[str, Any]:
+        return self.api.cert_store_cert_ls(filter_by, show_details, include_cephadm_signed)
 
 
 class MonitoringManager(ResourceManager):

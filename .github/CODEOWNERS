@@ -181,3 +181,16 @@ README*                                         @ceph/doc-writers
 /src/test/cls_version                           @ceph/rgw
 /src/test/rgw                                   @ceph/rgw
 /src/test/test_rgw*                             @ceph/rgw
+
+# build scripts and tools
+/ceph.spec.in                                   @ceph/build-sig
+/container                                      @ceph/build-sig
+/debian                                         @ceph/build-sig
+/do_cmake.sh                                    @ceph/build-sig
+/install-deps.sh                                @ceph/build-sig
+/make-debs.sh                                   @ceph/build-sig
+/make-srpm.sh                                   @ceph/build-sig
+/run-make-check.sh                              @ceph/build-sig
+/src/script/build-with-container.py             @ceph/build-sig
+/src/script/buildcontainer-setup.sh             @ceph/build-sig
+/src/script/run-make.sh                         @ceph/build-sig

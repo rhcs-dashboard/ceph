@@ -458,6 +458,8 @@ public:
   virtual ~POSIXLuaManager() = default;
 
   virtual int get_script(const DoutPrefixProvider* dpp, optional_yield y, const std::string& key, std::string& script) override;
+  virtual std::tuple<rgw::lua::LuaCodeType, int> get_script_or_bytecode(const DoutPrefixProvider* dpp, optional_yield y,
+                                                                        const std::string& key) override;
   virtual int put_script(const DoutPrefixProvider* dpp, optional_yield y, const std::string& key, const std::string& script) override;
   virtual int del_script(const DoutPrefixProvider* dpp, optional_yield y, const std::string& key) override;
   virtual int add_package(const DoutPrefixProvider* dpp, optional_yield y, const std::string& package_name) override;
@@ -1035,6 +1037,7 @@ public:
                boost::optional<ceph::real_time> delete_at,
                std::string* version_id, std::string* tag, std::string* etag,
                void (*progress_cb)(off_t, void *), void* progress_data,
+               rgw::sal::DataProcessorFactory* dp_factory,
                const DoutPrefixProvider* dpp, optional_yield y) override;
   virtual RGWAccessControlPolicy& get_acl(void) override { return acls; }
   virtual int set_acl(const RGWAccessControlPolicy& acl) override { acls = acl; return 0; }
@@ -1058,7 +1061,7 @@ public:
 			       optional_yield y) override;
   virtual bool is_expired() override;
   virtual void gen_rand_obj_instance_name() override;
-  virtual std::unique_ptr<MPSerializer> get_serializer(const DoutPrefixProvider *dpp,
+  virtual std::unique_ptr<MPSerializer> get_serializer(const DoutPrefixProvider *dpp, optional_yield y,
 						       const std::string& lock_name) override;
   virtual int transition(Bucket* bucket,
 			 const rgw_placement_rule& placement_rule,
@@ -1399,8 +1402,8 @@ class MPPOSIXSerializer : public StoreMPSerializer {
 public:
   MPPOSIXSerializer(const DoutPrefixProvider *dpp, POSIXDriver* driver, POSIXObject* _obj, const std::string& lock_name) : obj(_obj) {}
 
-  virtual int try_lock(const DoutPrefixProvider *dpp, utime_t dur, optional_yield y) override;
-  virtual int unlock(const DoutPrefixProvider* dpp, optional_yield y) override { return 0; }
+  virtual int try_lock(const DoutPrefixProvider *dpp, ceph::timespan dur, optional_yield y) override;
+  virtual int unlock(const DoutPrefixProvider* dpp, optional_yield y) override;
 };
 
 } } // namespace rgw::sal

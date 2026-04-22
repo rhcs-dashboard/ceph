@@ -492,6 +492,11 @@ int JournalTool::main_event(std::vector<const char*> &argv)
      * Iterate over log entries, attempting to scavenge from each one
      */
     std::set<inodeno_t> consumed_inos;
+    uint64_t event_count = js.events.size();
+    progress_tracker->set_operation_name("Processing events");
+    progress_tracker->start(event_count);
+
+
     for (JournalScanner::EventMap::iterator i = js.events.begin();
          i != js.events.end(); ++i) {
       auto& le = i->second.log_event;
@@ -510,7 +515,13 @@ int JournalTool::main_event(std::vector<const char*> &argv)
                 JournalScanner::EventError(scav_r, cpp_strerror(r))));
         }
       }
+
+      progress_tracker->increment();
+      progress_tracker->display_progress();
     }
+
+      progress_tracker->display_final_summary();
+
 
     /**
      * Update InoTable to reflect any inode numbers consumed during scavenge
@@ -614,6 +625,9 @@ int JournalTool::journal_inspect()
 {
   int r;
 
+  progress_tracker->set_operation_name("Scanning journal");
+  progress_tracker->start(0); // Unknown total initially
+
   JournalFilter filter(type);
   JournalScanner js(input, rank, type, filter);
   r = js.scan();
@@ -622,6 +636,7 @@ int JournalTool::journal_inspect()
     return r;
   }
 
+  progress_tracker->display_final_summary();
   js.report(std::cout);
 
   return 0;
@@ -727,6 +742,10 @@ int JournalTool::recover_dentries(
   ceph_assert(consumed_inos != NULL);
 
   int r = 0;
+
+  // Initialize progress tracking for dentry recovery
+  progress_tracker->set_operation_name("Recovering dentries");
+  progress_tracker->start(metablob.lump_order.size());
 
   // Replay fullbits (dentry+inode)
   for (const auto& frag : metablob.lump_order) {
@@ -947,12 +966,6 @@ int JournalTool::recover_dentries(
                << "' with lump fnode version " << lump.fnode->version
                << "vs existing fnode version " << old_fnode_version << dendl;
           write_dentry = old_fnode_version < lump.fnode->version;
-	} else if (dentry_type == 'R' || dentry_type == 'r') {
-          dout(10) << "Existing hardlink referent full inode in slot to be (maybe) "
-               << "written by a remote inode from the journal dn '" << rb.dn.c_str()
-               << "' with lump fnode version " << lump.fnode->version
-               << "vs existing fnode version " << old_fnode_version << dendl;
-          write_dentry = old_fnode_version < lump.fnode->version;
         } else if (dentry_type == 'I' || dentry_type == 'i') {
           dout(10) << "Existing full inode in slot to be (maybe) written "
                << "by a remote inode from the journal dn '" << rb.dn.c_str()
@@ -967,46 +980,22 @@ int JournalTool::recover_dentries(
       }
 
       if ((other_pool || write_dentry) && !dry_run) {
-        dout(4) << "writing r|l (referent|just remote) dentry " << key
-	  << " into frag " << frag_oid.name << " rb.referent_ino "
-          << rb.referent_ino << " referent_inode " << rb.referent_inode
-	  << "rb.ino " << rb.ino << dendl;
+        dout(4) << "writing L dentry " << key << " into frag "
+          << frag_oid.name << dendl;
 
-	if (rb.referent_ino != 0) {
-          dout(4) << "writing 'r' (referent remote) dentry " << key
-	    << " into frag " << frag_oid.name << dendl;
+        // Compose: Dentry format is dnfirst, [I|L], ino, d_type, alternate_name
+        bufferlist dentry_bl;
+        encode(rb.dnfirst, dentry_bl);
+        encode('l', dentry_bl);
+        ENCODE_START(2, 1, dentry_bl);
+        encode(rb.ino, dentry_bl);
+        encode(rb.d_type, dentry_bl);
+        encode(rb.alternate_name, dentry_bl);
+        ENCODE_FINISH(dentry_bl);
 
-          // Compose: Dentry format is dnfirst, r, alternate_name, InodeStore
-          bufferlist dentry_bl;
-          encode(rb.dnfirst, dentry_bl);
-          encode('r', dentry_bl);
-          ENCODE_START(2, 1, dentry_bl);
-          encode(rb.alternate_name, dentry_bl);
-	  encode_remotebit_as_referent_inode(rb, &dentry_bl);
-          ENCODE_FINISH(dentry_bl);
-
-          // Record for writing to RADOS
-          write_vals[key] = dentry_bl;
-          consumed_inos->insert(rb.referent_ino);
-          consumed_inos->insert(rb.ino);
-	} else {
-          dout(4) << "writing l dentry " << key << " into frag "
-            << frag_oid.name << dendl;
-
-          // Compose: Dentry format is dnfirst, l, ino, d_type, alternate_name
-          bufferlist dentry_bl;
-          encode(rb.dnfirst, dentry_bl);
-          encode('l', dentry_bl);
-          ENCODE_START(2, 1, dentry_bl);
-          encode(rb.ino, dentry_bl);
-          encode(rb.d_type, dentry_bl);
-          encode(rb.alternate_name, dentry_bl);
-          ENCODE_FINISH(dentry_bl);
-
-          // Record for writing to RADOS
-          write_vals[key] = dentry_bl;
-          consumed_inos->insert(rb.ino);
-	}
+        // Record for writing to RADOS
+        write_vals[key] = dentry_bl;
+        consumed_inos->insert(rb.ino);
       }
     }
 
@@ -1071,7 +1060,13 @@ int JournalTool::recover_dentries(
 	return r;
       }
     }
+
+    progress_tracker->increment();
+    progress_tracker->display_progress();
   }
+
+    progress_tracker->display_final_summary();
+
 
   /* Now that we've looked at the dirlumps, we finally pay attention to
    * the roots (i.e. inodes without ancestry).  This is necessary in order
@@ -1246,20 +1241,6 @@ void JournalTool::encode_fullbit_as_inode(
   new_inode.snap_blob = fb.snapbl;
   new_inode.symlink = fb.symlink;
   new_inode.old_inodes = fb.old_inodes;
-
-  // Serialize InodeStore
-  new_inode.encode(*out_bl, CEPH_FEATURES_SUPPORTED_DEFAULT);
-}
-
-void JournalTool::encode_remotebit_as_referent_inode(
-  const EMetaBlob::remotebit &rb,
-  bufferlist *out_bl)
-{
-  ceph_assert(out_bl != NULL);
-
-  // Compose InodeStore
-  InodeStore new_inode;
-  new_inode.inode = rb.referent_inode;
 
   // Serialize InodeStore
   new_inode.encode(*out_bl, CEPH_FEATURES_SUPPORTED_DEFAULT);

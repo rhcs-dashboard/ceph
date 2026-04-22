@@ -257,6 +257,7 @@ enum {
   rs_getmissing_latency,
   rs_waitupthru_latency,
   rs_notrecovering_latency,
+  rs_stats_invalidated,
   rs_last,
 };
 
@@ -276,8 +277,6 @@ enum {
   scrbcnt_chunks_busy,
   /// # waiting on object events
   scrbcnt_blocked,
-  /// # write blocked by the scrub
-  scrbcnt_write_blocked,
 
   scrbcnt_last,
 };

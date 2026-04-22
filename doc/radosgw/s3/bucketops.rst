@@ -57,7 +57,7 @@ Request Entities
 +===============================+===========+=================================================================+
 | ``CreateBucketConfiguration`` | Container | A container for the bucket configuration.                       |
 +-------------------------------+-----------+-----------------------------------------------------------------+
-| ``LocationConstraint``        | String    | A zonegroup api name, with optional :ref:`s3_bucket_placement`. |
+| ``LocationConstraint``        | String    | A zonegroup API name, with optional :ref:`s3_bucket_placement`. |
 +-------------------------------+-----------+-----------------------------------------------------------------+
 
 
@@ -561,7 +561,7 @@ Parameters are XML encoded in the body of the request, in the following format:
 +-------------------------------+-----------+--------------------------------------------------------------------------------------+----------+
 | ``S3Tags``                    | Container | Holding a list of ``FilterRule`` entities, for filtering based on object tags.       | No       |
 |                               |           | All filter rules in the list must match the tags defined on the object. However,     |          |
-|                               |           | the object still match it it has other tags not listed in the filter.                |          |
+|                               |           | the object still match if it has other tags not listed in the filter.                |          |
 +-------------------------------+-----------+--------------------------------------------------------------------------------------+----------+
 | ``S3Key.FilterRule``          | Container | Holding ``Name`` and ``Value`` entities. ``Name`` would  be: ``prefix``, ``suffix``  | Yes      |
 |                               |           | or ``regex``. The ``Value`` would hold the key prefix, key suffix or a regular       |          |
@@ -795,7 +795,7 @@ Parameters are XML encoded in the body of the request, in the following format:
 | ``LoggingType``               | String    | The type of logging. Valid values are:                                               | No       |
 |                               |           | ``Standard`` (default) all bucket operations are logged after being performed.       |          |
 |                               |           | The log record will contain all fields.                                              |          |
-|                               |           | ``Journal`` only operations that modify and object are logged.                       |          |
+|                               |           | ``Journal`` only operations that modify an object are logged.                        |          |
 |                               |           | Will record the minimum subset of fields in the log record that is needed            |          |
 |                               |           | for journaling.                                                                      |          |
 +-------------------------------+-----------+--------------------------------------------------------------------------------------+----------+

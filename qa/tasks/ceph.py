@@ -667,9 +667,7 @@ def create_simple_monmap(ctx, remote, conf, mons,
 
 
 def is_crimson(config):
-    return config.get('flavor', 'default') == 'crimson-debug' or \
-        config.get('flavor', 'default') == 'crimson-release'
-
+    return config.get('crimson_compat', False)
 
 def maybe_redirect_stderr(config, type_, args, log_path):
     if type_ == 'osd' and is_crimson(config):
@@ -1031,6 +1029,10 @@ def cluster(ctx, config):
                 ctx.disk_config.remote_to_roles_to_dev_fstype[remote][role] = fs
                 devs_to_clean[remote].append(mnt_point)
 
+        overrides = ctx.config.get('overrides', {})
+        ceph_overrides = overrides.get('ceph', {})
+        mkfs_args = ceph_overrides.get('osd-mkfs-args', [])
+        log.info("OSD mkfs args = %s", mkfs_args)
         for role in teuthology.cluster_roles_of_type(roles_for_host, 'osd', cluster_name):
             _, _, id_ = teuthology.split_role(role)
             try:
@@ -1045,6 +1047,8 @@ def cluster(ctx, config):
                         '--mkkey',
                         '-i', id_,
                         '--monmap', monmap_path]
+                if mkfs_args:
+                    args.extend(mkfs_args)
                 log_path = f'/var/log/ceph/{cluster_name}-osd.{id_}.log'
                 create_log_cmd, args = \
                     maybe_redirect_stderr(config, 'osd', args, log_path)
@@ -1200,11 +1204,11 @@ def cluster(ctx, config):
             """
             args = [
                 'sudo',
-                'egrep', pattern,
+                'grep', '-E', pattern,
                 '/var/log/ceph/{cluster}.log'.format(cluster=cluster_name),
             ]
             for exclude in excludes:
-                args.extend([run.Raw('|'), 'egrep', '-v', exclude])
+                args.extend([run.Raw('|'), 'grep', '-E', '-v', exclude])
             args.extend([
                 run.Raw('|'), 'head', '-n', '1',
             ])
@@ -1682,7 +1686,7 @@ def restart(ctx, config):
             cluster, type_, id_ = teuthology.split_role(role)
             remote.run(
                args = ['sudo',
-                       'egrep', expected_fail,
+                       'grep', '-E', expected_fail,
                        '/var/log/ceph/{cluster}-{type_}.{id_}.log'.format(cluster=cluster, type_=type_, id_=id_),
                 ])
     yield

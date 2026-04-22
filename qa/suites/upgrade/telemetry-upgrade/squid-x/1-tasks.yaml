@@ -20,11 +20,18 @@ overrides:
       - TELEMETRY_CHANGED
       - pg .*? is .*?degraded.*?, acting
       - pg .* is stuck peering
+      - filesystem is degraded
+      - filesystem is offline
+      - osds down
+      - osd down
+      - OBJECT_UNFOUND
 tasks:
 - install:
     branch: squid
     exclude_packages:
       - ceph-volume
+      - ceph-osd-classic
+      - ceph-osd-crimson
 - print: "**** done install task..."
 - print: "**** done start installing squid cephadm ..."
 - cephadm:
@@ -69,7 +76,7 @@ tasks:
     - cephadm.shell:
         env: [sha1]
         mon.a:
-            - ceph osd require-osd-release tentacle
+            - ceph osd require-osd-release umbrella
 
     - print: "**** done start telemetry x..."
     - workunit:

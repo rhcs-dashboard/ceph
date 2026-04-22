@@ -83,7 +83,8 @@ import { BucketTieringUtils } from '../utils/rgw-bucket-tiering';
 @Component({
   selector: 'cd-rgw-storage-class-form',
   templateUrl: './rgw-storage-class-form.component.html',
-  styleUrls: ['./rgw-storage-class-form.component.scss']
+  styleUrls: ['./rgw-storage-class-form.component.scss'],
+  standalone: false
 })
 export class RgwStorageClassFormComponent extends CdForm implements OnInit {
   storageClassForm: CdFormGroup;
@@ -99,6 +100,7 @@ export class RgwStorageClassFormComponent extends CdForm implements OnInit {
   defaultZonegroup: ZoneGroup;
   zoneGroupDetails: ZoneGroupDetails;
   storageClassInfo: StorageClass;
+  existingStorageClasses: StorageClass[] = [];
   tierTargetInfo: TierTarget;
   glacierStorageClassDetails: S3Glacier;
   allowReadThrough: boolean = false;
@@ -437,7 +439,14 @@ export class RgwStorageClassFormComponent extends CdForm implements OnInit {
     });
     this.storageClassForm = this.formBuilder.group({
       storage_class: new FormControl('', {
-        validators: [Validators.required]
+        validators: [
+          Validators.required,
+          CdValidators.custom('uniqueName', (storageClassName: string) => {
+            return this.existingStorageClasses.some(
+              (storageClass: StorageClass) => storageClass.storage_class === storageClassName
+            );
+          })
+        ]
       }),
       zonegroup: new FormControl(this.selectedZoneGroup, {
         validators: [Validators.required]
@@ -512,6 +521,8 @@ export class RgwStorageClassFormComponent extends CdForm implements OnInit {
       this.rgwZoneGroupService.getAllZonegroupsInfo().subscribe(
         (data: ZoneGroupDetails) => {
           this.zoneGroupDetails = data;
+          this.existingStorageClasses = BucketTieringUtils.filterAndMapTierTargets(data);
+          this.storageClassForm.get('storage_class')?.updateValueAndValidity({ emitEvent: false });
           this.zonegroupNames = [];
           this.zones = [];
           if (data.zonegroups && data.zonegroups.length > 0) {

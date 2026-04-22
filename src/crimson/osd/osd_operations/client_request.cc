@@ -150,14 +150,6 @@ ClientRequest::interruptible_future<> ClientRequest::with_pg_process_interruptib
   // enter_stage.
   ihref.enter_stage_sync(client_pp(pg).wait_pg_ready, *this);
 
-  if (!m->get_hobj().get_key().empty()) {
-    // There are no users of locator. It was used to ensure that multipart-upload
-    // parts would end up in the same PG so that they could be clone_range'd into
-    // the same object via librados, but that's not how multipart upload works
-    // anymore and we no longer support clone_range via librados.
-    co_await reply_op_error(pgref, -ENOTSUP);
-    co_return;
-  }
   if (pg.can_discard_op(*m)) {
     co_await interruptor::make_interruptible(
       shard_services->send_incremental_map(
@@ -209,8 +201,8 @@ ClientRequest::interruptible_future<> ClientRequest::with_pg_process_interruptib
       pg.get_perf_logger().inc(l_osd_replica_read_redirect_missing);
       co_await reply_op_error(pgref, -EAGAIN);
       co_return;
-    } else if (!pg.get_peering_state().can_serve_replica_read(m->get_hobj())) {
-      // Note: can_serve_replica_read checks for writes on the head object
+    } else if (!pg.get_peering_state().can_serve_read(m->get_hobj())) {
+      // Note: can_serve_read checks for writes on the head object
       //       as writes can only occur to head.
       DEBUGDPP("{}.{}: unstable write on replica, bouncing to primary",
 	       pg, *this, this_instance_id);

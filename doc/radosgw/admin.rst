@@ -1,3 +1,5 @@
+.. _radosgw-admin-guide:
+
 =============
  Admin Guide
 =============
@@ -36,8 +38,8 @@ There are two types of user:
                            +-----+  Subuser  |
                                  +-----------+
 
-Users and subusers can be created, modified, viewed, suspended and removed.
-you may add a Display names and an email addresses can be added to user
+Users and subusers can be created, modified, viewed, suspended, and removed.
+Display names and email addresses can be added to user
 profiles. Keys and secrets can either be specified or generated automatically.
 When generating or specifying keys, remember that user IDs correspond to S3 key
 types and subuser IDs correspond to Swift key types. 
@@ -432,6 +434,8 @@ To remove the admin flag from an existing user:
 
    radosgw-admin user modify --uid={username} --admin=0
 
+.. _radosgw-quota-management:
+
 Quota Management
 ================
 
@@ -617,6 +621,8 @@ commands, as in the following examples:
    update --commit``. If no period is present, the RGW instances must
    be restarted for the changes to take effect.
 
+
+.. _radosgw-rate-limit-management:
 
 Rate Limit Management
 =====================

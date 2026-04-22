@@ -93,8 +93,7 @@ public:
     omap_root_t &omap_root,
     Transaction &t,
     const std::string &first,
-    const std::string &last,
-    omap_list_config_t config) final;
+    const std::string &last) final;
 
   omap_iterate_ret omap_iterate(
     const omap_root_t &omap_root,
@@ -112,6 +111,11 @@ public:
   omap_clear_ret omap_clear(
     omap_root_t &omap_root,
     Transaction &t) final;
+
+  omap_rm_keys_ret omap_rm_keys(
+    omap_root_t &omap_root,
+    Transaction &t,
+    std::set<std::string>& keys) final;
 };
 using BtreeOMapManagerRef = std::unique_ptr<BtreeOMapManager>;
 

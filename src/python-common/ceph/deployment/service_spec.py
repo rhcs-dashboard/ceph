@@ -36,10 +36,11 @@ import yaml
 from ceph.deployment.hostspec import HostSpec, SpecValidationError, assert_valid_host
 from ceph.deployment.utils import unwrap_ipv6, valid_addr, verify_non_negative_int
 from ceph.deployment.utils import verify_positive_int, verify_non_negative_number
-from ceph.deployment.utils import verify_boolean, verify_enum
+from ceph.deployment.utils import verify_boolean, verify_enum, verify_int
 from ceph.deployment.utils import parse_combined_pem_file
 from ceph.utils import is_hex
 from ceph.smb import constants as smbconst
+from ceph.smb import network as smbnet
 
 ServiceSpecT = TypeVar('ServiceSpecT', bound='ServiceSpec')
 FuncT = TypeVar('FuncT', bound=Callable)
@@ -91,6 +92,19 @@ def handle_type_error(method: FuncT) -> FuncT:
             error_msg = '{}: {}'.format(cls.__name__, e)
             raise SpecValidationError(error_msg)
     return cast(FuncT, inner)
+
+
+class YamlLiteralString(str):
+    """
+    Class used as marker for yaml representer to properly format
+    multi-line strings for yaml export
+    """
+    @staticmethod
+    def represent_as_literal(dumper: 'yaml.SafeDumper', data: str) -> Any:
+        return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
+
+
+yaml.add_representer(YamlLiteralString, YamlLiteralString.represent_as_literal)
 
 
 class HostPlacementSpec(NamedTuple):
@@ -873,6 +887,7 @@ class ServiceSpec(object):
         'alertmanager': {'user_cert_allowed': False, 'scope': 'host', 'requires_ca_cert': False},
         'ceph-exporter': {'user_cert_allowed': False, 'scope': 'host', 'requires_ca_cert': False},
         'node-exporter': {'user_cert_allowed': False, 'scope': 'host', 'requires_ca_cert': False},
+        'node-proxy': {'user_cert_allowed': False, 'scope': 'host', 'requires_ca_cert': False},
         # 'loki'        : {'user_cert_allowed': False, 'scope': 'host'},
         # 'promtail'    : {'user_cert_allowed': False, 'scope': 'host'},
         # 'jaeger-agent': {'user_cert_allowed': False, 'scope': 'host'},
@@ -912,6 +927,7 @@ class ServiceSpec(object):
             'jaeger-collector': TracingSpec,
             'jaeger-query': TracingSpec,
             'jaeger-tracing': TracingSpec,
+            'node-proxy': NodeProxySpec,
             SMBSpec.service_type: SMBSpec,
         }.get(service_type, cls)
         if ret == ServiceSpec and not service_type:
@@ -932,6 +948,14 @@ class ServiceSpec(object):
         service_type = kwargs.get('service_type', args[0] if args else None)
         sub_cls: Any = cls._cls(service_type)
         return object.__new__(sub_cls)
+
+    def __getnewargs__(self) -> tuple[str]:
+        """
+        Pickle will pass the return of this function to __new__ upon
+        unpickle.  We need to ensure it gets service_type in order
+        to get the right subtype.
+        """
+        return (self.service_type,)
 
     def __init__(self,
                  service_type: str,
@@ -1310,7 +1334,15 @@ class ServiceSpec(object):
 
     @staticmethod
     def yaml_representer(dumper: 'yaml.SafeDumper', data: 'ServiceSpec') -> Any:
-        return dumper.represent_dict(cast(Mapping, data.to_json().items()))
+        json_data = data.to_json()
+        spec = json_data.get('spec', {})
+
+        # Marking multi-line strings with the YamlLiteralString class
+        for key, value in spec.items():
+            if isinstance(value, str) and '\n' in value:
+                spec[key] = YamlLiteralString(value)
+
+        return dumper.represent_dict(cast(Mapping, json_data.items()))
 
 
 yaml.add_representer(ServiceSpec, ServiceSpec.yaml_representer)
@@ -1379,9 +1411,7 @@ class NFSServiceSpec(ServiceSpec):
         self.tls_min_version = tls_min_version
 
     def get_port_start(self) -> List[int]:
-        if self.port:
-            return [self.port]
-        return []
+        return [self.port or 2049, self.monitoring_port or 9587]
 
     def rados_config_name(self):
         # type: () -> str
@@ -1660,9 +1690,10 @@ class NvmeofServiceSpec(ServiceSpec):
                  max_gws_in_grp: Optional[int] = 16,
                  max_ns_to_change_lb_grp: Optional[int] = 8,
                  abort_on_errors: Optional[bool] = True,
+                 abort_on_update_error: Optional[bool] = True,
                  omap_file_ignore_unlock_errors: Optional[bool] = False,
                  omap_file_lock_on_read: Optional[bool] = True,
-                 omap_file_lock_duration: Optional[int] = 20,
+                 omap_file_lock_duration: Optional[int] = 40,
                  omap_file_lock_retries: Optional[int] = 30,
                  omap_file_lock_retry_sleep_interval: Optional[float] = 1.0,
                  omap_file_update_reloads: Optional[int] = 10,
@@ -1683,7 +1714,7 @@ class NvmeofServiceSpec(ServiceSpec):
                  allowed_consecutive_spdk_ping_failures: Optional[int] = 1,
                  spdk_ping_interval_in_seconds: Optional[float] = 2.0,
                  ping_spdk_under_lock: Optional[bool] = False,
-                 max_hosts_per_namespace: Optional[int] = 8,
+                 max_hosts_per_namespace: Optional[int] = 16,
                  max_namespaces_with_netmask: Optional[int] = 1000,
                  max_subsystems: Optional[int] = 128,
                  max_hosts: Optional[int] = 2048,
@@ -1692,6 +1723,8 @@ class NvmeofServiceSpec(ServiceSpec):
                  max_hosts_per_subsystem: Optional[int] = 128,
                  subsystem_cache_expiration: Optional[int] = 30,
                  force_tls: Optional[bool] = False,
+                 max_message_length_in_mb: Optional[int] = 4,
+                 io_stats_enabled: Optional[bool] = True,
                  server_key: Optional[str] = None,
                  server_cert: Optional[str] = None,
                  client_key: Optional[str] = None,
@@ -1713,6 +1746,7 @@ class NvmeofServiceSpec(ServiceSpec):
                  transport_tcp_options: Optional[Dict[str, int]] =
                  {"in_capsule_data_size": 8192, "max_io_qpairs_per_ctrlr": 7},
                  enable_dsa_acceleration: bool = False,
+                 rbd_with_crc32c: bool = True,
                  tgt_cmd_extra_args: Optional[str] = None,
                  iobuf_options: Optional[Dict[str, int]] = None,
                  qos_timeslice_in_usecs: Optional[int] = 0,
@@ -1720,6 +1754,8 @@ class NvmeofServiceSpec(ServiceSpec):
                  discovery_addr: Optional[str] = None,
                  discovery_addr_map: Optional[Dict[str, str]] = None,
                  discovery_port: Optional[int] = None,
+                 discovery_bind_retries_limit: Optional[int] = 10,
+                 discovery_bind_sleep_interval: Optional[float] = 0.5,
                  abort_discovery_on_errors: Optional[bool] = True,
                  log_level: Optional[str] = 'INFO',
                  log_files_enabled: Optional[bool] = True,
@@ -1732,6 +1768,7 @@ class NvmeofServiceSpec(ServiceSpec):
                  monitor_timeout: Optional[float] = 1.0,
                  enable_monitor_client: bool = True,
                  monitor_client_log_file_dir: Optional[str] = '',
+                 kmip_cert_dir: Optional[str] = './certs/kmip/{server_name}',
                  placement: Optional[PlacementSpec] = None,
                  unmanaged: bool = False,
                  preview_only: bool = False,
@@ -1755,8 +1792,8 @@ class NvmeofServiceSpec(ServiceSpec):
                                                 extra_entrypoint_args=extra_entrypoint_args,
                                                 custom_configs=custom_configs)
 
-        #: RADOS pool where ceph-nvmeof config data is stored.
-        self.pool = pool
+        #: RADOS pool where ceph-nvmeof config data is stored (use '.nvmeof' as default).
+        self.pool = pool or '.nvmeof'
         #: ``addr`` address of the nvmeof gateway
         self.addr = addr
         #: ``addr_map`` per node address map of the nvmeof gateways
@@ -1769,7 +1806,7 @@ class NvmeofServiceSpec(ServiceSpec):
         self.group = group or ''
         #: ``enable_auth`` enables user authentication on nvmeof gateway
         self.enable_auth = enable_auth
-        self.ssl = enable_auth  # to force enabling ssl field when auth is enabled
+        self.ssl = ssl or enable_auth  # to force enabling ssl field when auth is enabled
         #: ``state_update_notify`` enables automatic update from OMAP in nvmeof gateway
         self.state_update_notify = state_update_notify
         #: ``state_update_interval_sec`` number of seconds to check for updates in OMAP
@@ -1809,6 +1846,8 @@ class NvmeofServiceSpec(ServiceSpec):
         self.verify_listener_ip = verify_listener_ip
         #: ``abort_on_errors`` abort gateway in case of errors
         self.abort_on_errors = abort_on_errors
+        #: ``abort_on_update_error`` abort gateway in case of an error during update
+        self.abort_on_update_error = abort_on_update_error
         #: ``omap_file_ignore_unlock_errors`` ignore errors when unlocking the OMAP file
         self.omap_file_ignore_unlock_errors = omap_file_ignore_unlock_errors
         #: ``omap_file_lock_on_read`` lock omap when reading its content
@@ -1841,6 +1880,10 @@ class NvmeofServiceSpec(ServiceSpec):
         self.subsystem_cache_expiration = subsystem_cache_expiration
         #: ``force_tls`` force using TLS when adding hosts and listeners
         self.force_tls = force_tls
+        #: ``max_message_length_in_mb`` max protobuf message length, in mb
+        self.max_message_length_in_mb = max_message_length_in_mb
+        #: ``io_stats_enabled`` enables controller IO statistics
+        self.io_stats_enabled = io_stats_enabled
         #: ``allowed_consecutive_spdk_ping_failures`` # of ping failures before aborting gateway
         self.allowed_consecutive_spdk_ping_failures = allowed_consecutive_spdk_ping_failures
         #: ``spdk_ping_interval_in_seconds`` sleep interval in seconds between SPDK pings
@@ -1905,6 +1948,8 @@ class NvmeofServiceSpec(ServiceSpec):
         self.transport_tcp_options: Optional[Dict[str, int]] = transport_tcp_options
         #: ``enable_dsa_acceleration`` enable  dsa acceleration
         self.enable_dsa_acceleration = enable_dsa_acceleration
+        #: ``rbd_with_crc32c`` enable RBD CRC32C checksum reuse optimization
+        self.rbd_with_crc32c = rbd_with_crc32c
         #: ``tgt_cmd_extra_args`` extra arguments for the nvmf_tgt process
         self.tgt_cmd_extra_args = tgt_cmd_extra_args
         #: List of extra arguments for SPDK iobuf in the form opt=value
@@ -1919,6 +1964,10 @@ class NvmeofServiceSpec(ServiceSpec):
         self.discovery_addr_map = discovery_addr_map
         #: ``discovery_port`` port of the discovery service
         self.discovery_port = discovery_port or 8009
+        #: ``discovery_bind_retries_limit`` how many times to keep trying bind the discovery port
+        self.discovery_bind_retries_limit = discovery_bind_retries_limit
+        #: ``discovery_bind_sleep_interval`` seconds to wait between each bind attempt
+        self.discovery_bind_sleep_interval = discovery_bind_sleep_interval
         #: ``abort_discovery_on_errors`` abort discovery service in case of errors
         self.abort_discovery_on_errors = abort_discovery_on_errors
         #: ``log_level`` the nvmeof gateway log level
@@ -1943,6 +1992,8 @@ class NvmeofServiceSpec(ServiceSpec):
         self.enable_monitor_client = enable_monitor_client
         #: ``monitor_client_log_file_dir`` the monitor client log output file file directory
         self.monitor_client_log_file_dir = monitor_client_log_file_dir
+        #: ``kmip_cert_dir`` directory for KMIP servers keys and certificates
+        self.kmip_cert_dir = kmip_cert_dir
 
     def get_port_start(self) -> List[int]:
         return [self.port, 4420, self.discovery_port, self.prometheus_port]
@@ -2052,6 +2103,7 @@ class NvmeofServiceSpec(ServiceSpec):
         verify_non_negative_int(self.max_ns_to_change_lb_grp,
                                 "Max namespaces to change load balancing group")
         verify_boolean(self.abort_on_errors, "Abort gateway on errors")
+        verify_boolean(self.abort_on_update_error, "Abort gateway on an update error")
         verify_boolean(self.omap_file_ignore_unlock_errors, "Ignore OMAP file unlock errors")
         verify_boolean(self.omap_file_lock_on_read, "Lock OMAP on read")
         verify_non_negative_int(self.omap_file_lock_duration, "OMAP file lock duration")
@@ -2078,9 +2130,14 @@ class NvmeofServiceSpec(ServiceSpec):
         verify_non_negative_number(self.subsystem_cache_expiration,
                                    "Subsystem cache expiration period")
         verify_boolean(self.force_tls, "Force TLS")
+        verify_positive_int(self.max_message_length_in_mb, "Max protocol message length")
+        verify_boolean(self.io_stats_enabled, "Enable IO statistics")
         verify_non_negative_number(self.monitor_timeout, "Monitor timeout")
         verify_non_negative_int(self.port, "Port")
         verify_non_negative_int(self.discovery_port, "Discovery port")
+        verify_int(self.discovery_bind_retries_limit, "Discovery port bind retries limit")
+        verify_non_negative_number(self.discovery_bind_sleep_interval,
+                                   "Sleep between discovery port bind retries")
         verify_boolean(self.abort_discovery_on_errors, "Abort discovery service on errors")
         verify_non_negative_int(self.prometheus_port, "Prometheus port")
         verify_non_negative_int(self.prometheus_stats_interval, "Prometheus stats interval")
@@ -2099,6 +2156,8 @@ class NvmeofServiceSpec(ServiceSpec):
         verify_boolean(self.log_files_rotation_enabled, "Log files rotation enabled")
         verify_boolean(self.verbose_log_messages, "Verbose log messages")
         verify_boolean(self.enable_monitor_client, "Enable monitor client")
+        verify_boolean(self.enable_dsa_acceleration, "Enable DSA acceleration")
+        verify_boolean(self.rbd_with_crc32c, "Enable RBD CRC32C checksum reuse")
         verify_positive_int(self.spdk_mem_size, "SPDK memory size")
         verify_positive_int(self.spdk_huge_pages, "SPDK huge pages count")
         if self.spdk_mem_size and self.spdk_huge_pages:
@@ -2377,21 +2436,21 @@ class MgmtGatewaySpec(ServiceSpec):
             extra_entrypoint_args=extra_entrypoint_args,
             custom_configs=custom_configs
         )
-        #: Is a flag to enable/disable HTTPS. By default set to True.
+        #: Flag to enable or disable HTTPS. By default set to True.
         self.ssl = ssl
-        #: Is a flag to enable SSO auth. Requires oauth2-proxy to be active for SSO authentication.
+        #: Flag to enable SSO auth. Requires oauth2-proxy to be active for SSO authentication.
         self.enable_auth = enable_auth
         #: The port number on which the server will listen
         self.port = port
         #: Prefer server ciphers over client ciphers: on | off
         self.ssl_prefer_server_ciphers = ssl_prefer_server_ciphers
-        #: A multioption flag to control session tickets: on | off
+        #: Flag to control session tickets: on | off
         self.ssl_session_tickets = ssl_session_tickets
         #: The duration for SSL session timeout. Syntax: time (i.e: 5m)
         self.ssl_session_timeout = ssl_session_timeout
-        #: Duration an SSL/TLS session is cached: off | none | [builtin[:size]] [shared:name:size]
+        #: Nginx SSL/TLS session cache settings: off | none | [builtin[:size]] [shared:name:size]
         self.ssl_session_cache = ssl_session_cache
-        #: Flag control server tokens in responses:  on | off | build | string
+        #: Flag to control server tokens in responses: on | off | build | string
         self.server_tokens = server_tokens
         #: Flag to enable or disable SSL stapling: on | off
         self.ssl_stapling = ssl_stapling
@@ -2409,6 +2468,8 @@ class MgmtGatewaySpec(ServiceSpec):
         ports = []
         if self.port is not None:
             ports.append(cast(int, self.port))
+        else:
+            ports.append(443)  # default HTTPS port
         return ports
 
     def validate(self) -> None:
@@ -3579,29 +3640,13 @@ class SMBClusterBindIPSpec:
         self.validate()
 
     def validate(self) -> None:
-        if self.address and self.network:
-            raise SpecValidationError('only one of address or network may be given')
-        if not (self.address or self.network):
-            raise SpecValidationError('one of address or network is required')
-        if self.address:
-            # verify that address is an address
-            try:
-                ip_address(self.address)
-            except ValueError as err:
-                raise SpecValidationError(
-                    f'Cannot parse address {self.address}'
-                ) from err
-        # but we internallly store a list of networks
-        # this is slight bit of YAGNI violation, but I actually plan on
-        # adding IP ranges soon.
-        addr = self.network if self.network else self.address
         try:
-            assert addr
-            self._networks = [ip_network(addr)]
+            netval = smbnet.to_network(
+                network=self.network, address=self.address
+            )
+            self._networks = [netval]
         except ValueError as err:
-            raise SpecValidationError(
-                f'Cannot parse network address {addr}'
-            ) from err
+            raise SpecValidationError(str(err)) from err
 
     def as_networks(self) -> List[Union[IPv4Network, IPv6Network]]:
         """Return a list of one or more IPv4 or IPv6 network objects."""
@@ -3673,6 +3718,85 @@ class SMBClusterBindIPSpec:
         return out
 
 
+class SMBExternalCephCluster:
+    """Configure access to a non-local Ceph cluster for SMB services."""
+    def __init__(
+        self,
+        alias: str,
+        fsid: str,
+        mon_host: str,
+        # default user and key
+        user: str,
+        key: str,
+    ) -> None:
+        self.alias = alias
+        self.fsid = fsid
+        self.mon_host = mon_host
+        self.user = user
+        self.key = key
+        self.validate()
+
+    def validate(self) -> None:
+        if not self.alias:
+            raise SpecValidationError('an alias value is required')
+        if not self.fsid:
+            raise SpecValidationError('an fsid value is required')
+        if not self.mon_host:
+            raise SpecValidationError('a mon_host value is required')
+        if not self.user:
+            raise SpecValidationError('a default user name is required')
+        if not self.key:
+            raise SpecValidationError('a default key is required')
+
+    def __repr__(self) -> str:
+        _names = ['alias', 'fsid', 'mon_host', 'user', 'key']
+        fields = ', '.join(f'{n}={getattr(self, n, "")!r}' for n in _names)
+        return f'{self.__class__.__name__}({fields})'
+
+    def to_simplified(self) -> Dict[str, Any]:
+        """Return a serializable representation of SMBExternalCephCluster."""
+        return {
+            'alias': self.alias,
+            'fsid': self.fsid,
+            'mon_host': self.mon_host,
+            'user': self.user,
+            'key': self.key,
+        }
+
+    def to_json(self) -> Dict[str, Any]:
+        """Return a JSON-compatible dict."""
+        return self.to_simplified()
+
+    @classmethod
+    def from_json(cls, spec: Dict[str, Any]) -> 'SMBExternalCephCluster':
+        """Convert value from a JSON-compatible dict."""
+        return cls(**spec)
+
+    @classmethod
+    def convert_list(
+        cls, arg: Optional[List[Any]]
+    ) -> Optional[List['SMBExternalCephCluster']]:
+        """Convert a list of values into a list of SMBExternalCephCluster objects.
+        Ignores None inputs returning None.
+        """
+        if arg is None:
+            return None
+        assert isinstance(arg, list)
+        out = []
+        for value in arg:
+            if isinstance(value, cls):
+                out.append(value)
+            elif hasattr(value, 'to_json'):
+                out.append(cls.from_json(value.to_json()))
+            elif isinstance(value, dict):
+                out.append(cls.from_json(value))
+            else:
+                raise SpecValidationError(
+                    f"Unknown type for {cls.__name__}: {type(value)}"
+                )
+        return out
+
+
 class SMBSpec(ServiceSpec):
     service_type = 'smb'
     _valid_features = smbconst.FEATURES
@@ -3740,7 +3864,19 @@ class SMBSpec(ServiceSpec):
         remote_control_ssl_cert: Optional[str] = None,
         remote_control_ssl_key: Optional[str] = None,
         remote_control_ca_cert: Optional[str] = None,
-        # --- genearal tweaks ---
+        # == keybridge ==
+        keybridge_kmip_ssl_cert: Optional[str] = None,
+        keybridge_kmip_ssl_key: Optional[str] = None,
+        keybridge_kmip_ca_cert: Optional[str] = None,
+        # === cluster configs ===
+        # ceph_cluster_configs - An optional list of extra ceph clusters
+        # typically external to the current cluster that the smb services
+        # may be permitted to connect to
+        ceph_cluster_configs: Optional[List[SMBExternalCephCluster]] = None,
+        # tunables - fine grained options/overrides to be used when deploying
+        # smb services
+        tunables: Optional[Dict[str, str]] = None,
+        # --- general tweaks ---
         extra_container_args: Optional[GeneralArgList] = None,
         extra_entrypoint_args: Optional[GeneralArgList] = None,
         custom_configs: Optional[List[CustomConfig]] = None,
@@ -3777,6 +3913,13 @@ class SMBSpec(ServiceSpec):
         self.remote_control_ssl_cert = remote_control_ssl_cert
         self.remote_control_ssl_key = remote_control_ssl_key
         self.remote_control_ca_cert = remote_control_ca_cert
+        self.keybridge_kmip_ssl_cert = keybridge_kmip_ssl_cert
+        self.keybridge_kmip_ssl_key = keybridge_kmip_ssl_key
+        self.keybridge_kmip_ca_cert = keybridge_kmip_ca_cert
+        self.ceph_cluster_configs = SMBExternalCephCluster.convert_list(
+            ceph_cluster_configs
+        )
+        self.tunables = tunables or {}
         self.validate()
 
     def validate(self) -> None:
@@ -3818,7 +3961,7 @@ class SMBSpec(ServiceSpec):
                 raise ValueError(f'{key} is not a valid service name')
 
     def _derive_cluster_uri(self, uri: str, objname: str) -> str:
-        if not uri.startswith('rados://'):
+        if not uri.startswith(('rados://', 'mem:')):
             raise ValueError('invalid uri scheme for cluster metadata')
         parts = uri[8:].split('/')
         parts[-1] = objname
@@ -3865,7 +4008,22 @@ class SMBSpec(ServiceSpec):
             ]
         if spec and spec.get('bind_addrs'):
             spec['bind_addrs'] = [a.to_json() for a in spec['bind_addrs']]
+        if spec and spec.get('ceph_cluster_configs'):
+            spec['ceph_cluster_configs'] = [
+                c.to_json() for c in spec['ceph_cluster_configs']
+            ]
         return obj
+
+
+class NodeProxySpec(ServiceSpec):
+    def __init__(self,
+                 service_type: str,
+                 placement: Optional[PlacementSpec] = None,
+                 ) -> None:
+        assert service_type == 'node-proxy'
+        super(NodeProxySpec, self).__init__('node-proxy', placement=placement)
+        self.ssl: bool = True
+        self.validate()
 
 
 yaml.add_representer(SMBSpec, ServiceSpec.yaml_representer)

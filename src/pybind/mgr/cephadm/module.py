@@ -33,7 +33,7 @@ from prettytable import PrettyTable
 
 from ceph.cephadm.images import DefaultImages
 from ceph.deployment import inventory
-from ceph.deployment.drive_group import DriveGroupSpec
+from ceph.deployment.drive_group import DriveGroupSpec, OSDType
 from ceph.deployment.service_spec import (
     ServiceSpec,
     PlacementSpec,
@@ -62,18 +62,19 @@ from mgr_module import (
     NotifyType,
     MonCommandFailed,
 )
-from mgr_util import build_url
+from mgr_util import build_url, NvmeofMetadataPoolHelper
 import orchestrator
 from orchestrator.module import to_format, Format
 
 from orchestrator import OrchestratorError, OrchestratorValidationError, HostSpec, \
-    CLICommandMeta, DaemonDescription, DaemonDescriptionStatus, handle_orch_error, \
+    DaemonDescription, DaemonDescriptionStatus, handle_orch_error, \
     service_to_daemon_types
 from orchestrator._interface import GenericSpec
 from orchestrator._interface import daemon_type_to_service
 
 from . import utils
 from . import ssh
+from .cli import CephadmCLICommand
 from .migrations import Migrations
 from .services.cephadmservice import MgrService, RgwService
 from .services.container import CustomContainerService
@@ -153,9 +154,8 @@ def host_exists(hostname_position: int = 1) -> Callable:
     return inner
 
 
-class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
-                          metaclass=CLICommandMeta):
-
+class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule):
+    CLICommand = CephadmCLICommand
     _STORE_HOST_PREFIX = "host"
 
     instance = None
@@ -1184,7 +1184,7 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
                 raise OrchestratorError('ssh connection %s@%s failed' % (self.ssh_user, host))
         self.log.info(f'Set ssh {what}')
 
-    @orchestrator._cli_write_command(
+    @CephadmCLICommand.Write(
         prefix='cephadm set-ssh-config')
     def _set_ssh_config(self, inbuf: Optional[str] = None) -> Tuple[int, str, str]:
         """
@@ -1199,7 +1199,7 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
         self._validate_and_set_ssh_val('ssh_config', inbuf, old)
         return 0, "", ""
 
-    @orchestrator._cli_write_command('cephadm clear-ssh-config')
+    @CephadmCLICommand.Write('cephadm clear-ssh-config')
     def _clear_ssh_config(self) -> Tuple[int, str, str]:
         """
         Clear the ssh_config file
@@ -1211,7 +1211,7 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
         self.ssh._reconfig_ssh()
         return 0, "", ""
 
-    @orchestrator._cli_read_command('cephadm get-ssh-config')
+    @CephadmCLICommand.Read('cephadm get-ssh-config')
     def _get_ssh_config(self) -> HandleCommandResult:
         """
         Returns the ssh config as used by cephadm
@@ -1225,7 +1225,7 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
             return HandleCommandResult(stdout=ssh_config)
         return HandleCommandResult(stdout=DEFAULT_SSH_CONFIG)
 
-    @orchestrator._cli_write_command('cephadm generate-key')
+    @CephadmCLICommand.Write('cephadm generate-key')
     def _generate_key(self) -> Tuple[int, str, str]:
         """
         Generate a cluster SSH key (if not present)
@@ -1254,7 +1254,7 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
             self.ssh._reconfig_ssh()
         return 0, '', ''
 
-    @orchestrator._cli_write_command(
+    @CephadmCLICommand.Write(
         'cephadm set-priv-key')
     def _set_priv_key(self, inbuf: Optional[str] = None) -> Tuple[int, str, str]:
         """Set cluster SSH private key (use -i <private_key>)"""
@@ -1267,7 +1267,7 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
         self.log.info('Set ssh private key')
         return 0, "", ""
 
-    @orchestrator._cli_write_command(
+    @CephadmCLICommand.Write(
         'cephadm set-pub-key')
     def _set_pub_key(self, inbuf: Optional[str] = None) -> Tuple[int, str, str]:
         """Set cluster SSH public key (use -i <public_key>)"""
@@ -1279,7 +1279,7 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
         self._validate_and_set_ssh_val('ssh_identity_pub', inbuf, old)
         return 0, "", ""
 
-    @orchestrator._cli_write_command(
+    @CephadmCLICommand.Write(
         'cephadm set-signed-cert')
     def _set_signed_cert(self, inbuf: Optional[str] = None) -> Tuple[int, str, str]:
         """Set a signed cert if CA signed keys are being used (use -i <cert_filename>)"""
@@ -1291,7 +1291,7 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
         self._validate_and_set_ssh_val('ssh_identity_cert', inbuf, old)
         return 0, "", ""
 
-    @orchestrator._cli_write_command(
+    @CephadmCLICommand.Write(
         'cephadm clear-key')
     def _clear_key(self) -> Tuple[int, str, str]:
         """Clear cluster SSH key"""
@@ -1302,7 +1302,7 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
         self.log.info('Cleared cluster SSH key')
         return 0, '', ''
 
-    @orchestrator._cli_read_command(
+    @CephadmCLICommand.Read(
         'cephadm get-pub-key')
     def _get_pub_key(self) -> Tuple[int, str, str]:
         """Show SSH public key for connecting to cluster hosts"""
@@ -1311,7 +1311,7 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
         else:
             return -errno.ENOENT, '', 'No cluster SSH key defined'
 
-    @orchestrator._cli_read_command(
+    @CephadmCLICommand.Read(
         'cephadm get-signed-cert')
     def _get_signed_cert(self) -> Tuple[int, str, str]:
         """Show SSH signed cert for connecting to cluster hosts using CA signed keys"""
@@ -1320,7 +1320,7 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
         else:
             return -errno.ENOENT, '', 'No signed cert defined'
 
-    @orchestrator._cli_read_command(
+    @CephadmCLICommand.Read(
         'cephadm get-user')
     def _get_user(self) -> Tuple[int, str, str]:
         """
@@ -1331,7 +1331,7 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
         else:
             return 0, self.ssh_user, ''
 
-    @orchestrator._cli_read_command(
+    @CephadmCLICommand.Read(
         'cephadm set-user')
     def set_ssh_user(self, user: str) -> Tuple[int, str, str]:
         """
@@ -1352,7 +1352,7 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
         self.log.info(msg)
         return 0, msg, ''
 
-    @orchestrator._cli_read_command(
+    @CephadmCLICommand.Read(
         'cephadm registry-login')
     def registry_login(self, url: Optional[str] = None, username: Optional[str] = None, password: Optional[str] = None, inbuf: Optional[str] = None) -> Tuple[int, str, str]:
         """
@@ -1404,7 +1404,7 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
         self.cache.distribute_new_registry_login_info()
         return 0, "registry login scheduled", ''
 
-    @orchestrator._cli_read_command('cephadm check-host')
+    @CephadmCLICommand.Read('cephadm check-host')
     def check_host(self, host: str, addr: Optional[str] = None) -> Tuple[int, str, str]:
         """Check whether we can access and manage a remote host"""
         try:
@@ -1432,7 +1432,7 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
                     self.event.set()
         return 0, '%s (%s) ok' % (host, addr), '\n'.join(err)
 
-    @orchestrator._cli_read_command(
+    @CephadmCLICommand.Read(
         'cephadm prepare-host')
     def _prepare_host(self, host: str, addr: Optional[str] = None) -> Tuple[int, str, str]:
         """Prepare a remote host for use with cephadm"""
@@ -1451,7 +1451,7 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
                     self.event.set()
         return 0, '%s (%s) ok' % (host, addr), '\n'.join(err)
 
-    @orchestrator._cli_write_command(
+    @CephadmCLICommand.Write(
         prefix='cephadm set-extra-ceph-conf')
     def _set_extra_ceph_conf(self, inbuf: Optional[str] = None) -> HandleCommandResult:
         """
@@ -1474,7 +1474,7 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
         self._kick_serve_loop()
         return HandleCommandResult()
 
-    @orchestrator._cli_read_command(
+    @CephadmCLICommand.Read(
         'cephadm get-extra-ceph-conf')
     def _get_extra_ceph_conf(self) -> HandleCommandResult:
         """
@@ -1482,7 +1482,7 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
         """
         return HandleCommandResult(stdout=self.extra_ceph_conf().conf)
 
-    @orchestrator._cli_read_command('cephadm config-check ls')
+    @CephadmCLICommand.Read('cephadm config-check ls')
     def _config_checks_list(self, format: Format = Format.plain) -> HandleCommandResult:
         """List the available configuration checks and their current state"""
 
@@ -1522,13 +1522,13 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
 
         return HandleCommandResult(stdout=table.get_string())
 
-    @orchestrator._cli_read_command('cephadm config-check status')
+    @CephadmCLICommand.Read('cephadm config-check status')
     def _config_check_status(self) -> HandleCommandResult:
         """Show whether the configuration checker feature is enabled/disabled"""
         status = self.config_checks_enabled
         return HandleCommandResult(stdout="Enabled" if status else "Disabled")
 
-    @orchestrator._cli_write_command('cephadm config-check enable')
+    @CephadmCLICommand.Write('cephadm config-check enable')
     def _config_check_enable(self, check_name: str) -> HandleCommandResult:
         """Enable a specific configuration check"""
         if not self._config_check_valid(check_name):
@@ -1542,7 +1542,7 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
 
         return HandleCommandResult(stdout="ok")
 
-    @orchestrator._cli_write_command('cephadm config-check disable')
+    @CephadmCLICommand.Write('cephadm config-check disable')
     def _config_check_disable(self, check_name: str) -> HandleCommandResult:
         """Disable a specific configuration check"""
         if not self._config_check_valid(check_name):
@@ -1602,7 +1602,7 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
             return False
         return conf.last_modified > dt
 
-    @orchestrator._cli_write_command(
+    @CephadmCLICommand.Write(
         'cephadm osd activate'
     )
     def _osd_activate(self, host: List[str]) -> HandleCommandResult:
@@ -1621,7 +1621,7 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
 
         return HandleCommandResult(stdout='\n'.join(run(host)))
 
-    @orchestrator._cli_read_command('cephadm systemd-unit ls')
+    @CephadmCLICommand.Read('cephadm systemd-unit ls')
     def _systemd_unit_ls(
         self,
         hostname: Optional[str] = None,
@@ -1631,7 +1631,7 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
         daemons = self.systemd_unit_ls(hostname, daemon_type, daemon_id)
         return HandleCommandResult(stdout=json.dumps(daemons, indent=4))
 
-    @orchestrator._cli_read_command('cephadm systemd-unit ls')
+    @CephadmCLICommand.Read('cephadm systemd-unit ls')
     def systemd_unit_ls(
         self,
         hostname: Optional[str] = None,
@@ -1673,7 +1673,7 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
             systemd_unit_dict[host][d_type][d.name()] = systemd_unit
         return HandleCommandResult(stdout=json.dumps(systemd_unit_dict, indent=4))
 
-    @orchestrator._cli_read_command('orch client-keyring ls')
+    @CephadmCLICommand.Read('orch client-keyring ls')
     def _client_keyring_ls(self, format: Format = Format.plain) -> HandleCommandResult:
         """
         List client keyrings under cephadm management
@@ -1698,7 +1698,7 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
             output = table.get_string()
         return HandleCommandResult(stdout=output)
 
-    @orchestrator._cli_write_command('orch client-keyring set')
+    @CephadmCLICommand.Write('orch client-keyring set')
     def _client_keyring_set(
             self,
             entity: str,
@@ -1740,7 +1740,7 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
         self._kick_serve_loop()
         return HandleCommandResult()
 
-    @orchestrator._cli_write_command('orch client-keyring rm')
+    @CephadmCLICommand.Write('orch client-keyring rm')
     def _client_keyring_rm(
             self,
             entity: str,
@@ -2988,13 +2988,16 @@ Then run the following:
         osd_map = self.get('osd_map')
         r = {}
         for o in osd_map['osds']:
-            # only include OSDs that have ever started in this map.  this way
-            # an interrupted osd create can be repeated and succeed the second
-            # time around.
+            # when only_up, only include OSDs that are currently up, so we do not
+            # treat a "just created" (still down) osd as "already present" for
+            # deploy_osd_daemons_for_existing_osds().
             osd_id = o.get('osd')
             if osd_id is None:
                 raise OrchestratorError("Could not retrieve osd_id from osd_map")
-            if not only_up:
+            if only_up:
+                if o.get('up') == 1:
+                    r[str(osd_id)] = o.get('uuid', '')
+            else:
                 r[str(osd_id)] = o.get('uuid', '')
         return r
 
@@ -3040,6 +3043,23 @@ Then run the following:
         """
         return [self._apply(spec) for spec in specs]
 
+    @staticmethod
+    def device_selection_from_explicit_paths(sel: Optional[DeviceSelection]) -> Optional[DeviceSelection]:
+        """
+        Build a new DeviceSelection from explicit paths, preserving 'per path'
+        crush_device_class. Used when persisting osd.default so all device roles
+        are stored consistently (no shared references with the incoming spec).
+        """
+        if sel is None or not sel.paths:
+            return None
+        path_specs: List[Dict[str, Any]] = []
+        for d in sel.paths:
+            spec: Dict[str, Any] = {"path": d.path}
+            if d.crush_device_class:
+                spec["crush_device_class"] = d.crush_device_class
+            path_specs.append(spec)
+        return DeviceSelection(paths=path_specs)
+
     def create_osd_default_spec(self, drive_group: DriveGroupSpec) -> None:
         # Create the default osd and attach a valid spec to it.
 
@@ -3047,21 +3067,64 @@ Then run the following:
 
         host_pattern_obj = drive_group.placement.host_pattern
         host = str(host_pattern_obj.pattern)
+        data_devices = self.device_selection_from_explicit_paths(drive_group.data_devices)
+        assert data_devices is not None
         device_list = [d.path for d in drive_group.data_devices.paths] if drive_group.data_devices else []
-        devices = [{"path": d} for d in device_list]
 
         osd_default_spec = DriveGroupSpec(
             service_id="default",
             placement=PlacementSpec(host_pattern=host),
-            data_devices=DeviceSelection(paths=devices),
+            data_devices=data_devices,
+            db_devices=self.device_selection_from_explicit_paths(drive_group.db_devices),
+            wal_devices=self.device_selection_from_explicit_paths(drive_group.wal_devices),
+            journal_devices=self.device_selection_from_explicit_paths(drive_group.journal_devices),
             unmanaged=False,
             method=drive_group.method,
-            objectstore=drive_group.objectstore
+            objectstore=drive_group.objectstore,
+            osd_type=OSDType(drive_group.osd_type)
         )
 
         self.log.info(f"Creating OSDs with service ID: {drive_group.service_id} on {host}:{device_list}")
         self.spec_store.save(osd_default_spec)
         self.apply([osd_default_spec])
+
+    @staticmethod
+    def is_path_lists_only(drive_group: DriveGroupSpec) -> bool:
+        """
+        Return True if every non null data/db/wal/journal device selection is only
+        non empty paths (no 'all').
+        """
+
+        def path_list_only(sel: Optional[DeviceSelection]) -> bool:
+            if sel is None:
+                return True
+            if sel.all:
+                return False
+            return bool(sel.paths)
+
+        dd = drive_group.data_devices
+        if dd is None or dd.all or not dd.paths:
+            return False
+        for name in ('db_devices', 'wal_devices', 'journal_devices'):
+            if not path_list_only(getattr(drive_group, name, None)):
+                return False
+        return True
+
+    @staticmethod
+    def validate_no_empty_device_paths(drive_group: DriveGroupSpec) -> str:
+        """Reject empty device paths before cache checks (avoids silent ceph-volume failures)."""
+        for selection in (
+                drive_group.data_devices,
+                drive_group.db_devices,
+                drive_group.wal_devices,
+                drive_group.journal_devices,
+        ):
+            if not selection or not selection.paths:
+                continue
+            for device in selection.paths:
+                if device.path is None or not str(device.path).strip():
+                    return "Error: Device path is empty."
+        return ""
 
     def validate_device(self, host_name: str, drive_group: DriveGroupSpec) -> str:
         """
@@ -3077,23 +3140,43 @@ Then run the following:
             if self.cache.is_host_unreachable(host_name):
                 return f"Host {host_name} is not reachable (it may be offline or in maintenance mode)."
 
+            explicit_paths_only = self.is_path_lists_only(drive_group)
+
+            path_fmt_err = self.validate_no_empty_device_paths(drive_group)
+            if path_fmt_err:
+                return path_fmt_err
+
             host_cache = self.cache.devices.get(host_name, [])
             if not host_cache:
+                if explicit_paths_only:
+                    return ""
                 return (f"Error: No devices found for host {host_name}. "
                         "You can check known devices with 'ceph orch device ls'. "
                         "If no devices appear, wait for an automatic refresh.")
 
-            available_devices = {
-                dev.path: dev for dev in host_cache if dev.available
-            }
-            self.log.debug(f"Host {host_name} has {len(available_devices)} available devices.")
+            devices_by_path = {dev.path: dev for dev in host_cache}
+            available_count = sum(1 for dev in host_cache if dev.available)
+            self.log.debug(f"Host {host_name} has {available_count} available devices.")
 
-            for device in drive_group.data_devices.paths:
-                matching_device = next((dev for dev in host_cache if dev.path == device.path), None)
-                if not matching_device:
-                    return f"Error: Device {device.path} is not found on host {host_name}"
-                if not matching_device.available:
-                    return (f"Error: Device {device.path} is present but unavailable for OSD creation. "
+            for selection in (
+                drive_group.data_devices,
+                drive_group.db_devices,
+                drive_group.wal_devices,
+                drive_group.journal_devices,
+            ):
+                if not selection or not selection.paths:
+                    continue
+
+                for device in selection.paths:
+                    matching_device = devices_by_path.get(device.path)
+                    if matching_device is None:
+                        if not explicit_paths_only:
+                            return f"Error: Device {device.path} is not found on host {host_name}"
+                        continue
+
+                    if not matching_device.available:
+                        return (
+                            f"Error: Device {device.path} is present but unavailable for OSD creation. "
                             f"Reason: {', '.join(matching_device.rejected_reasons) if matching_device.rejected_reasons else 'Unknown'}")
 
             return ""
@@ -3110,19 +3193,26 @@ Then run the following:
         if not drive_group.service_id:
             drive_group.service_id = "default"
 
-        if drive_group.service_id not in self.spec_store.all_specs:
-            self.log.info("osd.default does not exist. Creating it now.")
-            self.create_osd_default_spec(drive_group)
-        else:
-            self.log.info("osd.default already exists.")
         host_name = filtered_hosts[0]
         if not skip_validation:
-            self.log.warning("Skipping the validation of device paths for osd daemon add command. Please make sure that the osd path is valid")
             err_msg = self.validate_device(host_name, drive_group)
             if err_msg:
                 return err_msg
 
-        return self.osd_service.create_from_spec(drive_group)
+        # Only save/apply osd.default after validation passes. Otherwise the serve loop
+        # would still apply the spec and create an OSD while the CLI returns an error.
+        # Spec store keys are full service names (example: "osd.default"), not service_id alone.
+        if drive_group.service_name() not in self.spec_store.all_specs:
+            self.log.info("osd.default does not exist. Creating it now.")
+            self.create_osd_default_spec(drive_group)
+        else:
+            self.log.info(
+                "Service osd.default is already registered; continuing with this "
+                "daemon add (one-shot ceph-volume apply, not a full spec re-apply).")
+
+        # 'ceph orch daemon add osd' must always run ceph-volume for this request.
+        # osdspec_needs_apply() only compares timestamps and would skip when inventory did not change.
+        return self.osd_service.create_from_spec(drive_group, force_apply=True)
 
     def _preview_osdspecs(self,
                           osdspecs: Optional[List[DriveGroupSpec]] = None
@@ -3152,15 +3242,6 @@ Then run the following:
                     osd_reports.append(osd_report)
             previews_for_specs.update({host: osd_reports})
         return previews_for_specs
-
-    def _calc_daemon_deps(self,
-                          spec: Optional[ServiceSpec],
-                          daemon_type: str,
-                          daemon_id: str) -> List[str]:
-        svc_type = daemon_type_to_service(daemon_type)
-        svc_cls = service_registry.get_service(svc_type)
-        deps = svc_cls.get_dependencies(self, spec, daemon_type) if svc_cls else []
-        return sorted(deps)
 
     @forall_hosts
     def _remove_daemons(self, name: str, host: str) -> str:
@@ -3825,6 +3906,7 @@ Then run the following:
                 'jaeger-agent': PlacementSpec(host_pattern='*'),
                 'jaeger-collector': PlacementSpec(count=1),
                 'jaeger-query': PlacementSpec(count=1),
+                'node-proxy': PlacementSpec(host_pattern='*'),
                 SMBService.TYPE: PlacementSpec(count=1),
             }
             spec.placement = defaults[spec.service_type]
@@ -3843,6 +3925,8 @@ Then run the following:
             nvmeof_spec = cast(NvmeofServiceSpec, spec)
             assert nvmeof_spec.pool is not None, "Pool cannot be None for nvmeof services"
             assert nvmeof_spec.service_id is not None  # for mypy
+            if nvmeof_spec.pool == '.nvmeof':
+                NvmeofMetadataPoolHelper(self).create_pool_if_needed()
             try:
                 self._check_pool_exists(nvmeof_spec.pool, nvmeof_spec.service_name())
             except OrchestratorError as e:

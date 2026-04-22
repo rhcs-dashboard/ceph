@@ -37,6 +37,7 @@ from cephadmlib.constants import (
     DEFAULT_IMAGE_IS_MAIN,
     DEFAULT_IMAGE_RELEASE,
     # other constant values
+    ADMIN_LABEL,
     CEPH_CONF,
     CEPH_CONF_DIR,
     CEPH_DEFAULT_CONF,
@@ -167,6 +168,30 @@ from cephadmlib.container_daemon_form import (
     daemon_to_container,
 )
 from cephadmlib.sysctl import install_sysctl, migrate_sysctl_dir
+from cephadmlib.cluster_ops import (
+    DEFAULT_PARALLEL_HOSTS,
+    cleanup_startup,
+    gather_shutdown_info,
+    get_cephadm_ssh_key,
+    load_cluster_state,
+    load_startup_info,
+    prepare_for_shutdown,
+    print_cluster_status_running,
+    print_cluster_status_shutdown,
+    print_section_footer,
+    print_section_header,
+    print_shutdown_complete,
+    print_shutdown_plan,
+    print_startup_complete,
+    print_startup_plan,
+    restore_cluster_services,
+    save_shutdown_state,
+    start_all_hosts,
+    stop_all_hosts,
+    stop_client_daemons,
+    validate_shutdown_preconditions,
+    wait_for_cluster_ready,
+)
 from cephadmlib.firewalld import Firewalld, update_firewalld
 from cephadmlib import templating
 from cephadmlib.daemons.ceph import get_ceph_mounts_for_type, ceph_daemons
@@ -1057,6 +1082,17 @@ def deploy_daemon_units(
         post_stop_commands.append(
             CephIscsi.configfs_mount_umount(data_dir, mount=False)
         )
+    daemon = daemon_form_create(ctx, ident)
+    if ident.daemon_type == 'nvmeof':
+        hp = '4096'
+        files = getattr(daemon, 'files', None)
+        if isinstance(files, dict):
+            val = files.get('spdk_huge_pages')
+            if isinstance(val, int):
+                hp = str(val)
+            elif isinstance(val, str) and val.isdigit():
+                hp = val
+        pre_start_commands.append(f'/usr/sbin/sysctl -w vm.nr_hugepages={hp} || true\n')
 
     runscripts.write_service_scripts(
         ctx,
@@ -1071,7 +1107,7 @@ def deploy_daemon_units(
     )
 
     # sysctl
-    install_sysctl(ctx, ident.fsid, daemon_form_create(ctx, ident))
+    install_sysctl(ctx, ident.fsid, daemon)
 
     # systemd
     ic_ids = [
@@ -2806,8 +2842,8 @@ def command_bootstrap(ctx):
     if ctx.output_config == CEPH_DEFAULT_CONF and not ctx.skip_admin_label and not ctx.no_minimize_config:
         logger.info('Enabling client.admin keyring and conf on hosts with "admin" label')
         try:
-            cli(['orch', 'client-keyring', 'set', 'client.admin', 'label:_admin'])
-            cli(['orch', 'host', 'label', 'add', get_hostname(), '_admin'])
+            cli(['orch', 'client-keyring', 'set', 'client.admin', f'label:{ADMIN_LABEL}'])
+            cli(['orch', 'host', 'label', 'add', get_hostname(), ADMIN_LABEL])
         except Exception:
             logger.info('Unable to set up "admin" label; assuming older version of Ceph')
 
@@ -4120,16 +4156,30 @@ def _rm_cluster(ctx: CephadmContext, keep_logs: bool, zap_osds: bool) -> None:
 
     # clean up config, keyring, and pub key files
     files = [CEPH_DEFAULT_CONF, CEPH_DEFAULT_PUBKEY, CEPH_DEFAULT_KEYRING]
-    if os.path.exists(files[0]):
-        valid_fsid = False
-        with open(files[0]) as f:
-            if ctx.fsid in f.read():
-                valid_fsid = True
-        if valid_fsid:
-            # rm configuration files on /etc/ceph
-            for n in range(0, len(files)):
-                if os.path.exists(files[n]):
-                    os.remove(files[n])
+    if not os.path.exists(files[0]):
+        return
+
+    if os.path.isdir(files[0]) and not os.listdir(files[0]):
+        # If ceph.conf is an empty directory, it's a leftover bind mount
+        # point from a container. Remove it and return - there's no config
+        # file to validate and no other files to clean up.
+        Path(files[0]).rmdir()
+        return
+
+    if not os.path.isfile(files[0]):
+        return
+
+    # Validate fsid from ceph.conf
+    with open(files[0]) as f:
+        if ctx.fsid not in f.read():
+            logger.warning('Cluster fsid %s does not match %s, '
+                           'leaving config files untouched',
+                           ctx.fsid, files[0])
+            return
+
+    # rm configuration files on /etc/ceph
+    for f in files:
+        Path(f).unlink(missing_ok=True)
 
 ##################################
 
@@ -4460,6 +4510,91 @@ def change_maintenance_mode(ctx: CephadmContext) -> str:
                 else:
                     return f'success - systemd target {target} enabled and started'
         return f'success - systemd target {target} enabled and started'
+
+
+@infer_fsid
+@infer_image
+def command_cluster_shutdown(ctx: CephadmContext) -> int:
+    """Shut down the entire Ceph cluster in the correct order."""
+    try:
+        health_msg = validate_shutdown_preconditions(ctx)
+    except SystemExit:
+        return 0
+
+    info = gather_shutdown_info(ctx)
+    dry_run = ctx.dry_run
+
+    print_shutdown_plan(ctx, info, health_msg, dry_run)
+
+    ssh_key, flags_set = prepare_for_shutdown(ctx, info, dry_run)
+    stop_client_daemons(ctx, info, ssh_key, dry_run)
+
+    if not dry_run:
+        save_shutdown_state(ctx, info, flags_set)
+
+    failed_hosts = stop_all_hosts(ctx, info, ssh_key, dry_run)
+
+    if failed_hosts:
+        logger.error(f'Failed to stop hosts: {failed_hosts}')
+        if not ctx.force:
+            return 1
+
+    print_shutdown_complete(ctx, len(info['shutdown_order']), dry_run)
+    return 0
+
+
+@infer_fsid
+@infer_image
+def command_cluster_start(ctx: CephadmContext) -> int:
+    """Start the Ceph cluster after a shutdown."""
+    info = load_startup_info(ctx)
+    if not info:
+        return 0
+
+    if ctx.dry_run:
+        print_startup_plan(ctx, info)
+        return 0
+
+    ssh_key = get_cephadm_ssh_key(ctx)
+    if not ssh_key:
+        logger.warning('No cached SSH key found - remote operations may fail')
+
+    failed_hosts = start_all_hosts(ctx, info, ssh_key)
+
+    if not wait_for_cluster_ready(ctx):
+        return 1
+
+    restore_cluster_services(ctx, info['flags_set'])
+    cleanup_startup(ctx)
+    print_startup_complete(failed_hosts)
+
+    return 0 if not failed_hosts else 1
+
+
+@infer_fsid
+@infer_image
+def command_cluster_status(ctx: CephadmContext) -> int:
+    """Show cluster shutdown/startup status."""
+    if not ctx.fsid:
+        raise Error('Cannot determine FSID. Use --fsid to specify.')
+
+    current_host = get_hostname()
+
+    print_section_header('CLUSTER STATUS')
+    print(f'FSID: {ctx.fsid}')
+    print(f'Current host: {current_host}')
+
+    state = load_cluster_state(ctx.fsid)
+
+    if state:
+        print_cluster_status_shutdown(ctx, state, current_host)
+        result = 0
+    else:
+        result = print_cluster_status_running(ctx)
+
+    print_section_footer()
+    return result
+
 
 ##################################
 
@@ -5277,6 +5412,48 @@ def _get_parser():
     parser_update_service.add_argument('--fsid', help='cluster FSID')
     parser_update_service.add_argument('--osd-ids', required=True, help='Comma-separated OSD IDs')
     parser_update_service.add_argument('--service-name', required=True, help='OSD service name')
+
+    parser_cluster_shutdown = subparsers.add_parser(
+        'cluster-shutdown', help='Shut down the entire Ceph cluster')
+    parser_cluster_shutdown.set_defaults(func=command_cluster_shutdown)
+    parser_cluster_shutdown.add_argument(
+        '--fsid',
+        help='cluster FSID')
+    parser_cluster_shutdown.add_argument(
+        '--force',
+        action='store_true',
+        help=argparse.SUPPRESS)  # Hidden option to bypass health checks
+    parser_cluster_shutdown.add_argument(
+        '--dry-run',
+        action='store_true',
+        help='Show what would be done without actually doing it')
+    parser_cluster_shutdown.add_argument(
+        '--yes-i-really-mean-it',
+        action='store_true',
+        help='Required flag to confirm cluster shutdown')
+
+    parser_cluster_start = subparsers.add_parser(
+        'cluster-start', help='Start the Ceph cluster after a shutdown')
+    parser_cluster_start.set_defaults(func=command_cluster_start)
+    parser_cluster_start.add_argument(
+        '--fsid',
+        help='cluster FSID')
+    parser_cluster_start.add_argument(
+        '--dry-run',
+        action='store_true',
+        help='Show what would be done without actually doing it')
+    parser_cluster_start.add_argument(
+        '--parallel',
+        type=int,
+        default=DEFAULT_PARALLEL_HOSTS,
+        help=f'Max hosts to start in parallel (default: {DEFAULT_PARALLEL_HOSTS})')
+
+    parser_cluster_status = subparsers.add_parser(
+        'cluster-status', help='Show cluster shutdown/startup status')
+    parser_cluster_status.set_defaults(func=command_cluster_status)
+    parser_cluster_status.add_argument(
+        '--fsid',
+        help='cluster FSID')
 
     return parser
 

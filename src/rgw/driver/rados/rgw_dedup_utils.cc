@@ -14,8 +14,8 @@
 
 #include "rgw_dedup_utils.h"
 #include "common/ceph_crypto.h"
-
 namespace rgw::dedup {
+
   //---------------------------------------------------------------------------
   std::ostream& operator<<(std::ostream &out, const dedup_req_type_t& dedup_type)
   {
@@ -382,8 +382,6 @@ namespace rgw::dedup {
     this->ingress_corrupted_etag += other.ingress_corrupted_etag;
     this->ingress_skip_too_small_bytes += other.ingress_skip_too_small_bytes;
     this->ingress_skip_too_small += other.ingress_skip_too_small;
-    this->ingress_skip_too_small_64KB_bytes += other.ingress_skip_too_small_64KB_bytes;
-    this->ingress_skip_too_small_64KB += other.ingress_skip_too_small_64KB;
 
     return *this;
   }
@@ -440,13 +438,6 @@ namespace rgw::dedup {
                          this->ingress_skip_too_small);
         f->dump_unsigned("Ingress skip: too small bytes",
                          this->ingress_skip_too_small_bytes);
-
-        if(this->ingress_skip_too_small_64KB) {
-          f->dump_unsigned("Ingress skip: 64KB<=size<=4MB Obj",
-                           this->ingress_skip_too_small_64KB);
-          f->dump_unsigned("Ingress skip: 64KB<=size<=4MB Bytes",
-                           this->ingress_skip_too_small_64KB_bytes);
-        }
       }
     }
 
@@ -499,9 +490,6 @@ namespace rgw::dedup {
     encode(w.ingress_skip_too_small_bytes, bl);
     encode(w.ingress_skip_too_small, bl);
 
-    encode(w.ingress_skip_too_small_64KB_bytes, bl);
-    encode(w.ingress_skip_too_small_64KB, bl);
-
     encode(w.duration, bl);
     ENCODE_FINISH(bl);
   }
@@ -528,8 +516,6 @@ namespace rgw::dedup {
     decode(w.ingress_corrupted_etag, bl);
     decode(w.ingress_skip_too_small_bytes, bl);
     decode(w.ingress_skip_too_small, bl);
-    decode(w.ingress_skip_too_small_64KB_bytes, bl);
-    decode(w.ingress_skip_too_small_64KB, bl);
 
     decode(w.duration, bl);
     DECODE_FINISH(bl);
@@ -538,7 +524,6 @@ namespace rgw::dedup {
   //---------------------------------------------------------------------------
   md5_stats_t& md5_stats_t::operator+=(const md5_stats_t& other)
   {
-    this->small_objs_stat               += other.small_objs_stat;
     this->big_objs_stat                 += other.big_objs_stat;
     this->ingress_slabs                 += other.ingress_slabs;
     this->ingress_failed_load_bucket    += other.ingress_failed_load_bucket;
@@ -551,12 +536,15 @@ namespace rgw::dedup {
     this->ingress_skip_compressed       += other.ingress_skip_compressed;
     this->ingress_skip_compressed_bytes += other.ingress_skip_compressed_bytes;
     this->ingress_skip_changed_objs     += other.ingress_skip_changed_objs;
+    this->ingress_skip_explicit_objs    += other.ingress_skip_explicit_objs;
+    this->ingress_skip_alibaba          += other.ingress_skip_alibaba;
     this->shared_manifest_dedup_bytes   += other.shared_manifest_dedup_bytes;
 
     this->skipped_shared_manifest += other.skipped_shared_manifest;
     this->skipped_purged_small    += other.skipped_purged_small;
     this->skipped_singleton       += other.skipped_singleton;
     this->skipped_singleton_bytes += other.skipped_singleton_bytes;
+    this->skipped_too_many_copies += other.skipped_too_many_copies;
     this->skipped_source_record   += other.skipped_source_record;
     this->duplicate_records       += other.duplicate_records;
     this->size_mismatch           += other.size_mismatch;
@@ -565,18 +553,33 @@ namespace rgw::dedup {
     this->failed_rec_load         += other.failed_rec_load;
     this->failed_block_load       += other.failed_block_load;
 
+    this->different_storage_class       += other.different_storage_class;
+    this->invalid_hash_no_split_head    += other.invalid_hash_no_split_head;
+    this->invalid_storage_class_mapping += other.invalid_storage_class_mapping;
+    this->singleton_after_purge         += other.singleton_after_purge;
+    this->shared_manifest_after_purge   += other.shared_manifest_after_purge;
+    this->split_head_no_tail_placement  += other.split_head_no_tail_placement;
+    this->illegal_rec_id                += other.illegal_rec_id;
+    this->missing_last_block_marker     += other.missing_last_block_marker;
+
     this->valid_hash_attrs        += other.valid_hash_attrs;
     this->invalid_hash_attrs      += other.invalid_hash_attrs;
     this->set_hash_attrs          += other.set_hash_attrs;
     this->skip_hash_cmp           += other.skip_hash_cmp;
+    this->manifest_raw_obj        += other.manifest_raw_obj;
+    this->manifest_no_tail_placement += other.manifest_no_tail_placement;
+    this->rollback_tail_obj       += other.rollback_tail_obj;
+    this->failed_split_head_creat += other.failed_split_head_creat;
+    this->skip_shared_tail_objs   += other.skip_shared_tail_objs;
+    this->split_head_src          += other.split_head_src;
+    this->split_head_tgt          += other.split_head_tgt;
+    this->split_head_dedup_bytes  += other.split_head_dedup_bytes;
 
     this->set_shared_manifest_src += other.set_shared_manifest_src;
     this->loaded_objects          += other.loaded_objects;
     this->processed_objects       += other.processed_objects;
-    this->dup_head_bytes_estimate += other.dup_head_bytes_estimate;
     this->deduped_objects         += other.deduped_objects;
     this->deduped_objects_bytes   += other.deduped_objects_bytes;
-    this->dup_head_bytes          += other.dup_head_bytes;
 
     this->failed_dedup            += other.failed_dedup;
     this->md_throttle_sleep_events    += other.md_throttle_sleep_events;
@@ -610,7 +613,6 @@ namespace rgw::dedup {
       f->dump_unsigned("Set Shared-Manifest SRC", this->set_shared_manifest_src);
       f->dump_unsigned("Deduped Obj (this cycle)", this->deduped_objects);
       f->dump_unsigned("Deduped Bytes(this cycle)", this->deduped_objects_bytes);
-      f->dump_unsigned("Dup head bytes (not dedup)", this->dup_head_bytes);
       f->dump_unsigned("Already Deduped bytes (prev cycles)",
                        this->shared_manifest_dedup_bytes);
 
@@ -619,21 +621,6 @@ namespace rgw::dedup {
       f->dump_unsigned("Unique Obj", ds.unique_count);
       f->dump_unsigned("Duplicate Obj", ds.duplicate_count);
       f->dump_unsigned("Dedup Bytes Estimate", ds.dedup_bytes_estimate);
-    }
-
-    // Potential Dedup Section:
-    // What could be gained by allowing dedup for smaller objects (64KB-4MB)
-    // Space wasted because of duplicated head-object (4MB)
-    {
-      Formatter::ObjectSection potential(*f, "Potential Dedup");
-      const dedup_stats_t &ds = this->small_objs_stat;
-      f->dump_unsigned("Singleton Obj (64KB-4MB)", ds.singleton_count);
-      f->dump_unsigned("Unique Obj (64KB-4MB)", ds.unique_count);
-      f->dump_unsigned("Duplicate Obj (64KB-4MB)", ds.duplicate_count);
-      f->dump_unsigned("Dedup Bytes Estimate (64KB-4MB)", ds.dedup_bytes_estimate);
-      f->dump_unsigned("Duplicated Head Bytes Estimate",
-                       this->dup_head_bytes_estimate);
-      f->dump_unsigned("Duplicated Head Bytes", this->dup_head_bytes);
     }
 
     {
@@ -658,8 +645,29 @@ namespace rgw::dedup {
         f->dump_unsigned("Set HASH", this->set_hash_attrs);
       }
 
+      if (this->skip_shared_tail_objs) {
+        f->dump_unsigned("Skip Shared Tail Objs (server-side-copy)", this->skip_shared_tail_objs);
+      }
       if (this->skip_hash_cmp) {
         f->dump_unsigned("Can't run HASH compare", this->skip_hash_cmp);
+      }
+      if (this->manifest_raw_obj) {
+        f->dump_unsigned("Manifest has RAW OBJ", this->manifest_raw_obj);
+      }
+      if (this->manifest_no_tail_placement) {
+        f->dump_unsigned("Manifest has no tail placement", this->manifest_no_tail_placement);
+      }
+      if (this->rollback_tail_obj) {
+        f->dump_unsigned("Rollback tail obj", this->rollback_tail_obj);
+      }
+      if (this->split_head_src) {
+        f->dump_unsigned("Split-Head Src OBJ", this->split_head_src);
+      }
+      if (this->split_head_tgt) {
+        f->dump_unsigned("Split-Head Tgt OBJ", this->split_head_tgt);
+      }
+      if (this->split_head_dedup_bytes) {
+        f->dump_unsigned("Split-Head Dedup-Bytes", this->split_head_dedup_bytes);
       }
     }
 
@@ -670,6 +678,9 @@ namespace rgw::dedup {
       f->dump_unsigned("Skipped singleton objs", this->skipped_singleton);
       if (this->skipped_singleton) {
         f->dump_unsigned("Skipped singleton Bytes", this->skipped_singleton_bytes);
+      }
+      if (this->skipped_too_many_copies) {
+        f->dump_unsigned("Skipped Too Many Copies", this->skipped_too_many_copies);
       }
       f->dump_unsigned("Skipped source record", this->skipped_source_record);
 
@@ -683,6 +694,12 @@ namespace rgw::dedup {
       }
       if (this->ingress_skip_changed_objs) {
         f->dump_unsigned("Skipped Changed Object", this->ingress_skip_changed_objs);
+      }
+      if (this->ingress_skip_explicit_objs) {
+        f->dump_unsigned("Skipped Explicit Objs", this->ingress_skip_explicit_objs);
+      }
+      if (this->ingress_skip_alibaba) {
+        f->dump_unsigned("Skipped Alibaba Cloud OSS", this->ingress_skip_alibaba);
       }
     }
 
@@ -712,6 +729,18 @@ namespace rgw::dedup {
       if (this->failed_block_load) {
         f->dump_unsigned("Failed Block-Load ", this->failed_block_load);
       }
+
+      if (this->illegal_rec_id) {
+        f->dump_unsigned("Failed illegal_rec_id", this->illegal_rec_id );
+      }
+      if (this->missing_last_block_marker) {
+        f->dump_unsigned("Failed missing_last_block_marker in rec",
+                         this->missing_last_block_marker);
+      }
+
+      if (this->failed_split_head_creat) {
+        f->dump_unsigned("Failed Split-Head Create (EEXIST)", this->failed_split_head_creat);
+      }
       if (this->failed_dedup) {
         f->dump_unsigned("Failed Dedup", this->failed_dedup);
       }
@@ -728,6 +757,30 @@ namespace rgw::dedup {
       if (this->size_mismatch) {
         f->dump_unsigned("Size mismatch SRC/TGT", this->size_mismatch);
       }
+      if (this->different_storage_class) {
+        f->dump_unsigned("different_storage_class",
+                         this->different_storage_class);
+      }
+      if (this->invalid_hash_no_split_head) {
+        f->dump_unsigned("Failed rec has invalid hash w/o split-head ",
+                         this->invalid_hash_no_split_head);
+      }
+      if (this->invalid_storage_class_mapping) {
+        f->dump_unsigned("Failed, invalid_storage_class_mapping",
+                         this->invalid_storage_class_mapping);
+      }
+      if (this->singleton_after_purge) {
+        f->dump_unsigned("Failed, has singleton after purge",
+                         this->singleton_after_purge);
+      }
+      if (this->shared_manifest_after_purge) {
+        f->dump_unsigned("Failed, has shared manifest after purge",
+                         this->shared_manifest_after_purge);
+      }
+      if (this->split_head_no_tail_placement) {
+        f->dump_unsigned("No Tail Placement during Split-Head processing",
+                         this->split_head_no_tail_placement);
+      }
     }
   }
 
@@ -736,7 +789,6 @@ namespace rgw::dedup {
   {
     ENCODE_START(1, 1, bl);
 
-    encode(m.small_objs_stat, bl);
     encode(m.big_objs_stat, bl);
     encode(m.ingress_slabs, bl);
     encode(m.ingress_failed_load_bucket, bl);
@@ -749,12 +801,15 @@ namespace rgw::dedup {
     encode(m.ingress_skip_compressed, bl);
     encode(m.ingress_skip_compressed_bytes, bl);
     encode(m.ingress_skip_changed_objs, bl);
+    encode(m.ingress_skip_explicit_objs, bl);
+    encode(m.ingress_skip_alibaba, bl);
     encode(m.shared_manifest_dedup_bytes, bl);
 
     encode(m.skipped_shared_manifest, bl);
     encode(m.skipped_purged_small, bl);
     encode(m.skipped_singleton, bl);
     encode(m.skipped_singleton_bytes, bl);
+    encode(m.skipped_too_many_copies, bl);
     encode(m.skipped_source_record, bl);
     encode(m.duplicate_records, bl);
     encode(m.size_mismatch, bl);
@@ -763,18 +818,33 @@ namespace rgw::dedup {
     encode(m.failed_rec_load, bl);
     encode(m.failed_block_load, bl);
 
+    encode(m.different_storage_class, bl);
+    encode(m.invalid_hash_no_split_head, bl);
+    encode(m.invalid_storage_class_mapping, bl);
+    encode(m.singleton_after_purge, bl);
+    encode(m.shared_manifest_after_purge, bl);
+    encode(m.split_head_no_tail_placement, bl);
+    encode(m.illegal_rec_id, bl);
+    encode(m.missing_last_block_marker, bl);
+
     encode(m.valid_hash_attrs, bl);
     encode(m.invalid_hash_attrs, bl);
     encode(m.set_hash_attrs, bl);
     encode(m.skip_hash_cmp, bl);
+    encode(m.manifest_raw_obj, bl);
+    encode(m.manifest_no_tail_placement, bl);
+    encode(m.rollback_tail_obj, bl);
+    encode(m.failed_split_head_creat, bl);
+    encode(m.skip_shared_tail_objs, bl);
+    encode(m.split_head_src, bl);
+    encode(m.split_head_tgt, bl);
+    encode(m.split_head_dedup_bytes, bl);
     encode(m.set_shared_manifest_src, bl);
 
     encode(m.loaded_objects, bl);
     encode(m.processed_objects, bl);
-    encode(m.dup_head_bytes_estimate, bl);
     encode(m.deduped_objects, bl);
     encode(m.deduped_objects_bytes, bl);
-    encode(m.dup_head_bytes, bl);
     encode(m.failed_dedup, bl);
     encode(m.md_throttle_sleep_events, bl);
     encode(m.md_throttle_sleep_time_usec, bl);
@@ -789,7 +859,6 @@ namespace rgw::dedup {
   void decode(md5_stats_t& m, ceph::bufferlist::const_iterator& bl)
   {
     DECODE_START(1, bl);
-    decode(m.small_objs_stat, bl);
     decode(m.big_objs_stat, bl);
     decode(m.ingress_slabs, bl);
     decode(m.ingress_failed_load_bucket, bl);
@@ -802,12 +871,15 @@ namespace rgw::dedup {
     decode(m.ingress_skip_compressed, bl);
     decode(m.ingress_skip_compressed_bytes, bl);
     decode(m.ingress_skip_changed_objs, bl);
+    decode(m.ingress_skip_explicit_objs, bl);
+    decode(m.ingress_skip_alibaba, bl);
     decode(m.shared_manifest_dedup_bytes, bl);
 
     decode(m.skipped_shared_manifest, bl);
     decode(m.skipped_purged_small, bl);
     decode(m.skipped_singleton, bl);
     decode(m.skipped_singleton_bytes, bl);
+    decode(m.skipped_too_many_copies, bl);
     decode(m.skipped_source_record, bl);
     decode(m.duplicate_records, bl);
     decode(m.size_mismatch, bl);
@@ -816,18 +888,33 @@ namespace rgw::dedup {
     decode(m.failed_rec_load, bl);
     decode(m.failed_block_load, bl);
 
+    decode(m.different_storage_class, bl);
+    decode(m.invalid_hash_no_split_head, bl);
+    decode(m.invalid_storage_class_mapping, bl);
+    decode(m.singleton_after_purge, bl);
+    decode(m.shared_manifest_after_purge, bl);
+    decode(m.split_head_no_tail_placement, bl);
+    decode(m.illegal_rec_id, bl);
+    decode(m.missing_last_block_marker, bl);
+
     decode(m.valid_hash_attrs, bl);
     decode(m.invalid_hash_attrs, bl);
     decode(m.set_hash_attrs, bl);
     decode(m.skip_hash_cmp, bl);
+    decode(m.manifest_raw_obj, bl);
+    decode(m.manifest_no_tail_placement, bl);
+    decode(m.rollback_tail_obj, bl);
+    decode(m.failed_split_head_creat, bl);
+    decode(m.skip_shared_tail_objs, bl);
+    decode(m.split_head_src, bl);
+    decode(m.split_head_tgt, bl);
+    decode(m.split_head_dedup_bytes, bl);
     decode(m.set_shared_manifest_src, bl);
 
     decode(m.loaded_objects, bl);
     decode(m.processed_objects, bl);
-    decode(m.dup_head_bytes_estimate, bl);
     decode(m.deduped_objects, bl);
     decode(m.deduped_objects_bytes, bl);
-    decode(m.dup_head_bytes, bl);
     decode(m.failed_dedup, bl);
     decode(m.md_throttle_sleep_events, bl);
     decode(m.md_throttle_sleep_time_usec, bl);
