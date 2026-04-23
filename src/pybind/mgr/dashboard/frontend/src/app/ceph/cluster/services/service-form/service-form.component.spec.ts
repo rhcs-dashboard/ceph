@@ -109,7 +109,7 @@ describe('ServiceFormComponent', () => {
       // placement labels take only single value
       formHelper.setValue('service_type', 'mgr');
       formHelper.setValue('placement', 'label');
-      formHelper.setValue('label', "{content: 'foo', selected:  true}");
+      formHelper.setValue('label', { content: 'foo', selected: true });
 
       component.onSubmit();
 

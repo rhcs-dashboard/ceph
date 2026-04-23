@@ -210,7 +210,9 @@ export class NvmeofService {
     return this.getSubsystem(subsystemNqn, group).pipe(
       mapTo(true),
       catchError((e) => {
-        e?.preventDefault();
+        if (_.isFunction(e?.preventDefault)) {
+          e.preventDefault();
+        }
         return observableOf(false);
       })
     );

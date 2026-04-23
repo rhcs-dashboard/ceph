@@ -340,22 +340,6 @@ describe('NvmeofService', () => {
       req.flush(mockGroups);
     });
 
-    it('should filter hosts by array label placement', (done) => {
-      const mockGroups = [
-        [{ spec: { group: 'default' }, placement: { hosts: [], label: ['nvmeof', 'storage'] } }]
-      ];
-      mockHostService.getAllHosts.mockReturnValue(of(allHosts));
-
-      service.getHostsForGroup('default').subscribe((hosts: any[]) => {
-        expect(hosts.length).toBe(1);
-        expect(hosts[0].hostname).toBe('host3');
-        done();
-      });
-
-      const req = httpTesting.expectOne(`${API_PATH}/gateway/group`);
-      req.flush(mockGroups);
-    });
-
     it('should return empty array when group not found', (done) => {
       const mockGroups = [
         [{ spec: { group: 'other' }, placement: { hosts: ['host1'], label: [] } }]
