@@ -1,6 +1,6 @@
-=====================================================
+========================================================
 Design Document: Ceph Erasure Coded (EC) Stretch Cluster
-=====================================================
+========================================================
 
 .. note::
 
@@ -108,7 +108,7 @@ to the CLIs that control stretch mode.
 
 
 2.1 ceph osd pool create
-^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 The ceph osd pool create command will be extended to become a parameterized command.
 
@@ -311,7 +311,7 @@ These are used for backward compatibility only.
 
 
 2.3 Examples
-^^^^^^^^^^^^
+~~~~~~~~~~~~
 
 The following are examples of how the new parameterized ``ceph osd pool create`` command simplifies pool creation across different topologies.
 
@@ -1078,7 +1078,7 @@ each object that results in the fewest bytes crossing zone boundaries.
   specifies which remote-zone shards to fetch.
 
 9.3 Delegated Remote-zone Recovery — *Later Release*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. note::
 
@@ -1104,7 +1104,7 @@ each object that results in the fewest bytes crossing zone boundaries.
    and are deferred to a later release.
 
 9.4.1 Remote-zone Fallback (Push Recovery)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If a remote zone cannot perform zone-local recovery, and the cost-based analysis
 determines that Primary-side reconstruction and push is the cheapest option:
