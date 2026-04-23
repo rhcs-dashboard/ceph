@@ -146,20 +146,40 @@
 import argparse
 import datetime
 from getpass import getuser
-import git # https://github.com/gitpython-developers/gitpython
 import itertools
 import json
 import logging
 import os
 import re
-try:
-    from redminelib import Redmine  # https://pypi.org/project/python-redmine/
-except ModuleNotFoundError:
-    Redmine = None
-import requests
 import signal
 import sys
 import textwrap
+
+MISSING_DEPS = []
+
+try:
+    import git # https://github.com/gitpython-developers/gitpython
+except ImportError:
+    MISSING_DEPS.append("GitPython")
+
+try:
+    from redminelib import Redmine  # https://pypi.org/project/python-redmine/
+except ImportError:
+    Redmine = None
+    MISSING_DEPS.append("python-redmine")
+
+try:
+    import requests
+except ImportError:
+    MISSING_DEPS.append("requests")
+
+if MISSING_DEPS:
+    print("ERROR: Missing required dependencies: " + ", ".join(MISSING_DEPS), file=sys.stderr)
+    print("\nPlease set up a virtual environment and install the dependencies by following these steps:", file=sys.stderr)
+    print("  1. Create a virtual environment: python3 -m venv ~/ptl-venv", file=sys.stderr)
+    print("  2. Activate it:                  source ~/ptl-venv/bin/activate", file=sys.stderr)
+    print("  3. Install dependencies:         pip install GitPython python-redmine requests\n", file=sys.stderr)
+    sys.exit(1)
 
 from os.path import expanduser
 
@@ -652,9 +672,21 @@ def main():
     if args.debug_build:
         args.flavors.add('debug')
 
-    if (args.create_qa or args.update_qa) and Redmine is None:
-        log.error("redmine library is not available so cannot create qa tracker ticket")
+    if not GITHUB_TOKEN:
+        log.error("Missing GitHub Personal Access Token.")
+        log.error("Please create a file at ~/.github_token containing your token,")
+        log.error("or set the PTL_TOOL_GITHUB_TOKEN environment variable.")
         sys.exit(1)
+
+    if args.create_qa or args.update_qa:
+        if Redmine is None:
+            log.error("redmine library is not available so cannot create qa tracker ticket")
+            sys.exit(1)
+        if not REDMINE_API_KEY:
+            log.error("Missing Redmine API Key. Required for creating/updating QA tickets.")
+            log.error("Please create a file at ~/.redmine_key containing your API key,")
+            log.error("or set the PTL_TOOL_REDMINE_API_KEY environment variable.")
+            sys.exit(1)
 
     return build_branch(args)
 
