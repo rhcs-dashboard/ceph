@@ -743,8 +743,17 @@ export class ServiceFormComponent extends CdForm implements OnInit {
               : (placementValue = 'hosts');
             this.serviceForm.get('placement').setValue(placementValue);
             this.serviceForm.get('count').setValue(response[0]['placement']['count']);
-            if (response[0]?.placement[placementValue]) {
-              this.serviceForm.get(placementValue).setValue(response[0]?.placement[placementValue]);
+            if (placementValue === 'hosts' && response[0]?.placement?.hosts) {
+              this.serviceForm.get('hosts').setValue(
+                response[0].placement.hosts.map((host: string) => ({
+                  content: host,
+                  selected: true
+                }))
+              );
+            } else if (placementValue === 'label' && response[0]?.placement?.label) {
+              this.serviceForm
+                .get('label')
+                .setValue({ content: response[0].placement.label, selected: true });
             }
           }
           switch (this.serviceType) {
