@@ -657,7 +657,10 @@ export class ServiceFormComponent extends CdForm implements OnInit {
       ],
       https_address: [null, [CdValidators.oauthAddressTest()]],
       redirect_url: [null],
-      allowlist_domains: [null]
+      scope: [null],
+      email_domains: [null],
+      allowlist_domains: [null],
+      ssl_insecure_skip_verify: [false]
     });
   }
 
@@ -915,7 +918,10 @@ export class ServiceFormComponent extends CdForm implements OnInit {
                 'client_secret',
                 'oidc_issuer_url',
                 'redirect_url',
-                'allowlist_domains'
+                'scope',
+                'email_domains',
+                'allowlist_domains',
+                'ssl_insecure_skip_verify'
               ];
               oauth2SpecKeys.forEach((key) => {
                 this.serviceForm.get(key).setValue(response[0].spec[key]);
@@ -1433,6 +1439,12 @@ export class ServiceFormComponent extends CdForm implements OnInit {
           serviceSpec['oidc_issuer_url'] = values['oidc_issuer_url']?.trim();
           serviceSpec['https_address'] = values['https_address']?.trim();
           serviceSpec['redirect_url'] = values['redirect_url']?.trim();
+          serviceSpec['scope'] = values['scope']?.join(' ');
+          if (values['email_domains']) {
+            serviceSpec['email_domains'] = values['email_domains']?.map((emailDomain: string) => {
+              return emailDomain.trim();
+            });
+          }
           if (values['allowlist_domains']) {
             serviceSpec['allowlist_domains'] = values['allowlist_domains']?.map(
               (allowlistDomain: string) => {
@@ -1440,6 +1452,7 @@ export class ServiceFormComponent extends CdForm implements OnInit {
               }
             );
           }
+          serviceSpec['ssl_insecure_skip_verify'] = values['ssl_insecure_skip_verify'];
           if (values['ssl']) {
             this.applySslCertificateConfig(serviceSpec, values);
           }
