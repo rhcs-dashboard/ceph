@@ -647,6 +647,21 @@ Since migration of Filestore OSDs to BlueStore can take a considerable amount
 of time to complete, we recommend that you begin the process well in advance
 of any update to Reef or to later releases.
 
+OSD_UPGRADE_FINISHED
+____________________
+
+All up OSDs are running a release newer than ``require_osd_release``,
+which means the cluster is ready to advance the gate but the operator
+has not yet done so.
+
+Run the following command to clear the warning:
+
+.. prompt:: bash #
+
+   ceph osd require-osd-release <release>
+
+See :ref:`OSD_UPGRADE_FINISHED` for full details.
+
 OSD_UNREACHABLE
 _______________
 

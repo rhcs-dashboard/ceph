@@ -45,6 +45,7 @@ CRUSH algorithm.
         read-balancer
         balancer
 	require-min-compat-client
+	require-osd-release
 	crush-map
 	crush-map-edits
 	stretch-mode
