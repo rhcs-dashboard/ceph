@@ -44,6 +44,7 @@ CRUSH algorithm.
 	upmap
         read-balancer
         balancer
+	require-min-compat-client
 	crush-map
 	crush-map-edits
 	stretch-mode
