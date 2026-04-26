@@ -572,7 +572,7 @@ public:
     ool_write_stats = {};
     rewrite_stats = {};
     conflicted = false;
-    need_wait_rewrite = false;
+    need_wait_visibility = false;
     assert(backref_entries.empty());
     if (!has_reset) {
       has_reset = true;
@@ -690,7 +690,8 @@ public:
   }
 
   btree_cursor_stats_t cursor_stats;
-  bool need_wait_rewrite = false;
+
+ bool need_wait_visibility = false;
 
 private:
   friend class Cache;
