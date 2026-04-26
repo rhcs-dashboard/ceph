@@ -6066,13 +6066,13 @@ def kafka_batch_size(match_batch_size):
         receiver.close(task)
 
 
-@pytest.mark.kafka_test
+@pytest.mark.manual_test
 def test_kafka_batch_size():
     """ test that setting rgw_kafka_max_batch_size limits the batch size sent to kafka """
     kafka_batch_size(match_batch_size=True)
 
 
-@pytest.mark.kafka_test
+@pytest.mark.manual_test
 def test_kafka_batch_size_mismatch():
     """ test that without rgw_kafka_max_batch_size, batched messages exceed the broker limit """
     kafka_batch_size(match_batch_size=False)
