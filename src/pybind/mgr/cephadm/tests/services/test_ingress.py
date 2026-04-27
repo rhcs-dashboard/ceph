@@ -1214,6 +1214,7 @@ class TestIngressService:
         nfs_expected_conf = {
             'files': {'ganesha.conf': nfs_ganesha_txt, 'idmap.conf': ''},
             'config': '',
+            'enable_rdma': False,
             'extra_args': ['-N', 'NIV_EVENT'],
             'keyring': (
                 '[client.nfs.foo.test.0.0]\n'
