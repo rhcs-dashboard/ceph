@@ -3332,6 +3332,8 @@ void PGMap::get_health_checks(
         summary += " experiencing slow discard operations";
       } else if (asum.first == "BLUESTORE_FREE_FRAGMENTATION") {
         summary += " experiencing high free space fragmentation of BlueStore";
+      } else if (asum.first == "EXTBLKDEV") {
+        summary += " reporting problems with ExtBlkDev plugin";
       }
 
       auto& d = checks->add(asum.first, HEALTH_WARN, summary, asum.second.first);
