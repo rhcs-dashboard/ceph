@@ -9,11 +9,15 @@
 
 # For Orchestrator related PRs
 /src/cephadm                                    @ceph/orchestrators
+/src/cephadm/cephadmlib/daemons/smb.py          @ceph/orchestrators @ceph/smb
 /src/pybind/mgr/orchestrator                    @ceph/orchestrators
 /src/pybind/mgr/rook                            @ceph/orchestrators
 /src/pybind/mgr/cephadm                         @ceph/orchestrators
+/src/pybind/mgr/cephadm/services/smb.py         @ceph/orchestrators @ceph/smb
 /src/pybind/mgr/test_orchestrator               @ceph/orchestrators
+/src/pybind/mgr/smb                             @ceph/orchestrators @ceph/smb
 /src/python-common                              @ceph/orchestrators
+/src/python-common/ceph/smb                     @ceph/orchestrators @ceph/smb
 /qa/workunits/cephadm                           @ceph/orchestrators
 /qa/tasks/cephadm.py                            @ceph/orchestrators
 /qa/tasks/cephadm_cases                         @ceph/orchestrators
@@ -194,3 +198,6 @@ README*                                         @ceph/doc-writers
 /src/script/build-with-container.py             @ceph/build-sig
 /src/script/buildcontainer-setup.sh             @ceph/build-sig
 /src/script/run-make.sh                         @ceph/build-sig
+
+# cephfs proxy
+/src/libcephfs_proxy                            @ceph/smb
