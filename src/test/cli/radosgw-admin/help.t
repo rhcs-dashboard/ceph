@@ -68,7 +68,7 @@
     objects expire                   run expired objects cleanup
     objects expire-stale list        list stale expired objects (caused by reshard)
     objects expire-stale rm          remove stale expired objects
-    period rm                        remove a period
+    period delete                    remove a period
     period get                       get period info
     period get-current               get current period info
     period pull                      pull a period
@@ -119,7 +119,7 @@
     zonegroup placement rm           remove a placement target from a zonegroup
     zonegroup placement default      set a zonegroup's default placement target
     zone create                      create a new zone
-    zone rm                          remove a zone
+    zone delete                      remove a zone
     zone get                         show zone cluster params
     zone modify                      modify an existing zone
     zone set                         set zone cluster params (requires infile)

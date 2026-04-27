@@ -208,7 +208,7 @@ void usage()
   cout << "  objects expire                   run expired objects cleanup\n";
   cout << "  objects expire-stale list        list stale expired objects (caused by reshard)\n";
   cout << "  objects expire-stale rm          remove stale expired objects\n";
-  cout << "  period rm                        remove a period\n";
+  cout << "  period delete                    remove a period\n";
   cout << "  period get                       get period info\n";
   cout << "  period get-current               get current period info\n";
   cout << "  period pull                      pull a period\n";
@@ -259,7 +259,7 @@ void usage()
   cout << "  zonegroup placement rm           remove a placement target from a zonegroup\n";
   cout << "  zonegroup placement default      set a zonegroup's default placement target\n";
   cout << "  zone create                      create a new zone\n";
-  cout << "  zone rm                          remove a zone\n";
+  cout << "  zone delete                      remove a zone\n";
   cout << "  zone get                         show zone cluster params\n";
   cout << "  zone modify                      modify an existing zone\n";
   cout << "  zone set                         set zone cluster params (requires infile)\n";
