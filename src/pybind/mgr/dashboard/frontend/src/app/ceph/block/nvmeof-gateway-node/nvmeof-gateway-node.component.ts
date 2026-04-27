@@ -303,8 +303,16 @@ export class NvmeofGatewayNodeComponent implements OnInit, OnDestroy {
     groupList.forEach((group: CephServiceSpec) => {
       const hosts = group.placement?.hosts || group.spec?.placement?.hosts || [];
       hosts.forEach((hostname: string) => allUsedHostnames.add(hostname));
-    });
 
+      const label = group.placement?.label || group.spec?.placement?.label;
+      if (label) {
+        (hostList || []).forEach((host: Host) => {
+          if (host.labels?.includes(label as string)) {
+            allUsedHostnames.add(host.hostname);
+          }
+        });
+      }
+    });
     this.usedHostnames = allUsedHostnames;
 
     // Check if there are any available hosts globally (not used by any group)
@@ -328,11 +336,19 @@ export class NvmeofGatewayNodeComponent implements OnInit, OnDestroy {
     } else {
       const placementHosts =
         this.serviceSpec.placement?.hosts || this.serviceSpec.spec?.placement?.hosts || [];
-      const currentGroupHosts = new Set<string>(placementHosts);
+      const placementLabel =
+        this.serviceSpec.placement?.label || this.serviceSpec.spec?.placement?.label;
 
-      this.hosts = (hostList || []).filter((host: Host) => {
-        return currentGroupHosts.has(host.hostname);
-      });
+      if (placementHosts.length > 0) {
+        const currentGroupHosts = new Set<string>(placementHosts);
+        this.hosts = (hostList || []).filter((host: Host) => currentGroupHosts.has(host.hostname));
+      } else if (placementLabel) {
+        this.hosts = (hostList || []).filter((host: Host) =>
+          host.labels?.includes(placementLabel as string)
+        );
+      } else {
+        this.hosts = [];
+      }
     }
 
     this.count = this.hosts.length;
