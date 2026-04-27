@@ -172,7 +172,7 @@ as follows:
 :command:`objects expire`
   Run expired objects cleanup.
 
-:command:`period rm`
+:command:`period delete`
   Remove a period.
 
 :command:`period get`
@@ -295,7 +295,7 @@ as follows:
 :command:`zone create`
   Create a new zone.
 
-:command:`zone rm`
+:command:`zone delete`
   Remove a zone.
 
 :command:`zone get`
@@ -453,7 +453,7 @@ as follows:
 :command:`role create`
   Create a new role for use with STS (Security Token Service).
 
-:command:`role rm`
+:command:`role delete`
   Remove a role.
 
 :command:`role get`
@@ -474,7 +474,7 @@ as follows:
 :command:`role-policy get`
   Get the specified inline policy document embedded with the given role.
 
-:command:`role-policy rm`
+:command:`role-policy delete`
   Remove the policy attached to a role
 
 :command:`reshard add`
