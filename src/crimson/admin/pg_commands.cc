@@ -54,6 +54,10 @@ public:
     }
     // am i the primary for this pg?
     const auto osdmap = osd.get_shard_services().get_map();
+    if (!osdmap || osdmap->get_epoch() == 0) {
+      return seastar::make_ready_future<tell_result_t>(tell_result_t{
+        -EAGAIN, "osdmap is not ready"});
+    }
     spg_t spg_id;
     if (!osdmap->get_primary_shard(pgid, &spg_id)) {
       return seastar::make_ready_future<tell_result_t>(tell_result_t{

@@ -196,7 +196,12 @@ auto AdminSocket::execute_command(const std::vector<std::string>& cmd,
         tell_result_t{-EINVAL, "invalid command json", std::move(out)});
     }
     DEBUG("validated {} {}", cmd, os.str());
-    return parsed->hook.call(parsed->params, parsed->format, std::move(buf));
+    auto owned = std::move(*parsed);
+    return seastar::do_with(std::move(owned), std::move(buf),
+                            [](const parsed_command_t& parsed,
+                               ceph::bufferlist& buf) mutable {
+      return parsed.hook.call(parsed.params, parsed.format, std::move(buf));
+    });
   } else {
     DEBUG("failed to parse");
     auto& result = std::get<tell_result_t>(maybe_parsed);
