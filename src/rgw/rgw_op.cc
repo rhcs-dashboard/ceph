@@ -7437,13 +7437,22 @@ void RGWCompleteMultipart::execute(optional_yield y)
 
   serializer = meta_obj->get_serializer(this, y, "RGWCompleteMultipart");
   op_ret = serializer->try_lock(this, dur, y);
-  if (op_ret < 0) {
-    ldpp_dout(this, 0) << "failed to acquire lock" << dendl;
-    if (op_ret == -ENOENT && check_previously_completed(parts)) {
-      ldpp_dout(this, 1) << "NOTICE: This multipart completion is already completed" << dendl;
+  if (op_ret == -ENOENT) {
+    // CompleteMultipartUpload should be idempotent - return success if the
+    // upload already completed. but note that this check isn't reliable in
+    // cases where the upload completed successfully but was later overwritten
+    // or deleted
+    if (check_previously_completed(parts)) {
+      ldpp_dout(this, 4) << "NOTICE: This multipart completion is already completed" << dendl;
       op_ret = 0;
       return;
     }
+    s->err.message = "The specified multipart upload does not exist.";
+    op_ret = -ERR_NO_SUCH_UPLOAD;
+    return;
+  }
+  if (op_ret < 0) {
+    ldpp_dout(this, 0) << "failed to acquire lock" << dendl;
     op_ret = -ERR_INTERNAL_ERROR;
     s->err.message = "This multipart completion is already in progress";
     return;
