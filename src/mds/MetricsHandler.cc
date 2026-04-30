@@ -350,35 +350,34 @@ void MetricsHandler::handle_payload(Session* session,  const SubvolumeMetricsPay
   std::vector<std::string> resolved_paths;
   resolved_paths.reserve(payload.subvolume_metrics.size());
 
-  // RAII guard: unlock on construction, re-lock on destruction (even on exceptions)
-  struct UnlockGuard {
-    std::unique_lock<ceph::mutex> &lk;
-    explicit UnlockGuard(std::unique_lock<ceph::mutex>& l) : lk(l) { lk.unlock(); }
-    ~UnlockGuard() noexcept {
-      if (!lk.owns_lock()) {
-        try { lk.lock(); }
-        catch (...) {
-          dout(0) << "failed to re-lock in UnlockGuard dtor" << dendl;
+  {
+    // Scoped unlock: resolve paths without holding the metrics lock
+    // to avoid contention with mds_lock inside get_path().
+    struct UnlockGuard {
+      std::unique_lock<ceph::mutex> &lk;
+      explicit UnlockGuard(std::unique_lock<ceph::mutex>& l) : lk(l) { lk.unlock(); }
+      ~UnlockGuard() noexcept {
+        if (!lk.owns_lock()) {
+          try { lk.lock(); }
+          catch (...) {
+            dout(0) << "failed to re-lock in UnlockGuard dtor" << dendl;
+          }
         }
       }
+    } unlock_guard{lk};
+    for (const auto& metric : payload.subvolume_metrics) {
+      std::string path = mds->get_path(metric.subvolume_id);
+      if (path.empty()) {
+        dout(10) << " path not found for " << metric.subvolume_id << dendl;
+      }
+      resolved_paths.emplace_back(std::move(path));
     }
-  } unlock_guard{lk};
+  } // lock re-acquired here
 
-  // unlocked: resolve paths, no contention with mds lock
-  for (const auto& metric : payload.subvolume_metrics) {
-    std::string path = mds->get_path(metric.subvolume_id);
-    if (path.empty()) {
-      dout(10) << " path not found for " << metric.subvolume_id << dendl;
-    }
-    resolved_paths.emplace_back(std::move(path));
-  }
-
-  // locked again (via UnlockGuard dtor): update metrics map
   const auto now_ms = static_cast<int64_t>(
-  std::chrono::duration_cast<std::chrono::milliseconds>(
-std::chrono::steady_clock::now().time_since_epoch()).count());
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::steady_clock::now().time_since_epoch()).count());
 
-  // Keep index pairing but avoid double map lookup
   for (size_t i = 0; i < resolved_paths.size(); ++i) {
     const auto& path = resolved_paths[i];
     if (path.empty()) continue;
@@ -386,7 +385,7 @@ std::chrono::steady_clock::now().time_since_epoch()).count());
     auto& vec = subvolume_metrics_map[path];
 
     dout(20) << " accumulating subv_metric " << payload.subvolume_metrics[i] << dendl;
-    vec.emplace_back(std::move(payload.subvolume_metrics[i]));
+    vec.emplace_back(payload.subvolume_metrics[i]);
     vec.back().time_stamp = now_ms;
   }
 }
