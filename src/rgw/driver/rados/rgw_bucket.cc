@@ -3137,6 +3137,12 @@ int RGWBucketInstanceMetadataHandler::put_prepare(
             } // datalog error is not fatal
         }
       }
+    } else {
+      ldpp_dout(dpp, 10) << "skipping bucket-deletion log update for "
+                         << bci.info.bucket
+                         << ": layout.logs is empty (index_type="
+                         << bci.info.layout.current_index.layout.type << ")"
+                         << dendl;
     }
   }
 
