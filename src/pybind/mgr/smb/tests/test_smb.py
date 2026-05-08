@@ -1279,3 +1279,48 @@ def test_share_fscrypt_config_error(tmodule, params):
     assert len(failures) == 1
     failure = failures[0]
     assert params['expected'] in failure.msg
+
+
+def test_share_rm_wildcard(tmodule):
+    _example_cfg_1(tmodule)
+
+    result = tmodule.share_rm('foo', 's*', wildcard=True)
+    assert result.success
+    assert len(list(result)) == 2
+
+
+def test_share_rm_wildcard_one_match(tmodule):
+    _example_cfg_1(tmodule)
+
+    result = tmodule.share_rm('foo', 'st*', wildcard=True)
+    assert result.success
+    assert len(list(result)) == 1
+
+
+def test_share_rm_wildcard_no_match(tmodule):
+    _example_cfg_1(tmodule)
+
+    with pytest.raises(smb.cli.NoMatchingValue):
+        tmodule.share_rm('foo', 'q*', wildcard=True)
+
+
+def test_cluster_rm_recursive(tmodule):
+    _example_cfg_1(tmodule)
+
+    result = tmodule.cluster_rm('foo', recursive=True)
+    assert result.success
+
+
+def test_cluster_rm_recursive_wildcard(tmodule):
+    _example_cfg_1(tmodule)
+
+    result = tmodule.cluster_rm('*', recursive=True, wildcard=True)
+    assert result.success
+    assert len(list(result)) == 3  # 1 cluster + 2 share
+
+
+def test_cluster_rm_wildcard_no_match(tmodule):
+    _example_cfg_1(tmodule)
+
+    with pytest.raises(smb.cli.NoMatchingValue):
+        tmodule.cluster_rm('gonk', wildcard=True)
