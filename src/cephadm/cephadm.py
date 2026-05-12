@@ -4101,6 +4101,7 @@ def command_adopt_prometheus(ctx, daemon_id, fsid):
         endpoints=endpoints,
     )
     read_in_sysctl_settings(ctx)
+    call_throws(ctx, ['systemctl', 'daemon-reload'])
     update_firewalld(ctx, daemon_form_create(ctx, ident))
 
 
@@ -4173,6 +4174,7 @@ def command_adopt_grafana(ctx, daemon_id, fsid):
         endpoints=endpoints,
     )
     read_in_sysctl_settings(ctx)
+    call_throws(ctx, ['systemctl', 'daemon-reload'])
     update_firewalld(ctx, daemon_form_create(ctx, ident))
 
 
@@ -4221,6 +4223,7 @@ def command_adopt_alertmanager(ctx, daemon_id, fsid):
         endpoints=endpoints,
     )
     read_in_sysctl_settings(ctx)
+    call_throws(ctx, ['systemctl', 'daemon-reload'])
     update_firewalld(ctx, daemon_form_create(ctx, ident))
 
 
