@@ -1,7 +1,7 @@
-import { DashboardV3PageHelper } from '../ui/dashboard-v3.po';
+import { OverviewPagehelper } from '../ui/overview.po';
 
 describe('Overview Page', { retries: 0 }, () => {
-  const overview = new DashboardV3PageHelper();
+  const overview = new OverviewPagehelper();
 
   beforeEach(() => {
     cy.intercept('GET', '**/api/prometheus/data*', {
@@ -28,7 +28,7 @@ describe('Overview Page', { retries: 0 }, () => {
     overview.navigateTo();
   });
 
-  describe('Dashboard accessibility', () => {
+  describe('Overview accessibility', () => {
     it('should have no accessibility violations', () => {
       cy.injectAxe();
       cy.checkAccessibility(
