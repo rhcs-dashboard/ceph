@@ -175,7 +175,11 @@ from cephadmlib.container_daemon_form import (
     ContainerDaemonForm,
     daemon_to_container,
 )
-from cephadmlib.sysctl import install_sysctl, migrate_sysctl_dir
+from cephadmlib.sysctl import (
+    write_sysctl_files,
+    read_in_sysctl_settings,
+    migrate_sysctl_dir,
+)
 from cephadmlib.firewalld import Firewalld, update_firewalld
 from cephadmlib import templating
 from cephadmlib.daemons.ceph import get_ceph_mounts_for_type, ceph_daemons
@@ -1194,7 +1198,7 @@ def deploy_daemon_units(
     )
 
     # sysctl
-    install_sysctl(ctx, ident.fsid, daemon)
+    write_sysctl_files(ctx, ident.fsid, daemon)
 
     # systemd
     ic_ids = [
@@ -2286,6 +2290,7 @@ def create_mon(
     mon_c = get_container(ctx, ident)
     ctx.meta_properties = {'service_name': 'mon'}
     deploy_daemon(ctx, ident, mon_c, uid, gid)
+    read_in_sysctl_settings(ctx)
     call_throws(ctx, ['systemctl', 'daemon-reload'])
     handle_post_writing_unit_files_deployment_actions(ctx)
 
@@ -2347,6 +2352,7 @@ def create_mgr(
         keyring=mgr_keyring,
         endpoints=endpoints,
     )
+    read_in_sysctl_settings(ctx)
     call_throws(ctx, ['systemctl', 'daemon-reload'])
     handle_post_writing_unit_files_deployment_actions(ctx)
 
@@ -3331,6 +3337,17 @@ def command_deploy_from(base_ctx: CephadmContext) -> None:
             daemon_name, rc = future.result()
             results[daemon_name] = rc
 
+    # Handle portion of daemon deployment (re-reading in sysctl conf and
+    # systemd unit files) that requires system level commands and
+    # can cause issues duuring parallel deployment
+
+    # TODO: it's possible none of the daemons we wrote files for actually
+    # needed a sysctl conf file to be written out, at which point this
+    # is unnecessary. It should be possible to find out if this is required
+    # by getting each individual thread to mark whether they need it in
+    # their individual ctx object
+    read_in_sysctl_settings(ctx)
+
     call_throws(ctx, ['systemctl', 'daemon-reload'])
 
     with ThreadPoolExecutor(max_workers=10) as executor:
@@ -4029,6 +4046,7 @@ def command_adopt_ceph(ctx, daemon_type, daemon_id, fsid):
         start=start,
         osd_fsid=osd_fsid,
     )
+    read_in_sysctl_settings(ctx)
     call_throws(ctx, ['systemctl', 'daemon-reload'])
     restart_deployed_daemon(
         ctx,
@@ -4082,6 +4100,7 @@ def command_adopt_prometheus(ctx, daemon_id, fsid):
         deployment_type=DeploymentType.REDEPLOY,
         endpoints=endpoints,
     )
+    read_in_sysctl_settings(ctx)
     update_firewalld(ctx, daemon_form_create(ctx, ident))
 
 
@@ -4153,6 +4172,7 @@ def command_adopt_grafana(ctx, daemon_id, fsid):
         deployment_type=DeploymentType.REDEPLOY,
         endpoints=endpoints,
     )
+    read_in_sysctl_settings(ctx)
     update_firewalld(ctx, daemon_form_create(ctx, ident))
 
 
@@ -4200,6 +4220,7 @@ def command_adopt_alertmanager(ctx, daemon_id, fsid):
         deployment_type=DeploymentType.REDEPLOY,
         endpoints=endpoints,
     )
+    read_in_sysctl_settings(ctx)
     update_firewalld(ctx, daemon_form_create(ctx, ident))
 
 
