@@ -62,6 +62,7 @@ $scrollbar-track-color: transparent;
 }
 
 ::ng-deep .table-actions {
+  align-items: center;
   display: flex;
   flex-flow: row-reverse;
   gap: 0.1em;
