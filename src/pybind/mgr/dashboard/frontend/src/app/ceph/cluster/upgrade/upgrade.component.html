@@ -53,9 +53,9 @@
                           class="info-card-content-clickable mt-1">
             <div cdsToggletipButton>
             {{ healthData.health.status | healthLabel | uppercase }}
-            <i  *ngIf="healthData.health?.status !== 'HEALTH_OK'"
-                class="fa fa-exclamation-triangle">
-            </i>
+            <cd-icon *ngIf="healthData.health?.status !== 'HEALTH_OK'"
+                     type="warningAltFilled">
+            </cd-icon>
             </div>
             <div cdsToggletipContent>
               <div class="cds--popover-scroll-container">
