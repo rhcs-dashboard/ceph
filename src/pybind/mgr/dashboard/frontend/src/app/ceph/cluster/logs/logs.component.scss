@@ -1,9 +1,128 @@
-@use './src/styles/vendor/variables' as vv;
+@use '@carbon/styles/scss/theme';
+@use '@carbon/styles/scss/spacing';
+@use '@carbon/styles/scss/type';
 
-p {
-  font-family: monospace;
+// Log viewer container
+.log-viewer {
+  position: relative;
+  background: theme.$layer-01;
+  border-radius: 4px;
+  padding: spacing.$spacing-05;
+
+  &--scrollable {
+    max-height: 50vh;
+    overflow-y: auto;
+
+    // Custom scrollbar styling for better Carbon integration
+    &::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: theme.$layer-01;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: theme.$border-subtle-01;
+      border-radius: 4px;
+
+      &:hover {
+        background: theme.$border-strong-01;
+      }
+    }
+  }
+
+  &__empty {
+    @include type.type-style('body-compact-01');
+
+    color: theme.$text-secondary;
+    padding: spacing.$spacing-07 0;
+    text-align: center;
+  }
 }
 
+// Action buttons (download/copy)
+.log-actions {
+  position: absolute;
+  top: spacing.$spacing-03;
+  right: spacing.$spacing-03;
+  display: flex;
+  gap: spacing.$spacing-02;
+  z-index: 1;
+}
+
+// Log entries container
+.log-entries {
+  display: flex;
+  flex-direction: column;
+  gap: spacing.$spacing-02;
+}
+
+// Individual log entry
+.log-entry {
+  @include type.type-style('code-01');
+
+  display: flex;
+  gap: spacing.$spacing-04;
+  font-family: 'IBM Plex Mono', 'Menlo', 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', 'Courier',
+    monospace;
+  line-height: 1.5;
+  padding: spacing.$spacing-02 0;
+
+  // Subtle hover effect for better UX
+  &:hover {
+    background: theme.$layer-hover-01;
+    margin: 0 calc(-1 * #{spacing.$spacing-03});
+    padding: spacing.$spacing-02 spacing.$spacing-03;
+    border-radius: 2px;
+  }
+
+  &__timestamp {
+    flex-shrink: 0;
+    font-weight: 600;
+    color: theme.$text-primary;
+    min-width: 140px;
+  }
+
+  &__priority {
+    flex-shrink: 0;
+    font-weight: 500;
+    min-width: 48px;
+
+    // Priority color coding with Carbon tokens
+    &--err {
+      color: theme.$support-error;
+    }
+
+    &--warn {
+      color: theme.$support-warning;
+    }
+
+    &--info {
+      color: theme.$support-info;
+    }
+
+    &--debug {
+      color: theme.$text-secondary;
+    }
+  }
+
+  &__message {
+    flex: 1;
+    overflow-wrap: break-word;
+    color: theme.$text-primary;
+
+    // Style for search highlighting
+    ::ng-deep mark {
+      background-color: theme.$background-selected;
+      color: theme.$text-on-color;
+      padding: 0 2px;
+      border-radius: 2px;
+    }
+  }
+}
+
+// Legacy Bootstrap compatibility (temporary)
 .card {
   .btn-group {
     margin-top: -57px;
@@ -33,19 +152,19 @@ p {
   }
 
   .err {
-    color: vv.$danger;
+    color: theme.$support-error;
   }
 
   .warn {
-    color: vv.$warning;
+    color: theme.$support-warning;
   }
 
   .info {
-    color: vv.$info;
+    color: theme.$support-info;
   }
 
   .debug {
-    color: vv.$gray-700;
+    color: theme.$text-secondary;
   }
 }
 
@@ -55,4 +174,8 @@ p {
 
 .card-body.overflow-auto {
   height: 50vh;
+}
+
+p {
+  font-family: monospace;
 }

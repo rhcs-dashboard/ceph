@@ -192,4 +192,13 @@ export class LogsComponent implements OnInit, OnDestroy {
     }
     return logText;
   }
+
+  /**
+   * TrackBy function for log entries - optimizes rendering performance
+   * Prevents unnecessary re-renders when logs auto-refresh every 5 seconds
+   * Uses timestamp + index as stable identifier
+   */
+  trackByLogEntry(index: number, entry: any): string {
+    return `${entry.stamp}-${index}`;
+  }
 }
