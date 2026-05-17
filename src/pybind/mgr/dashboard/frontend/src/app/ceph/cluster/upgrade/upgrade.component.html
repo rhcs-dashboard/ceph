@@ -12,7 +12,9 @@
         <div class="d-flex flex-column justify-content-center align-items-center mt-2">
           <h5 i18n
               *ngIf="status.is_paused; else inProgress">
-            <i [ngClass]="[icons.spinner]"></i>
+            <cds-loading [isActive]="false"
+                         [overlay]="false"
+                         size="sm"></cds-loading>
             Upgrade is paused {{executingTasks?.progress}}%</h5>
           <a class="mt-2 link-primary mb-2"
              routerLink="/upgrade/progress"
