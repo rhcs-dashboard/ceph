@@ -109,7 +109,7 @@
       </ng-template>
       <span *ngIf="loading"
             class="d-flex justify-content-center">
-        <i [ngClass]="[icons.large3x, icons.spinner, icons.spin]"></i>
+        <i [ngClass]="[icons.size32, icons.spinner, icons.spin]"></i>
       </span>
       <div class="row"
            *ngIf="multisiteSyncStatus$ | async">
@@ -121,7 +121,7 @@
                    [justifyContentCenter]="true">
             <span *ngIf="loading"
                   class="d-flex justify-content-center">
-              <i [ngClass]="[icons.large3x, icons.spinner, icons.spin]"></i>
+              <i [ngClass]="[icons.size32, icons.spinner, icons.spin]"></i>
             </span>
             <span *ngIf="!loading"
                   class="d-flex justify-content-center">
@@ -136,7 +136,7 @@
                      class="d-flex h-100">
               <span *ngIf="loading"
                     class="d-flex justify-content-center">
-                <i [ngClass]="[icons.large3x, icons.spinner, icons.spin]"></i>
+                <i [ngClass]="[icons.size32, icons.spinner, icons.spin]"></i>
               </span>
               <div class="row"
                    *ngIf="!loading">
