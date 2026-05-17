@@ -21,7 +21,7 @@
 
         <ng-template #inProgress>
           <h5 i18n>
-            <i [ngClass]="[icons.spin, icons.spinner]"></i>
+            <cds-inline-loading></cds-inline-loading>
               Upgrading {{executingTasks?.progress}}%
           </h5>
         </ng-template>
@@ -184,7 +184,7 @@
             aria-label="Upgrade now"
             [disabled]="true"
             i18n>Checking for upgrades
-      <i [ngClass]="[icons.spin, icons.spinner]"></i>
+      <cds-inline-loading></cds-inline-loading>
     </button>
   </div>
 </ng-template>
@@ -194,7 +194,7 @@
        *ngIf="!errorMessage; else upgradeInfoError">
     <span class="text-info justify-content-center align-items-center"
           i18n>Fetching registry information
-      <i [ngClass]="[icons.spin, icons.spinner]"></i>
+      <cds-inline-loading></cds-inline-loading>
     </span>
   </div>
 </ng-template>
@@ -224,7 +224,7 @@
 <ng-template #upgradeProgress>
   <div class="d-flex flex-column justify-content-center align-items-center mt-2">
     <h5 i18n>
-      <i [ngClass]="[icons.spin, icons.spinner]"></i>
+      <cds-inline-loading></cds-inline-loading>
       Upgrade in progress {{executingTasks?.progress}}%</h5>
     <a class="mt-2 link-primary mb-2"
        routerLink="/upgrade/progress"
