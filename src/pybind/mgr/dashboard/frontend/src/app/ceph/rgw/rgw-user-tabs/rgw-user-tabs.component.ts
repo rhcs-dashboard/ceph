@@ -23,7 +23,10 @@ export class RgwUserTabsComponent implements OnInit {
 
   ngOnInit(): void {
     const currentPath = this.router.url;
-    this.activeTab = Object.values(TABS).find((tab) => currentPath.includes(tab)) || TABS.user;
+    const tab = Object.values(TABS).find((t) => currentPath.includes(t)) || TABS.user;
+    setTimeout(() => {
+      this.activeTab = tab;
+    });
   }
 
   onSelected(tab: TABS) {

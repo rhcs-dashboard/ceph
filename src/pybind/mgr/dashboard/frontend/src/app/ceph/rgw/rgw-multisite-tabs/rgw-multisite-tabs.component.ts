@@ -22,8 +22,11 @@ export class RgwMultisiteTabsComponent implements OnInit {
 
   ngOnInit(): void {
     const currentPath = this.router.url;
-    this.activeTab =
-      Object.values(TABS).find((tab) => currentPath.includes(tab)) || TABS.configuration;
+    const tab =
+      Object.values(TABS).find((t) => currentPath.includes(t)) || TABS.configuration;
+    setTimeout(() => {
+      this.activeTab = tab;
+    });
   }
 
   onSelected(tab: TABS) {
