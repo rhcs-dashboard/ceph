@@ -21,17 +21,11 @@ export class PrometheusTabsComponent implements OnInit {
   selectedTab: TABS;
   activeTab: TABS = TABS.activeAlerts;
 
-  constructor(
-    public prometheusAlertService: PrometheusAlertService,
-    private router: Router
-  ) {}
+  constructor(public prometheusAlertService: PrometheusAlertService, private router: Router) {}
 
   ngOnInit(): void {
     const currentPath = this.router.url;
-    const tab = Object.values(TABS).find((t) => currentPath.includes(t)) || TABS.activeAlerts;
-    setTimeout(() => {
-      this.activeTab = tab;
-    });
+    this.activeTab = Object.values(TABS).find((t) => currentPath.includes(t)) || TABS.activeAlerts;
   }
 
   onSelected(tab: TABS) {

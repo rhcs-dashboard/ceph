@@ -6,18 +6,21 @@
   <cds-tab
     heading="Users"
     i18n-heading
+    [tabIndex]="null"
     [active]="activeTab === Tabs.user"
     (selected)="onSelected(Tabs.user)">
   </cds-tab>
   <cds-tab
     heading="Accounts"
     i18n-heading
+    [tabIndex]="null"
     [active]="activeTab === Tabs.accounts"
     (selected)="onSelected(Tabs.accounts)">
   </cds-tab>
   <cds-tab
     heading="Roles"
     i18n-heading
+    [tabIndex]="null"
     [active]="activeTab === Tabs.roles"
     (selected)="onSelected(Tabs.roles)">
   </cds-tab>

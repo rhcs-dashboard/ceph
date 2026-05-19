@@ -22,10 +22,7 @@ export class IscsiTabsComponent implements OnInit {
 
   ngOnInit(): void {
     const currentPath = this.router.url;
-    const tab = Object.values(TABS).find((t) => currentPath.includes(t)) || TABS.overview;
-    setTimeout(() => {
-      this.activeTab = tab;
-    });
+    this.activeTab = Object.values(TABS).find((t) => currentPath.includes(t)) || TABS.overview;
   }
 
   onSelected(tab: TABS) {

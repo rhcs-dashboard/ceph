@@ -24,19 +24,13 @@ export class RbdTabsComponent implements OnInit {
   selectedTab: TABS;
   activeTab: TABS = TABS.images;
 
-  constructor(
-    private authStorageService: AuthStorageService,
-    private router: Router
-  ) {
+  constructor(private authStorageService: AuthStorageService, private router: Router) {
     this.grafanaPermission = this.authStorageService.getPermissions().grafana;
   }
 
   ngOnInit(): void {
     const currentPath = this.router.url;
-    const tab = Object.values(TABS).find((t) => currentPath.includes(t)) || TABS.images;
-    setTimeout(() => {
-      this.activeTab = tab;
-    });
+    this.activeTab = Object.values(TABS).find((t) => currentPath.includes(t)) || TABS.images;
   }
 
   onSelected(tab: TABS) {

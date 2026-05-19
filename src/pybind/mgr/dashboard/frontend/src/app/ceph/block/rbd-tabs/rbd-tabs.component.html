@@ -6,18 +6,21 @@
   <cds-tab
     heading="Images"
     i18n-heading
+    [tabIndex]="null"
     [active]="activeTab === Tabs.images"
     (selected)="onSelected(Tabs.images)">
   </cds-tab>
   <cds-tab
     heading="Namespaces"
     i18n-heading
+    [tabIndex]="null"
     [active]="activeTab === Tabs.namespaces"
     (selected)="onSelected(Tabs.namespaces)">
   </cds-tab>
   <cds-tab
     heading="Trash"
     i18n-heading
+    [tabIndex]="null"
     [active]="activeTab === Tabs.trash"
     (selected)="onSelected(Tabs.trash)">
   </cds-tab>
@@ -25,7 +28,8 @@
     <cds-tab
       heading="Overall Performance"
       i18n-heading
-      [active]="activeTab === Tabs.performance"
+      [tabIndex]="null"
+    [active]="activeTab === Tabs.performance"
       (selected)="onSelected(Tabs.performance)">
     </cds-tab>
   }

@@ -22,10 +22,7 @@ export class UserTabsComponent implements OnInit {
 
   ngOnInit(): void {
     const currentPath = this.router.url;
-    const tab = Object.values(TABS).find((t) => currentPath.includes(t)) || TABS.users;
-    setTimeout(() => {
-      this.activeTab = tab;
-    });
+    this.activeTab = Object.values(TABS).find((t) => currentPath.includes(t)) || TABS.users;
   }
 
   onSelected(tab: TABS) {

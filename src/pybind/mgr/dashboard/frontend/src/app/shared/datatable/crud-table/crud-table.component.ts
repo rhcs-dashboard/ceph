@@ -74,11 +74,8 @@ export class CRUDTableComponent implements OnInit {
       const resource: string = data.resource;
       this.tabs = data.tabs;
       if (data.tabs) {
-        const url =
+        this.activeTabUrl =
           data.tabs.find((t: any) => this.router.url.startsWith(t.url))?.url || data.tabs[0]?.url;
-        setTimeout(() => {
-          this.activeTabUrl = url;
-        });
       }
       this.dataGatewayService
         .list(`ui-${resource}`)
