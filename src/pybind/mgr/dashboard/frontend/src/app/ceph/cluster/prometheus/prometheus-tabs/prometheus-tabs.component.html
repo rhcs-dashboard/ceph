@@ -1,9 +1,11 @@
 <ng-template #activeAlertsHeading>
   <span i18n>Active Alerts</span>
-  <cds-tag *ngIf="prometheusAlertService.activeCriticalAlerts > 0"
-      class="tag-danger ms-1">{{ prometheusAlertService.activeCriticalAlerts }}</cds-tag>
-  <cds-tag *ngIf="prometheusAlertService.activeWarningAlerts > 0"
-      class="tag-warning ms-1">{{ prometheusAlertService.activeWarningAlerts }}</cds-tag>
+  @if (prometheusAlertService.activeCriticalAlerts > 0) {
+    <cds-tag class="tag-danger ms-1">{{ prometheusAlertService.activeCriticalAlerts }}</cds-tag>
+  }
+  @if (prometheusAlertService.activeWarningAlerts > 0) {
+    <cds-tag class="tag-warning ms-1">{{ prometheusAlertService.activeWarningAlerts }}</cds-tag>
+  }
 </ng-template>
 <cds-tabs
   type="contained"

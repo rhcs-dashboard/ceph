@@ -21,11 +21,12 @@
     [active]="activeTab === Tabs.trash"
     (selected)="onSelected(Tabs.trash)">
   </cds-tab>
-  <cds-tab
-    *ngIf="grafanaPermission.read"
-    heading="Overall Performance"
-    i18n-heading
-    [active]="activeTab === Tabs.performance"
-    (selected)="onSelected(Tabs.performance)">
-  </cds-tab>
+  @if (grafanaPermission.read) {
+    <cds-tab
+      heading="Overall Performance"
+      i18n-heading
+      [active]="activeTab === Tabs.performance"
+      (selected)="onSelected(Tabs.performance)">
+    </cds-tab>
+  }
 </cds-tabs>

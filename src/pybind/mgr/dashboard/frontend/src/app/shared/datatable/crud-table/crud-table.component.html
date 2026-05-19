@@ -1,16 +1,18 @@
-<cds-tabs
-  *ngIf="tabs"
-  type="contained"
-  followFocus="true"
-  isNavigation="true"
-  [cacheActive]="false">
-  <cds-tab
-    *ngFor="let tab of tabs"
-    [heading]="tab.name"
-    [active]="tab.url === activeTabUrl"
-    (selected)="onTabSelected(tab.url)">
-  </cds-tab>
-</cds-tabs>
+@if (tabs) {
+  <cds-tabs
+    type="contained"
+    followFocus="true"
+    isNavigation="true"
+    [cacheActive]="false">
+    @for (tab of tabs; track tab.url) {
+      <cds-tab
+        [heading]="tab.name"
+        [active]="tab.url === activeTabUrl"
+        (selected)="onTabSelected(tab.url)">
+      </cds-tab>
+    }
+  </cds-tabs>
+}
 
 <ng-container *ngIf="meta">
   <cd-table
