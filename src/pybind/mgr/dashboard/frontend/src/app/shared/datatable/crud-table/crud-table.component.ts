@@ -61,6 +61,9 @@ export class CRUDTableComponent implements OnInit {
   }
 
   onTabSelected(url: string) {
+    if (url === this.activeTabUrl) {
+      return;
+    }
     this.activeTabUrl = url;
     this.router.navigate([url]);
   }

@@ -16,7 +16,6 @@ enum TABS {
   standalone: false
 })
 export class RgwUserTabsComponent implements OnInit {
-  selectedTab: TABS;
   activeTab: TABS = TABS.user;
 
   constructor(private router: Router) {}
@@ -27,7 +26,10 @@ export class RgwUserTabsComponent implements OnInit {
   }
 
   onSelected(tab: TABS) {
-    this.selectedTab = tab;
+    if (tab === this.activeTab) {
+      return;
+    }
+    this.activeTab = tab;
     this.router.navigate([`${RGW_PATH}/${tab}`]);
   }
 

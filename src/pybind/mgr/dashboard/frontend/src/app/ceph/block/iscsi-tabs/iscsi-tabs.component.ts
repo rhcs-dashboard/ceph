@@ -15,7 +15,6 @@ enum TABS {
   standalone: false
 })
 export class IscsiTabsComponent implements OnInit {
-  selectedTab: TABS;
   activeTab: TABS = TABS.overview;
 
   constructor(private router: Router) {}
@@ -26,7 +25,10 @@ export class IscsiTabsComponent implements OnInit {
   }
 
   onSelected(tab: TABS) {
-    this.selectedTab = tab;
+    if (tab === this.activeTab) {
+      return;
+    }
+    this.activeTab = tab;
     this.router.navigate([`${ISCSI_PATH}/${tab}`]);
   }
 

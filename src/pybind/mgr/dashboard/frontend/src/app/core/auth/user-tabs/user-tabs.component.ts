@@ -15,7 +15,6 @@ enum TABS {
   standalone: false
 })
 export class UserTabsComponent implements OnInit {
-  selectedTab: TABS;
   activeTab: TABS = TABS.users;
 
   constructor(private router: Router) {}
@@ -26,7 +25,10 @@ export class UserTabsComponent implements OnInit {
   }
 
   onSelected(tab: TABS) {
-    this.selectedTab = tab;
+    if (tab === this.activeTab) {
+      return;
+    }
+    this.activeTab = tab;
     this.router.navigate([`${USER_MGMT_PATH}/${tab}`]);
   }
 

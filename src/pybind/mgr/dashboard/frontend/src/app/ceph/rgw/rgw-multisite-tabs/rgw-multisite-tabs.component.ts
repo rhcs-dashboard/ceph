@@ -15,7 +15,6 @@ enum TABS {
   standalone: false
 })
 export class RgwMultisiteTabsComponent implements OnInit {
-  selectedTab: TABS;
   activeTab: TABS = TABS.configuration;
 
   constructor(private router: Router) {}
@@ -26,7 +25,10 @@ export class RgwMultisiteTabsComponent implements OnInit {
   }
 
   onSelected(tab: TABS) {
-    this.selectedTab = tab;
+    if (tab === this.activeTab) {
+      return;
+    }
+    this.activeTab = tab;
     this.router.navigate([`${MULTISITE_PATH}/${tab}`]);
   }
 

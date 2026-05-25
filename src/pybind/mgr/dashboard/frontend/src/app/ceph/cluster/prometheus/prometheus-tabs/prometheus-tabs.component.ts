@@ -18,7 +18,6 @@ enum TABS {
   standalone: false
 })
 export class PrometheusTabsComponent implements OnInit {
-  selectedTab: TABS;
   activeTab: TABS = TABS.activeAlerts;
 
   constructor(public prometheusAlertService: PrometheusAlertService, private router: Router) {}
@@ -29,7 +28,10 @@ export class PrometheusTabsComponent implements OnInit {
   }
 
   onSelected(tab: TABS) {
-    this.selectedTab = tab;
+    if (tab === this.activeTab) {
+      return;
+    }
+    this.activeTab = tab;
     this.router.navigate([`${MONITORING_PATH}/${tab}`]);
   }
 

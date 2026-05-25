@@ -21,7 +21,6 @@ enum TABS {
 })
 export class RbdTabsComponent implements OnInit {
   grafanaPermission: Permission;
-  selectedTab: TABS;
   activeTab: TABS = TABS.images;
 
   constructor(private authStorageService: AuthStorageService, private router: Router) {
@@ -34,7 +33,10 @@ export class RbdTabsComponent implements OnInit {
   }
 
   onSelected(tab: TABS) {
-    this.selectedTab = tab;
+    if (tab === this.activeTab) {
+      return;
+    }
+    this.activeTab = tab;
     const route = tab === TABS.images ? RBD_PATH : `${RBD_PATH}/${tab}`;
     this.router.navigate([route]);
   }

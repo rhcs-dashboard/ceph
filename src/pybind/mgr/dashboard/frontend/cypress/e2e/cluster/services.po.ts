@@ -32,7 +32,7 @@ export class ServicesPageHelper extends PageHelper {
   clickServiceTab(serviceName: string, tabName: string) {
     this.getExpandCollapseElement(serviceName).click();
     cy.get('cd-service-details').within(() => {
-      this.getCdsTab(tabName).click();
+      this.getTab(tabName).click();
     });
   }
 

@@ -321,7 +321,7 @@ export class MultisitePageHelper extends PageHelper {
     });
   }
 
-  @PageHelper.restrictTo(pages.index.url)
+  @PageHelper.restrictTo(pages.wizard.url)
   verifyWizardContents(step: Step) {
     cy.get('cds-modal').then(() => {
       this.gotoStep(step);

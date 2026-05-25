@@ -88,19 +88,18 @@ export abstract class PageHelper {
   }
 
   getTabs() {
-    return cy.get('.nav.nav-tabs a');
+    return cy.get('cds-tab-headers button[role="tab"], .nav.nav-tabs a');
   }
 
   getTab(tabName: string) {
-    return cy.contains('.nav.nav-tabs a', tabName);
-  }
-
-  getCdsTab(tabName: string) {
-    return cy.contains('cds-tab-headers button[role="tab"]', tabName);
+    return cy.contains('cds-tab-headers button[role="tab"], .nav.nav-tabs a', tabName);
   }
 
   getTabText(index: number) {
-    return this.getTabs().its(index).text();
+    return this.getTabs()
+      .its(index)
+      .text()
+      .then((text: string) => text.trim());
   }
 
   getTabsCount(): any {
