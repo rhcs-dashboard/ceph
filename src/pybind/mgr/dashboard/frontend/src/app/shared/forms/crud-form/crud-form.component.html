@@ -1,6 +1,6 @@
 @if (formUISchema$ | async; as formUISchema) {
-  <form *ngIf="formUISchema.uiSchema"
-        [formGroup]="form"
+  @if (formUISchema.uiSchema) {
+  <form [formGroup]="form"
         (ngSubmit)="submit(model, formUISchema.taskInfo)">
     <div cdsGrid
          [useCssGrid]="true"
@@ -26,4 +26,5 @@
       </div>
     </div>
   </form>
+  }
 }

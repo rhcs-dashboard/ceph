@@ -1,14 +1,17 @@
 <div class="form-item">
-  <legend *ngIf="props.label"
-          class="cds--label"
-          i18n>{{ props.label }}</legend>
-  <p *ngIf="props.description"
-     i18n>{{ props.description }}</p>
-  <div class="cds--form-requirement"
-       role="alert"
-       *ngIf="showError && formControl.errors">
-    <formly-validation-message [field]="field"></formly-validation-message>
-  </div>
+  @if (props.label) {
+    <legend class="cds--label"
+            i18n>{{ props.label }}</legend>
+  }
+  @if (props.description) {
+    <p i18n>{{ props.description }}</p>
+  }
+  @if (showError && formControl.errors) {
+    <div class="cds--form-requirement"
+         role="alert">
+      <formly-validation-message [field]="field"></formly-validation-message>
+    </div>
+  }
   <div [ngClass]="inputClass">
     @for (f of field.fieldGroup; track f.key) {
       <formly-field [field]="f"

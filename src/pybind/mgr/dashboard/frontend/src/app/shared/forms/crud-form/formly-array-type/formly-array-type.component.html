@@ -1,9 +1,11 @@
 <div class="form-item">
-  <legend *ngIf="props.label"
-          class="cds--label formly-array-type__header"
-          i18n>{{ props.label }}</legend>
-  <p *ngIf="props.description"
-     i18n>{{ props.description }}</p>
+  @if (props.label) {
+    <legend class="cds--label formly-array-type__header"
+            i18n>{{ props.label }}</legend>
+  }
+  @if (props.description) {
+    <p i18n>{{ props.description }}</p>
+  }
 
   @for (field of field.fieldGroup; track $index; let i = $index) {
     <div class="formly-array-type__row">
@@ -39,9 +41,10 @@
     </div>
   }
 
-  <span class="invalid-feedback"
-        role="alert"
-        *ngIf="showError && formControl.errors">
-    <formly-validation-message [field]="field"></formly-validation-message>
-  </span>
+  @if (showError && formControl.errors) {
+    <span class="invalid-feedback"
+          role="alert">
+      <formly-validation-message [field]="field"></formly-validation-message>
+    </span>
+  }
 </div>
