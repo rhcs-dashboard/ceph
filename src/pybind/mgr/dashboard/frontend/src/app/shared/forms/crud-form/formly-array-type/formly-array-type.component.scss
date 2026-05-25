@@ -1,3 +1,21 @@
-.action-btn {
-  margin-top: 2.4rem;
+.formly-array-type {
+  &__header {
+    margin-top: var(--cds-spacing-02);
+  }
+
+  &__row {
+    display: flex;
+  }
+
+  &__field {
+    flex: 1;
+  }
+
+  &__actions {
+    margin-top: var(--cds-spacing-07);
+  }
+
+  &__empty {
+    text-align: end;
+  }
 }

@@ -1,38 +1,43 @@
-<div class="mb-3">
+<div class="form-item">
   <legend *ngIf="props.label"
-          class="cd-header mt-1"
+          class="cds--label formly-array-type__header"
           i18n>{{ props.label }}</legend>
   <p *ngIf="props.description"
      i18n>{{ props.description }}</p>
 
-  <div *ngFor="let field of field.fieldGroup; let i = index"
-       class="d-flex">
-    <formly-field class="col"
-                  [field]="field"></formly-field>
-    <div class="action-btn">
-      <button class="btn btn-light ms-1"
+  @for (field of field.fieldGroup; track $index; let i = $index) {
+    <div class="formly-array-type__row">
+      <formly-field class="formly-array-type__field"
+                    [field]="field"></formly-field>
+      <div class="formly-array-type__actions">
+        <button cdsButton="ghost"
+                size="sm"
+                type="button"
+                (click)="addWrapper()">
+          <cd-icon type="add"></cd-icon>
+        </button>
+        @if (field.props.removable !== false) {
+          <button cdsButton="ghost"
+                  size="sm"
+                  type="button"
+                  (click)="remove(i)">
+            <cd-icon type="trash"></cd-icon>
+          </button>
+        }
+      </div>
+    </div>
+  }
+  @if (field.fieldGroup.length === 0) {
+    <div class="formly-array-type__empty">
+      <button cdsButton="ghost"
               type="button"
-              (click)="addWrapper()">
-        <i [ngClass]="icons.add"></i>
-      </button>
-      <button class="btn btn-light ms-1"
-              type="button"
-              (click)="remove(i)"
-              *ngIf="field.props.removable !== false">
-        <i [ngClass]="icons.trash"></i>
+              (click)="addWrapper()"
+              i18n>
+        <cd-icon type="add"></cd-icon>
+        Add {{ props.label }}
       </button>
     </div>
-  </div>
-  <div *ngIf="field.fieldGroup.length === 0"
-       class="text-right">
-    <button class="btn btn-light"
-            type="button"
-            (click)="addWrapper()"
-            i18n>
-      <i [ngClass]="icons.add"></i>
-      Add {{ props.label }}
-    </button>
-  </div>
+  }
 
   <span class="invalid-feedback"
         role="alert"
