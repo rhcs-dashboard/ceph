@@ -1,7 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, NO_ERRORS_SCHEMA } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormGroup } from '@angular/forms';
 import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core';
+import { ButtonModule } from 'carbon-components-angular';
 
 import { FormlyArrayTypeComponent } from './formly-array-type.component';
 import { configureTestBed } from '~/testing/unit-test-helper';
@@ -27,10 +28,12 @@ describe('FormlyArrayTypeComponent', () => {
   configureTestBed({
     declarations: [FormlyArrayTypeComponent],
     imports: [
+      ButtonModule,
       FormlyModule.forRoot({
         types: [{ name: 'array', component: FormlyArrayTypeComponent }]
       })
-    ]
+    ],
+    schemas: [NO_ERRORS_SCHEMA]
   });
 
   beforeEach(() => {

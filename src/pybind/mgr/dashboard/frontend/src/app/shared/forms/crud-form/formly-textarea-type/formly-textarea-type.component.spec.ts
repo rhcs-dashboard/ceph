@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormGroup } from '@angular/forms';
 import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core';
+import { InputModule } from 'carbon-components-angular';
 
 import { FormlyTextareaTypeComponent } from './formly-textarea-type.component';
 import { configureTestBed } from '~/testing/unit-test-helper';
@@ -29,6 +30,7 @@ describe('FormlyTextareaTypeComponent', () => {
   configureTestBed({
     declarations: [FormlyTextareaTypeComponent],
     imports: [
+      InputModule,
       FormlyModule.forRoot({
         types: [{ name: 'input', component: FormlyTextareaTypeComponent }]
       })
