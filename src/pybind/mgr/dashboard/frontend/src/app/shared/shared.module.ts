@@ -16,7 +16,7 @@ import { FormlyObjectTypeComponent } from './forms/crud-form/formly-object-type/
 import { FormlyInputTypeComponent } from './forms/crud-form/formly-input-type/formly-input-type.component';
 import { FormlyTextareaTypeComponent } from './forms/crud-form/formly-textarea-type/formly-textarea-type.component';
 import { BlockUIModule, BlockUIService } from 'ng-block-ui';
-import { TilesModule } from 'carbon-components-angular';
+import { InputModule, TilesModule } from 'carbon-components-angular';
 
 @NgModule({
   imports: [
@@ -35,7 +35,8 @@ import { TilesModule } from 'carbon-components-angular';
       ],
       validationMessages: [{ name: 'required', message: 'This field is required' }]
     }),
-    BlockUIModule.forRoot()
+    BlockUIModule.forRoot(),
+    InputModule
   ],
   declarations: [FormlyTextareaTypeComponent],
   exports: [ComponentsModule, PipesModule, DataTableModule, DirectivesModule, TilesModule],
