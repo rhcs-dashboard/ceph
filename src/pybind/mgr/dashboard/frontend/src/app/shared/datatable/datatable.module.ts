@@ -35,7 +35,6 @@ import CubeIcon from '@carbon/icons/es/cube/32';
 
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { FormlyModule } from '@ngx-formly/core';
-import { FormlyBootstrapModule } from '@ngx-formly/bootstrap';
 import { ComponentsModule } from '../components/components.module';
 import { PipesModule } from '../pipes/pipes.module';
 import { CRUDTableComponent } from './crud-table/crud-table.component';
@@ -95,7 +94,6 @@ import { TableDetailDirective } from './directives/table-detail.directive';
       ],
       wrappers: [{ name: 'input-wrapper', component: FormlyInputWrapperComponent }]
     }),
-    FormlyBootstrapModule,
     TableModule,
     ButtonModule,
     IconModule,

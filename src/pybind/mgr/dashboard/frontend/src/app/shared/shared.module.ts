@@ -2,7 +2,6 @@ import { CommonModule } from '@angular/common';
 import { NgModule } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
 import { FormlyModule } from '@ngx-formly/core';
-import { FormlyBootstrapModule } from '@ngx-formly/bootstrap';
 
 import { CssHelper } from '~/app/shared/classes/css-helper';
 import { ComponentsModule } from './components/components.module';
@@ -36,7 +35,6 @@ import { TilesModule } from 'carbon-components-angular';
       ],
       validationMessages: [{ name: 'required', message: 'This field is required' }]
     }),
-    FormlyBootstrapModule,
     BlockUIModule.forRoot()
   ],
   declarations: [FormlyTextareaTypeComponent],
