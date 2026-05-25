@@ -1,9 +1,9 @@
-<textarea #textArea
+<textarea cdsTextArea
+          #textArea
           [formControl]="formControl"
           [cols]="props.cols"
           [rows]="props.rows"
-          class="form-control"
-          [class.is-invalid]="showError"
+          [invalid]="showError"
           [formlyAttributes]="field"
           (change)="onChange()">
 </textarea>
