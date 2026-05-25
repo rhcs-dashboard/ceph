@@ -14,10 +14,9 @@ import { FieldType } from '@ngx-formly/core';
 export class FormlyObjectTypeComponent extends FieldType {
   get inputClass(): string {
     const layoutType = this.props.templateOptions?.layoutType;
-    const defaultFlexClasses = 'd-flex justify-content-center align-content-stretch gap-3';
-    if (layoutType == 'row') {
-      return defaultFlexClasses + ' flex-row';
+    if (layoutType === 'row') {
+      return 'formly-object-type__layout formly-object-type__layout--row';
     }
-    return defaultFlexClasses + ' flex-column';
+    return 'formly-object-type__layout formly-object-type__layout--column';
   }
 }

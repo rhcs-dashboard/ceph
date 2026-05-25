@@ -1,17 +1,18 @@
-<div class="mb-3">
+<div class="form-item">
   <legend *ngIf="props.label"
-          class="cd-col-form-label"
+          class="cds--label"
           i18n>{{ props.label }}</legend>
   <p *ngIf="props.description"
      i18n>{{ props.description }}</p>
-  <div class="alert alert-danger"
+  <div class="cds--form-requirement"
        role="alert"
        *ngIf="showError && formControl.errors">
     <formly-validation-message [field]="field"></formly-validation-message>
   </div>
   <div [ngClass]="inputClass">
-    <formly-field *ngFor="let f of field.fieldGroup"
-                  [field]="f"
-                  class="flex-grow-1"></formly-field>
+    @for (f of field.fieldGroup; track f.key) {
+      <formly-field [field]="f"
+                    class="formly-object-type__field"></formly-field>
+    }
   </div>
 </div>
