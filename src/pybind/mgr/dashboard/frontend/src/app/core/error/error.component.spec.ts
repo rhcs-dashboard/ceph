@@ -1,6 +1,7 @@
-import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { RouterTestingModule } from '@angular/router/testing';
+import { provideRouter } from '@angular/router';
 
 import { SharedModule } from '~/app/shared/shared.module';
 import { configureTestBed } from '~/testing/unit-test-helper';
@@ -12,7 +13,8 @@ describe('ErrorComponent', () => {
 
   configureTestBed({
     declarations: [ErrorComponent],
-    imports: [HttpClientTestingModule, RouterTestingModule, SharedModule]
+    imports: [SharedModule],
+    providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])]
   });
 
   beforeEach(() => {
@@ -42,6 +44,15 @@ describe('ErrorComponent', () => {
     const header = fixture.debugElement.nativeElement.querySelector('h3');
     expect(header.innerHTML).toContain('Page not Found');
     const message = fixture.debugElement.nativeElement.querySelector('h4');
-    expect(message.innerHTML).toContain('Sorry, we couldn’t find what you were looking for.');
+    expect(message.textContent).toContain("Sorry, we couldn't find what you were looking for.");
+  });
+
+  it('should show Go To Overview button when no custom buttons or module', () => {
+    window.history.pushState({ message: '', header: '' }, 'Errors');
+    component.fetchData();
+    fixture.detectChanges();
+    const button = fixture.debugElement.nativeElement.querySelector('button[cdsButton]');
+    expect(button).toBeTruthy();
+    expect(button.textContent).toContain('Go To Overview');
   });
 });

@@ -1,10 +1,23 @@
-@use './src/styles/vendor/variables' as vv;
+.cd-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 75vh;
 
-h4 {
-  color: vv.$gray-700;
-}
+  &__wrapper {
+    text-align: center;
+  }
 
-i {
-  font-size: 6em;
-  margin-top: 120px;
+  &__content {
+    margin-top: var(--cds-spacing-07);
+  }
+
+  &__message {
+    margin-top: var(--cds-spacing-05);
+    color: var(--cds-text-secondary);
+  }
+
+  &__actions {
+    margin-top: var(--cds-spacing-07);
+  }
 }
