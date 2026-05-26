@@ -68,6 +68,19 @@ import { TableDetailDirective } from './directives/table-detail.directive';
         { name: 'array', component: FormlyArrayTypeComponent },
         { name: 'object', component: FormlyObjectTypeComponent },
         { name: 'input', component: FormlyInputTypeComponent, wrappers: ['input-wrapper'] },
+        { name: 'string', extends: 'input' },
+        {
+          name: 'number',
+          extends: 'input',
+          defaultOptions: { props: { type: 'number' } }
+        },
+        {
+          name: 'integer',
+          extends: 'input',
+          defaultOptions: { props: { type: 'number' } }
+        },
+        { name: 'boolean', extends: 'input', defaultOptions: { props: { type: 'checkbox' } } },
+        { name: 'enum', extends: 'input' },
         { name: 'textarea', component: FormlyTextareaTypeComponent, wrappers: ['input-wrapper'] },
         { name: 'file', component: FormlyFileTypeComponent, wrappers: ['input-wrapper'] }
       ],
