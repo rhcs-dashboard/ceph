@@ -1,0 +1,667 @@
+{
+   "__inputs": [ ],
+   "__requires": [ ],
+   "annotations": {
+      "list": [ ]
+   },
+   "description": "Hardware monitoring via ceph orch hardware status",
+   "editable": false,
+   "gnetId": null,
+   "graphTooltip": 0,
+   "hideControls": false,
+   "id": null,
+   "links": [ ],
+   "panels": [
+      {
+         "collapse": false,
+         "collapsed": false,
+         "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 0
+         },
+         "id": 2,
+         "panels": [ ],
+         "repeat": null,
+         "repeatIteration": null,
+         "repeatRowId": null,
+         "showTitle": true,
+         "title": "Overview",
+         "titleSize": "h6",
+         "type": "row"
+      },
+      {
+         "content": "## Ceph Hardware Monitoring Dashboard\n\nThis dashboard provides hardware status from the node-proxy API (ceph orch hardware status).\n\n### Backend API Endpoints\n\nNew endpoints added for Grafana JSON API datasource:\n- /api/hardware/devices - Detailed device information\n- /api/hardware/grafana/health - Connection health check\n- /api/hardware/grafana/search - Available metrics\n- /api/hardware/grafana/query - Query endpoint for panels\n\n### Available Data Categories\n\n**Storage** - Drive models, capacities, protocols, health status\n**Processors** - CPU cores, threads, manufacturer, health\n**Memory** - DIMM types, capacities, health\n**Network** - Network adapters, health status\n**Power** - Power supply status\n**Fans** - Fan health (no RPM speeds)\n**Firmware** - BIOS/BMC/CPLD versions\n**Component Health** - Overall status per category\n**Criticals** - Critical hardware alerts\n\n### Grafana Configuration Required\n\nTo use this dashboard:\n1. Install Grafana JSON API datasource plugin\n2. Configure datasource to point to: http://<ceph-mgr>:11000/api/hardware/grafana\n3. Import this dashboard JSON\n4. Select the JSON datasource\n\n### Testing Backend API\n\nTest connection:\ncurl http://localhost:11000/api/hardware/grafana/health\n\nGet storage devices:\ncurl http://localhost:11000/api/hardware/devices?categories=storage\n\nQuery via Grafana endpoint:\ncurl -X POST http://localhost:11000/api/hardware/grafana/query \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"targets\":[{\"target\":\"storage_devices\",\"refId\":\"A\",\"type\":\"table\"}]}'\n",
+         "datasource": null,
+         "gridPos": {
+            "h": 18,
+            "w": 12,
+            "x": 0,
+            "y": 1
+         },
+         "id": 3,
+         "mode": "markdown",
+         "title": "Hardware Dashboard - Node-Proxy Integration",
+         "type": "text"
+      },
+      {
+         "content": "## Data NOT Available from Node-Proxy\n\nThe following metrics are NOT available via ceph orch hardware status:\n\n**Temperature sensors** (CPU, DIMM, NVMe, motherboard)\n**Fan speed (RPM)** values\n**Time-series historical data** (node-proxy provides snapshots only)\n\n### Why?\n\nNode-proxy provides configuration and status (what hardware exists, is it healthy),\nnot real-time sensor readings (temperatures, fan speeds).\n\n### Alternative: Atollon Exporter\n\nTo get temperature/fan speed metrics, use the Atollon hardware exporter:\n- Provides Prometheus metrics: atollon_hardware_temperature_sensor_celsius, atollon_fan_speed_rpm\n- Enables historical time-series graphs\n- Compatible with existing atollon.json dashboard panels\n\n### This Dashboard Shows\n\nHardware inventory (models, capacities, serial numbers)\nHealth status (OK, Warning, Error per component)\nFirmware versions\nComponent states (Enabled, Absent, etc.)\n\nNot real-time sensor values or historical trends.\n",
+         "datasource": null,
+         "gridPos": {
+            "h": 18,
+            "w": 12,
+            "x": 12,
+            "y": 1
+         },
+         "id": 4,
+         "mode": "markdown",
+         "title": "Known Limitations",
+         "type": "text"
+      },
+      {
+         "collapse": false,
+         "collapsed": false,
+         "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 19
+         },
+         "id": 5,
+         "panels": [ ],
+         "repeat": null,
+         "repeatIteration": null,
+         "repeatRowId": null,
+         "showTitle": true,
+         "title": "Implementation Status",
+         "titleSize": "h6",
+         "type": "row"
+      },
+      {
+         "content": "## Backend Python API Extensions\n\n### services/hardware.py\n- get_devices() - Flatten node-proxy data for Grafana\n- get_summary_raw() - Raw summary endpoint\n\n### controllers/hardware.py\n- /api/hardware/devices - New devices endpoint\n- /api/hardware/grafana/health - Health check\n- /api/hardware/grafana/search - Metric list\n- /api/hardware/grafana/query - Query handler\n\n### Supported Targets\n- storage_devices\n- processors\n- memory_dimms\n- network_adapters\n- power_supplies\n- fans\n- firmwares\n- summary\n- criticals\n\nAll targets return Grafana table format with appropriate columns.\n",
+         "datasource": null,
+         "gridPos": {
+            "h": 14,
+            "w": 12,
+            "x": 0,
+            "y": 20
+         },
+         "id": 6,
+         "mode": "markdown",
+         "title": "Backend API - Completed",
+         "type": "text"
+      },
+      {
+         "content": "## Dashboard Setup\n\n### Current Status\n- Basic libsonnet structure created\n- Added to dashboards.libsonnet build manifest\n- Panels require Grafana JSON datasource configured\n\n### Next Steps\n\n1. Install JSON Datasource Plugin in Grafana\n   grafana-cli plugins install grafana-simple-json-datasource\n\n2. Configure Datasource\n   - URL: http://<ceph-mgr-host>:11000/api/hardware/grafana\n   - Access: Server (default)\n   - No authentication required (secure=False in controller)\n\n3. Build Full Dashboard Panels\n   - Create table panels for each category\n   - Add pie charts for firmware versions\n   - Add stat panels for health counters\n   - Match atollon.json structure where data available\n\n### Testing Without Full Dashboard\n\nUse curl to test the API directly (see left panel for commands).\n\n### Data Flow\n\nGrafana JSON Datasource\n-> /api/hardware/grafana/query\n-> HardwareService.get_devices()\n-> OrchClient.hardware.common()\n-> ceph orch hardware status\n",
+         "datasource": null,
+         "gridPos": {
+            "h": 14,
+            "w": 12,
+            "x": 12,
+            "y": 20
+         },
+         "id": 7,
+         "mode": "markdown",
+         "title": "Dashboard Configuration",
+         "type": "text"
+      },
+      {
+         "collapse": true,
+         "collapsed": true,
+         "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 34
+         },
+         "id": 8,
+         "panels": [ ],
+         "repeat": null,
+         "repeatIteration": null,
+         "repeatRowId": null,
+         "showTitle": true,
+         "title": "Storage Devices",
+         "titleSize": "h6",
+         "type": "row"
+      },
+      {
+         "datasource": {
+            "type": "grafana-simple-json-datasource",
+            "uid": "${datasource}"
+         },
+         "fieldConfig": {
+            "defaults": {
+               "custom": {
+                  "align": "auto",
+                  "cellOptions": {
+                     "type": "auto"
+                  },
+                  "inspect": false
+               },
+               "mappings": [ ],
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "green",
+                        "value": null
+                     }
+                  ]
+               }
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 10,
+            "w": 24,
+            "x": 0,
+            "y": 35
+         },
+         "id": 9,
+         "options": {
+            "cellHeight": "sm",
+            "footer": {
+               "countRows": false,
+               "fields": "",
+               "reducer": [
+                  "sum"
+               ],
+               "show": false
+            },
+            "showHeader": true
+         },
+         "pluginVersion": "9.4.7",
+         "targets": [
+            {
+               "refId": "A",
+               "target": "storage_devices",
+               "type": "table"
+            }
+         ],
+         "title": "Storage Devices",
+         "type": "table"
+      },
+      {
+         "collapse": true,
+         "collapsed": true,
+         "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 45
+         },
+         "id": 10,
+         "panels": [ ],
+         "repeat": null,
+         "repeatIteration": null,
+         "repeatRowId": null,
+         "showTitle": true,
+         "title": "Processors",
+         "titleSize": "h6",
+         "type": "row"
+      },
+      {
+         "datasource": {
+            "type": "grafana-simple-json-datasource",
+            "uid": "${datasource}"
+         },
+         "fieldConfig": {
+            "defaults": {
+               "custom": {
+                  "align": "auto",
+                  "cellOptions": {
+                     "type": "auto"
+                  },
+                  "inspect": false
+               },
+               "mappings": [ ],
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "green",
+                        "value": null
+                     }
+                  ]
+               }
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 46
+         },
+         "id": 11,
+         "options": {
+            "cellHeight": "sm",
+            "footer": {
+               "countRows": false,
+               "fields": "",
+               "reducer": [
+                  "sum"
+               ],
+               "show": false
+            },
+            "showHeader": true
+         },
+         "pluginVersion": "9.4.7",
+         "targets": [
+            {
+               "refId": "A",
+               "target": "processors",
+               "type": "table"
+            }
+         ],
+         "title": "CPU Information",
+         "type": "table"
+      },
+      {
+         "collapse": true,
+         "collapsed": true,
+         "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 54
+         },
+         "id": 12,
+         "panels": [ ],
+         "repeat": null,
+         "repeatIteration": null,
+         "repeatRowId": null,
+         "showTitle": true,
+         "title": "Memory",
+         "titleSize": "h6",
+         "type": "row"
+      },
+      {
+         "datasource": {
+            "type": "grafana-simple-json-datasource",
+            "uid": "${datasource}"
+         },
+         "fieldConfig": {
+            "defaults": {
+               "custom": {
+                  "align": "auto",
+                  "cellOptions": {
+                     "type": "auto"
+                  },
+                  "inspect": false
+               },
+               "mappings": [ ],
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "green",
+                        "value": null
+                     }
+                  ]
+               }
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 55
+         },
+         "id": 13,
+         "options": {
+            "cellHeight": "sm",
+            "footer": {
+               "countRows": false,
+               "fields": "",
+               "reducer": [
+                  "sum"
+               ],
+               "show": false
+            },
+            "showHeader": true
+         },
+         "pluginVersion": "9.4.7",
+         "targets": [
+            {
+               "refId": "A",
+               "target": "memory_dimms",
+               "type": "table"
+            }
+         ],
+         "title": "Memory DIMMs",
+         "type": "table"
+      },
+      {
+         "collapse": true,
+         "collapsed": true,
+         "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 63
+         },
+         "id": 14,
+         "panels": [ ],
+         "repeat": null,
+         "repeatIteration": null,
+         "repeatRowId": null,
+         "showTitle": true,
+         "title": "Firmware Versions",
+         "titleSize": "h6",
+         "type": "row"
+      },
+      {
+         "datasource": {
+            "type": "grafana-simple-json-datasource",
+            "uid": "${datasource}"
+         },
+         "fieldConfig": {
+            "defaults": {
+               "custom": {
+                  "align": "auto",
+                  "cellOptions": {
+                     "type": "auto"
+                  },
+                  "inspect": false
+               },
+               "mappings": [ ],
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "green",
+                        "value": null
+                     }
+                  ]
+               }
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 6,
+            "w": 24,
+            "x": 0,
+            "y": 64
+         },
+         "id": 15,
+         "options": {
+            "cellHeight": "sm",
+            "footer": {
+               "countRows": false,
+               "fields": "",
+               "reducer": [
+                  "sum"
+               ],
+               "show": false
+            },
+            "showHeader": true
+         },
+         "pluginVersion": "9.4.7",
+         "targets": [
+            {
+               "refId": "A",
+               "target": "firmwares",
+               "type": "table"
+            }
+         ],
+         "title": "Firmware Versions (BIOS/BMC/CPLD)",
+         "type": "table"
+      },
+      {
+         "collapse": true,
+         "collapsed": true,
+         "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 70
+         },
+         "id": 16,
+         "panels": [ ],
+         "repeat": null,
+         "repeatIteration": null,
+         "repeatRowId": null,
+         "showTitle": true,
+         "title": "Power & Cooling",
+         "titleSize": "h6",
+         "type": "row"
+      },
+      {
+         "datasource": {
+            "type": "grafana-simple-json-datasource",
+            "uid": "${datasource}"
+         },
+         "fieldConfig": {
+            "defaults": {
+               "custom": {
+                  "align": "auto",
+                  "cellOptions": {
+                     "type": "auto"
+                  },
+                  "inspect": false
+               },
+               "mappings": [ ],
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "green",
+                        "value": null
+                     }
+                  ]
+               }
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 6,
+            "w": 12,
+            "x": 0,
+            "y": 71
+         },
+         "id": 17,
+         "options": {
+            "cellHeight": "sm",
+            "footer": {
+               "countRows": false,
+               "fields": "",
+               "reducer": [
+                  "sum"
+               ],
+               "show": false
+            },
+            "showHeader": true
+         },
+         "pluginVersion": "9.4.7",
+         "targets": [
+            {
+               "refId": "A",
+               "target": "power_supplies",
+               "type": "table"
+            }
+         ],
+         "title": "Power Supplies",
+         "type": "table"
+      },
+      {
+         "datasource": {
+            "type": "grafana-simple-json-datasource",
+            "uid": "${datasource}"
+         },
+         "fieldConfig": {
+            "defaults": {
+               "custom": {
+                  "align": "auto",
+                  "cellOptions": {
+                     "type": "auto"
+                  },
+                  "inspect": false
+               },
+               "mappings": [ ],
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "green",
+                        "value": null
+                     }
+                  ]
+               }
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 6,
+            "w": 12,
+            "x": 12,
+            "y": 71
+         },
+         "id": 18,
+         "options": {
+            "cellHeight": "sm",
+            "footer": {
+               "countRows": false,
+               "fields": "",
+               "reducer": [
+                  "sum"
+               ],
+               "show": false
+            },
+            "showHeader": true
+         },
+         "pluginVersion": "9.4.7",
+         "targets": [
+            {
+               "refId": "A",
+               "target": "fans",
+               "type": "table"
+            }
+         ],
+         "title": "Fans (No RPM data available)",
+         "type": "table"
+      },
+      {
+         "collapse": true,
+         "collapsed": true,
+         "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 77
+         },
+         "id": 19,
+         "panels": [ ],
+         "repeat": null,
+         "repeatIteration": null,
+         "repeatRowId": null,
+         "showTitle": true,
+         "title": "API Testing Examples",
+         "titleSize": "h6",
+         "type": "row"
+      },
+      {
+         "content": "## Query Storage Devices\n\n### Direct API Call\ncurl http://localhost:11000/api/hardware/devices?categories=storage | jq\n\n### Expected Response\n{\n  \"storage\": [\n    {\n      \"hostname\": \"at3n2.tuc.stglabs.ibm.com\",\n      \"system_id\": \"Self\",\n      \"component_id\": \"nvme_device0_nsid1\",\n      \"model\": \"Micron_2550_MTFDKBK512TGE\",\n      \"capacity_bytes\": 512110190592,\n      \"protocol\": \"NVMe\",\n      \"serial_number\": \"24424BAA3C40\",\n      \"health\": \"OK\",\n      \"state\": \"Enabled\"\n    }\n  ]\n}\n\n### Grafana Query Format\n{\n  \"targets\": [\n    {\n      \"target\": \"storage_devices\",\n      \"refId\": \"A\",\n      \"type\": \"table\"\n    }\n  ],\n  \"range\": {\n    \"from\": \"now-1h\",\n    \"to\": \"now\"\n  }\n}\n",
+         "datasource": null,
+         "gridPos": {
+            "h": 12,
+            "w": 8,
+            "x": 0,
+            "y": 78
+         },
+         "id": 20,
+         "mode": "markdown",
+         "title": "Storage Devices Query Example",
+         "type": "text"
+      },
+      {
+         "content": "## Query Firmware Versions\n\n### Direct API Call\ncurl http://localhost:11000/api/hardware/devices?categories=firmwares | jq\n\n### Expected Response\n{\n  \"firmwares\": [\n    {\n      \"hostname\": \"at3n2.tuc.stglabs.ibm.com\",\n      \"firmware_type\": \"bmc\",\n      \"name\": \"BMC\",\n      \"version\": \"0.50.d57cfd\",\n      \"updateable\": true,\n      \"status\": \"unknown\"\n    }\n  ]\n}\n\n### Grafana Query Format\n{\n  \"targets\": [\n    {\n      \"target\": \"firmwares\",\n      \"refId\": \"B\",\n      \"type\": \"table\"\n    }\n  ]\n}\n",
+         "datasource": null,
+         "gridPos": {
+            "h": 12,
+            "w": 8,
+            "x": 8,
+            "y": 78
+         },
+         "id": 21,
+         "mode": "markdown",
+         "title": "Firmware Query Example",
+         "type": "text"
+      },
+      {
+         "content": "## Grafana Datasource Health Check\n\n### Test Endpoint\ncurl http://localhost:11000/api/hardware/grafana/health\n\n### Expected Response\n{\n  \"status\": \"OK\"\n}\n\n### Search Endpoint\ncurl -X POST http://localhost:11000/api/hardware/grafana/search\n\n### Expected Response\n[\n  \"summary\",\n  \"storage_devices\",\n  \"processors\",\n  \"memory_dimms\",\n  \"network_adapters\",\n  \"power_supplies\",\n  \"fans\",\n  \"firmwares\",\n  \"criticals\"\n]\n\nThese are the available targets that can be queried\nin Grafana dashboard panels.\n",
+         "datasource": null,
+         "gridPos": {
+            "h": 12,
+            "w": 8,
+            "x": 16,
+            "y": 78
+         },
+         "id": 22,
+         "mode": "markdown",
+         "title": "Health Check Example",
+         "type": "text"
+      }
+   ],
+   "refresh": "30s",
+   "rows": [ ],
+   "schemaVersion": 16,
+   "style": "dark",
+   "tags": [
+      "ceph-mixin",
+      "hardware"
+   ],
+   "templating": {
+      "list": [
+         {
+            "current": {
+               "text": "default",
+               "value": "default"
+            },
+            "hide": 0,
+            "label": "Data Source",
+            "name": "datasource",
+            "options": [ ],
+            "query": "prometheus",
+            "refresh": 1,
+            "regex": "",
+            "type": "datasource"
+         }
+      ]
+   },
+   "time": {
+      "from": "now-1h",
+      "to": "now"
+   },
+   "timepicker": {
+      "refresh_intervals": [
+         "5s",
+         "10s",
+         "30s",
+         "1m",
+         "5m",
+         "15m",
+         "30m",
+         "1h",
+         "2h",
+         "1d"
+      ],
+      "time_options": [
+         "5m",
+         "15m",
+         "1h",
+         "6h",
+         "12h",
+         "24h",
+         "2d",
+         "7d",
+         "30d"
+      ]
+   },
+   "timezone": "",
+   "title": "Ceph Hardware Monitoring (Node-Proxy)",
+   "uid": "hardware001",
+   "version": 0
+}

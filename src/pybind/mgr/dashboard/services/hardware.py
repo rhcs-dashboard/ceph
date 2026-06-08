@@ -73,6 +73,94 @@ class HardwareService(object):
         return output
 
     @staticmethod
+    def get_devices(categories: Optional[List[str]] = None,
+                    hostname: Optional[str] = None) -> Dict[str, List[Dict]]:
+        """
+        Flatten hardware device data from node-proxy for Grafana consumption.
+
+        Args:
+            categories: List of category names (storage, memory, processors, etc.)
+            hostname: Optional hostname filter
+
+        Returns:
+            Dictionary mapping category names to lists of flattened device dictionaries.
+            Example:
+            {
+                'storage': [
+                    {
+                        'hostname': 'host1',
+                        'system_id': 'Self',
+                        'component_id': 'nvme_device0_nsid1',
+                        'model': 'Micron_2550_MTFDKBK512TGE',
+                        'capacity_bytes': 512110190592,
+                        'protocol': 'NVMe',
+                        'serial_number': '24424BAA3C40',
+                        'health': 'OK',
+                        'state': 'Enabled'
+                    }
+                ]
+            }
+        """
+        orch_hardware = OrchClient.instance().hardware
+        result = {}
+
+        # Default to all categories if not specified
+        if not categories:
+            categories = ['storage', 'processors', 'memory', 'network', 'power', 'fans']
+
+        for category in categories:
+            devices = []
+
+            # Call node-proxy (returns nested dict: hostname -> sys_id -> component_id -> fields)
+            raw_data = orch_hardware.common(category=category, hostname=hostname)
+
+            # Flatten to list of devices
+            for host, systems in raw_data.items():
+                # Handle firmwares special structure (no sys_id level)
+                if category == 'firmwares':
+                    for fw_type, fw_data in systems.items():
+                        devices.append({
+                            'hostname': host,
+                            'firmware_type': fw_type,
+                            'name': fw_data.get('name'),
+                            'version': fw_data.get('version'),
+                            'updateable': fw_data.get('updateable'),
+                            'status': fw_data.get('status')
+                        })
+                else:
+                    for sys_id, components in systems.items():
+                        for comp_id, fields in components.items():
+                            device = {
+                                'hostname': host,
+                                'system_id': sys_id,
+                                'component_id': comp_id
+                            }
+
+                            # Extract status fields
+                            if 'status' in fields:
+                                device['health'] = fields['status'].get('health', 'Unknown')
+                                device['state'] = fields['status'].get('state', 'Unknown')
+
+                            # Merge other fields (excluding 'status' to avoid duplication)
+                            device.update({k: v for k, v in fields.items() if k != 'status'})
+                            devices.append(device)
+
+            result[category] = devices
+
+        return result
+
+    @staticmethod
+    def get_summary_raw(hostname: Optional[str] = None) -> Dict:
+        """
+        Get overall hardware health summary from node-proxy.
+
+        Returns node-proxy summary data including per-category status and firmware versions.
+        This is the raw output from 'ceph orch hardware status --format json' (no --category).
+        """
+        orch_hardware = OrchClient.instance().hardware
+        return orch_hardware.summary(hostname=hostname)
+
+    @staticmethod
     def validate_categories(categories: Optional[List[str]]) -> List[str]:
         categories_list = ['memory', 'storage', 'processors',
                            'network', 'power', 'fans']
