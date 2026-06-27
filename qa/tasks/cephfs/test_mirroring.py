@@ -2345,7 +2345,9 @@ class TestMirroring(CephFSTestCase):
         vthird = res[TestMirroring.PERF_COUNTER_KEY_NAME_CEPHFS_MIRROR_PEER][0]
         self.assertGreater(vthird["counters"]["snaps_synced"], vsecond["counters"]["snaps_synced"])
         inc_sync_duration1 = vthird["counters"]["last_synced_duration"]
-        self.assertGreaterEqual(float(full_sync_duration), float(inc_sync_duration1))
+        # For small number of files, incremental sync mostly takes more time because of snapdiff.
+        # This has become obvious after a separate crawler thread with multi-threaded mirroring
+        log.debug(f'full_sync_duration - {full_sync_duration}, inc_sync_duration1 - {inc_sync_duration1}')
 
         # diff again, this time back to HEAD
         log.debug('resetting to HEAD')
@@ -2360,7 +2362,9 @@ class TestMirroring(CephFSTestCase):
         vfourth = res[TestMirroring.PERF_COUNTER_KEY_NAME_CEPHFS_MIRROR_PEER][0]
         self.assertGreater(vfourth["counters"]["snaps_synced"], vthird["counters"]["snaps_synced"])
         inc_sync_duration2 = vfourth["counters"]["last_synced_duration"]
-        self.assertGreaterEqual(float(full_sync_duration), float(inc_sync_duration2))
+        # For small number of files, incremental sync mostly takes more time because of snapdiff.
+        # This has become obvious after a separate crawler thread with multi-threaded mirroring
+        log.debug(f'full_sync_duration - {full_sync_duration}, inc_sync_duration2 - {inc_sync_duration2}')
 
         self.disable_mirroring(self.primary_fs_name, self.primary_fs_id)
 
