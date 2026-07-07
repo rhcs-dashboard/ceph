@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 
 import _ from 'lodash';
@@ -7,7 +7,8 @@ import { Observable } from 'rxjs';
 import { cdEncode, cdEncodeNot } from '../decorators/cd-encode';
 import { CephfsDir, CephfsQuotas } from '../models/cephfs-directory-models';
 import { shareReplay } from 'rxjs/operators';
-import { Daemon, MirrorPeerList, MirrorStatusResponse } from '../models/cephfs.model';
+import { Daemon, MirrorCheckpointListResponse, MirrorCheckpointMutationResponse, MirrorPeerList, MirrorStatusResponse } from '../models/cephfs.model';
+import { SKIP_FORBIDDEN_REDIRECT } from '../services/api-interceptor.service';
 
 @cdEncode
 @Injectable({
@@ -189,5 +190,57 @@ export class CephfsService {
     return this.http.delete(`${this.baseURL}/mirror/directory`, {
       params: { fs_name: fsName, path }
     });
+  }
+
+  listMirrorCheckpoints(
+    @cdEncodeNot fsName: string,
+    @cdEncodeNot path: string
+  ): Observable<MirrorCheckpointListResponse> {
+    return this.http.get<MirrorCheckpointListResponse>(
+      `${this.baseURL}/mirror/${fsName}/checkpoint`,
+      {
+        params: { path },
+        context: new HttpContext().set(SKIP_FORBIDDEN_REDIRECT, true)
+      }
+    );
+  }
+
+  addMirrorCheckpoint(
+    @cdEncodeNot fsName: string,
+    @cdEncodeNot path: string,
+    @cdEncodeNot snapName: string
+  ): Observable<MirrorCheckpointMutationResponse> {
+    return this.http.post<MirrorCheckpointMutationResponse>(
+      `${this.baseURL}/mirror/${fsName}/checkpoint`,
+      {
+        path,
+        snap_name: snapName
+      }
+    );
+  }
+
+  createMirrorCheckpointNow(
+    @cdEncodeNot fsName: string,
+    @cdEncodeNot path: string
+  ): Observable<MirrorCheckpointMutationResponse> {
+    return this.http.post<MirrorCheckpointMutationResponse>(
+      `${this.baseURL}/mirror/${fsName}/checkpoint/now`,
+      {
+        path
+      }
+    );
+  }
+
+  removeMirrorCheckpoint(
+    @cdEncodeNot fsName: string,
+    @cdEncodeNot path: string,
+    @cdEncodeNot snapName: string
+  ): Observable<MirrorCheckpointMutationResponse> {
+    return this.http.delete<MirrorCheckpointMutationResponse>(
+      `${this.baseURL}/mirror/${fsName}/checkpoint`,
+      {
+        params: { path, snap_name: snapName }
+      }
+    );
   }
 }

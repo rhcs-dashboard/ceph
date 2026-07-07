@@ -3,7 +3,8 @@ import {
   HttpEvent,
   HttpHandler,
   HttpInterceptor,
-  HttpRequest
+  HttpRequest,
+  HttpContextToken
 } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
@@ -24,6 +25,8 @@ export class CdHttpErrorResponse extends HttpErrorResponse {
   preventDefault: Function;
   ignoreStatusCode: Function;
 }
+
+export const SKIP_FORBIDDEN_REDIRECT = new HttpContextToken<boolean>(() => false);
 
 @Injectable({
   providedIn: 'root'
@@ -109,14 +112,16 @@ export class ApiInterceptorService implements HttpInterceptor {
               this.router.navigate(['/login']);
               break;
             case 403:
-              this.router.navigate(['error'], {
-                state: {
-                  message: $localize`Sorry, you don’t have permission to view this page or resource.`,
-                  header: $localize`Access Denied`,
-                  icon: 'locked',
-                  source: 'forbidden'
-                }
-              });
+              if (!request.context.get(SKIP_FORBIDDEN_REDIRECT)) {
+                this.router.navigate(['error'], {
+                  state: {
+                    message: $localize`Sorry, you don’t have permission to view this page or resource.`,
+                    header: $localize`Access Denied`,
+                    icon: 'locked',
+                    source: 'forbidden'
+                  }
+                });
+              }
               break;
             default:
               timeoutId = this.prepareNotification(resp);
