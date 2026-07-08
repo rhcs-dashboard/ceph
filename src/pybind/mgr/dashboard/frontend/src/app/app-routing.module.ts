@@ -521,7 +521,14 @@ const routes: Routes = [
                   },
                   {
                     path: 'mirror-paths',
-                    component: CephfsMirroringFsMirrorPathsComponent
+                    component: CephfsMirroringFsMirrorPathsComponent,
+                    children: [
+                      {
+                        path: 'add-path/:fsId/:fsName',
+                        component: CephfsAddMirroringPathComponent,
+                        outlet: 'modal'
+                      }
+                    ]
                   }
                 ]
               }

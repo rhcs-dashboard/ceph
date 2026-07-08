@@ -7,10 +7,11 @@ import {
   ViewEncapsulation,
   inject
 } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { forkJoin, of, Subscription } from 'rxjs';
-import { catchError, map, switchMap, tap } from 'rxjs/operators';
+import { catchError, filter, map, switchMap, tap } from 'rxjs/operators';
 import { CephfsService } from '~/app/shared/api/cephfs.service';
+import { CEPHFS_MIRRORING_URL } from '~/app/shared/constants/cephfs.constant';
 import { CephfsSnapshotScheduleService } from '~/app/shared/api/cephfs-snapshot-schedule.service';
 import { DeleteConfirmationModalComponent } from '~/app/shared/components/delete-confirmation-modal/delete-confirmation-modal.component';
 import { DeletionImpact } from '~/app/shared/enum/delete-confirmation-modal-impact.enum';
@@ -126,6 +127,7 @@ export class CephfsMirroringFsMirrorPathsComponent implements OnInit, OnDestroy 
   private cephfsService = inject(CephfsService);
   private snapshotScheduleService = inject(CephfsSnapshotScheduleService);
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private formatterService = inject(FormatterService);
   private authStorageService = inject(AuthStorageService);
   private cdsModalService = inject(ModalCdsService);
@@ -139,6 +141,7 @@ export class CephfsMirroringFsMirrorPathsComponent implements OnInit, OnDestroy 
   selectedPath: MirrorPath | null = null;
   sidePanelOpen = false;
   fsName: string = '';
+  filesystemId?: number;
   schedulePolicies: MirrorPathSchedule[] = [];
   schedulePoliciesLoading = false;
   removingSchedule = '';
@@ -150,11 +153,25 @@ export class CephfsMirroringFsMirrorPathsComponent implements OnInit, OnDestroy 
 
   private subscriptions = new Subscription();
   private mirrorPathsSubscription?: Subscription;
+  private previousUrl = '';
 
   ngOnInit(): void {
     this.initializeColumns();
     this.initializeTableActions();
     this.fetchFsName();
+    this.previousUrl = this.router.url;
+    this.subscriptions.add(
+      this.router.events
+        .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+        .subscribe((event) => {
+          const hadModal = this.previousUrl.includes('(modal:');
+          const hasModal = event.urlAfterRedirects.includes('(modal:');
+          if (hadModal && !hasModal) {
+            this.loadMirrorPaths();
+          }
+          this.previousUrl = event.urlAfterRedirects;
+        })
+    );
   }
 
   ngOnDestroy(): void {
@@ -207,13 +224,41 @@ export class CephfsMirroringFsMirrorPathsComponent implements OnInit, OnDestroy 
   initializeTableActions(): void {
     this.tableActions = [
       {
+        name: $localize`Add mirror path`,
+        permission: 'update',
+        icon: Icons.add,
+        click: () => this.openAddPath(),
+        disable: () => !this.filesystemId,
+        canBePrimary: () => false,
+        buttonKind: 'secondary'
+      },
+      {
         name: $localize`Remove path`,
         permission: 'delete',
         icon: Icons.destroy,
         click: () => this.removePathModal(),
-        disable: (selection: CdTableSelection) => !selection.hasSingleSelection
+        disable: (selection: CdTableSelection) => !selection.hasSingleSelection,
+        canBePrimary: () => false,
+        buttonKind: 'secondary'
       }
     ];
+  }
+
+  openAddPath(): void {
+    if (!this.filesystemId || !this.fsName) {
+      return;
+    }
+
+    this.router.navigate([
+      CEPHFS_MIRRORING_URL,
+      this.fsName,
+      'mirror-paths',
+      {
+        outlets: {
+          modal: ['add-path', this.filesystemId, encodeURIComponent(this.fsName)]
+        }
+      }
+    ]);
   }
 
   updateSelection(selection: CdTableSelection): void {
@@ -251,9 +296,28 @@ export class CephfsMirroringFsMirrorPathsComponent implements OnInit, OnDestroy 
       this.route.parent?.paramMap.subscribe((paramMap) => {
         this.fsName = paramMap.get('fsName') || '';
         if (this.fsName) {
+          this.loadFilesystemId();
           this.loadMirrorPaths();
         }
       }) || new Subscription()
+    );
+  }
+
+  private loadFilesystemId(): void {
+    this.subscriptions.add(
+      this.cephfsService
+        .listDaemonStatus()
+        .pipe(catchError(() => of([])))
+        .subscribe((daemons) => {
+          this.filesystemId = undefined;
+          for (const daemon of daemons) {
+            const fs = daemon.filesystems?.find((filesystem) => filesystem.name === this.fsName);
+            if (fs?.filesystem_id) {
+              this.filesystemId = fs.filesystem_id;
+              return;
+            }
+          }
+        })
     );
   }
 

@@ -46,6 +46,16 @@
   </cd-table>
 </section>
 
+<ng-template #lastSyncTpl let-row="data.row">
+  @if (row.last_sync) {
+    {{ row.sync_path }} {{ row.sync_snap }}: {{ row.last_sync | relativeDate }}
+  } @else if (row.sync_path || row.sync_snap) {
+    {{ row.sync_path }} {{ row.sync_snap }}
+  } @else {
+    -
+  }
+</ng-template>
+
 <!-- Prepare to receive modal -->
 @if (isPrepareModalOpen) {
   <cd-cephfs-generate-token

@@ -123,6 +123,7 @@ describe('CephfsMirroringFsMirrorPathsComponent', () => {
   beforeEach(async () => {
     const cephfsServiceMock = {
       getMirrorStatus: jest.fn(),
+      listDaemonStatus: jest.fn().mockReturnValue(of([])),
       listMirrorCheckpoints: jest.fn().mockReturnValue(
         of({
           dir_root: '',

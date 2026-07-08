@@ -16,16 +16,26 @@ describe('CephfsMirroringListComponent', () => {
   let routerNavigateSpy: jest.Mock;
 
   const cephfsServiceMock = {
-    listDaemonStatus: jest.fn()
+    listDaemonStatus: jest.fn(),
+    getMirrorStatus: jest.fn()
   };
 
   const authStorageServiceMock = {
     getPermissions: jest.fn().mockReturnValue({ cephfsMirror: {} as Permission })
   };
 
+  const defaultMetrics = {
+    daemon_status: 'running',
+    bytes_replicated: '-',
+    sync_path: '',
+    sync_snap: '',
+    last_sync: null
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
     routerNavigateSpy = jest.fn();
+    cephfsServiceMock.getMirrorStatus.mockReturnValue(of({}));
 
     await TestBed.configureTestingModule({
       declarations: [CephfsMirroringListComponent],
@@ -55,6 +65,7 @@ describe('CephfsMirroringListComponent', () => {
     expect(component.jumpInTiles.length).toBe(2);
     expect(component.columns.length).toBe(6);
     expect(component.columns[0].prop).toBe('local_fs_name');
+    expect(component.columns[2].prop).toBe('daemon_status');
   });
 
   it('should load daemon status on ngOnInit', () => {
@@ -87,7 +98,7 @@ describe('CephfsMirroringListComponent', () => {
                   fs_name: 'fsA',
                   client_name: 'clientA'
                 },
-                uuid: '',
+                uuid: 'peer-uuid',
                 stats: undefined
               }
             ],
@@ -98,6 +109,24 @@ describe('CephfsMirroringListComponent', () => {
     ];
 
     cephfsServiceMock.listDaemonStatus.mockReturnValue(of(mockData));
+    cephfsServiceMock.getMirrorStatus.mockReturnValue(
+      of({
+        metrics: {
+          '/dir': {
+            peer: {
+              'peer-uuid': {
+                last_synced_snap: {
+                  name: 'snap1',
+                  sync_bytes: '1.00 KiB',
+                  sync_time_stamp: '1s'
+                },
+                metrics_updated_at: 1_700_000_000
+              }
+            }
+          }
+        }
+      })
+    );
 
     let emitted: MirroringRow[] = [];
 
@@ -113,8 +142,15 @@ describe('CephfsMirroringListComponent', () => {
       client_name: 'clientA',
       directory_count: 3,
       filesystem_id: 10,
-      id: '1-10'
+      peer_uuid: 'peer-uuid',
+      id: '1-10-peer-uuid',
+      daemon_status: 'running',
+      bytes_replicated: '1.00 KiB',
+      sync_path: '/dir',
+      sync_snap: 'snap1',
+      last_sync: 1_700_000_000
     });
+    expect(cephfsServiceMock.getMirrorStatus).toHaveBeenCalledWith('fs1', undefined, 'peer-uuid');
   });
 
   it('should handle empty peers and map "-" values', () => {
@@ -150,8 +186,10 @@ describe('CephfsMirroringListComponent', () => {
       directory_count: 5,
       filesystem_id: 20,
       peerId: '-',
-      id: '2-20'
+      id: '2-20',
+      ...defaultMetrics
     });
+    expect(cephfsServiceMock.getMirrorStatus).not.toHaveBeenCalled();
   });
 
   it('should not navigate to add path modal when filesystem_id is missing', () => {

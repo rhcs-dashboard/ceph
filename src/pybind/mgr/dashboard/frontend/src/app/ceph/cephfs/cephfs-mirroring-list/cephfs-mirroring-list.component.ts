@@ -1,6 +1,6 @@
-import { Component, inject, OnDestroy, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, TemplateRef, ViewChild, ViewEncapsulation } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
-import { Subject, of } from 'rxjs';
+import { forkJoin, Subject, of } from 'rxjs';
 import { catchError, filter, map, switchMap, takeUntil } from 'rxjs/operators';
 
 import { CephfsService } from '~/app/shared/api/cephfs.service';
@@ -11,8 +11,15 @@ import { CellTemplate } from '~/app/shared/enum/cell-template.enum';
 import { CdTableAction } from '~/app/shared/models/cd-table-action';
 import { CdTableColumn } from '~/app/shared/models/cd-table-column';
 import { CdTableSelection } from '~/app/shared/models/cd-table-selection';
-import { Daemon, Filesystem, MirroringRow, Peer } from '~/app/shared/models/cephfs.model';
+import {
+  Daemon,
+  Filesystem,
+  MirroringRow,
+  MirrorStatusResponse,
+  Peer
+} from '~/app/shared/models/cephfs.model';
 import { AuthStorageService } from '~/app/shared/services/auth-storage.service';
+import { extractLatestMirrorSync } from '../mirroring-sync.utils';
 import { MirroringJumpInTile } from './cephfs-mirroring-list.model';
 
 @Component({
@@ -24,6 +31,7 @@ import { MirroringJumpInTile } from './cephfs-mirroring-list.model';
 })
 export class CephfsMirroringListComponent implements OnInit, OnDestroy {
   @ViewChild('table', { static: true }) table: TableComponent;
+  @ViewChild('lastSyncTpl', { static: true }) lastSyncTpl: TemplateRef<unknown>;
 
   private cephfsService = inject(CephfsService);
   private authStorageService = inject(AuthStorageService);
@@ -43,9 +51,28 @@ export class CephfsMirroringListComponent implements OnInit, OnDestroy {
 
   daemonStatus$ = this.subject$.pipe(
     switchMap(() =>
-      this.cephfsService.listDaemonStatus().pipe(catchError(() => of([] as Daemon[])))
-    ),
-    map((daemons) => this.buildRows(daemons))
+      this.cephfsService.listDaemonStatus().pipe(
+        catchError(() => of([] as Daemon[])),
+        switchMap((daemons) => {
+          const rows = this.buildRows(daemons).map((row) => this.applyDefaultMetrics(row));
+          const rowsWithPeer = rows.filter((row) => row.peer_uuid);
+          if (!rowsWithPeer.length) {
+            return of(rows);
+          }
+
+          return forkJoin(
+            rowsWithPeer.map((row) =>
+              this.cephfsService
+                .getMirrorStatus(row.local_fs_name!, undefined, row.peer_uuid)
+                .pipe(
+                  catchError(() => of({} as MirrorStatusResponse)),
+                  map((status) => ({ rowId: row.id, status }))
+                )
+            )
+          ).pipe(map((results) => this.mergeStatusIntoRows(rows, results)));
+        })
+      )
+    )
   );
 
   ngOnInit(): void {
@@ -61,9 +88,14 @@ export class CephfsMirroringListComponent implements OnInit, OnDestroy {
         }
       },
       { name: $localize`Destination cluster`, prop: 'remote_cluster_name', flexGrow: 2 },
-      { name: $localize`Mirroring status`, prop: 'mirroring_status', flexGrow: 2 },
+      { name: $localize`Daemon status`, prop: 'daemon_status', flexGrow: 2 },
       { name: $localize`Bytes replicated`, prop: 'bytes_replicated', flexGrow: 2 },
-      { name: $localize`Last sync`, prop: 'last_sync', flexGrow: 2 },
+      {
+        name: $localize`Last sync`,
+        prop: 'last_sync',
+        flexGrow: 2,
+        cellTemplate: this.lastSyncTpl
+      },
       { name: $localize`Replicated paths`, prop: 'directory_count', flexGrow: 2 }
     ];
     this.tableActions = [
@@ -183,6 +215,40 @@ export class CephfsMirroringListComponent implements OnInit, OnDestroy {
     return rows;
   }
 
+  private applyDefaultMetrics(row: MirroringRow): MirroringRow {
+    return {
+      ...row,
+      daemon_status: $localize`running`,
+      bytes_replicated: '-',
+      sync_path: '',
+      sync_snap: '',
+      last_sync: null
+    };
+  }
+
+  private mergeStatusIntoRows(
+    rows: MirroringRow[],
+    results: { rowId?: string; status: MirrorStatusResponse }[]
+  ): MirroringRow[] {
+    const statusByRowId = new Map(results.map((result) => [result.rowId, result.status]));
+
+    return rows.map((row) => {
+      const status = statusByRowId.get(row.id);
+      if (!status) {
+        return row;
+      }
+
+      const sync = extractLatestMirrorSync(status);
+      return {
+        ...row,
+        bytes_replicated: sync.bytesSynced,
+        sync_path: sync.path,
+        sync_snap: sync.snapName,
+        last_sync: sync.syncedAt
+      };
+    });
+  }
+
   private peerToRow(daemon: Daemon, fs: Filesystem, peer: Peer): MirroringRow {
     return {
       remote_cluster_name: peer.remote?.cluster_name ?? '-',
@@ -191,7 +257,10 @@ export class CephfsMirroringListComponent implements OnInit, OnDestroy {
       client_name: peer.remote?.client_name ?? '-',
       directory_count: fs.directory_count ?? 0,
       filesystem_id: fs.filesystem_id,
-      id: `${daemon.daemon_id}-${fs.filesystem_id}`
+      peer_uuid: peer.uuid || undefined,
+      id: peer.uuid
+        ? `${daemon.daemon_id}-${fs.filesystem_id}-${peer.uuid}`
+        : `${daemon.daemon_id}-${fs.filesystem_id}`
     };
   }
 

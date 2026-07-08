@@ -51,8 +51,14 @@ export interface MirroringRow {
   client_name: string;
   directory_count: number;
   filesystem_id?: number;
+  peer_uuid?: string;
   peerId?: string;
   id?: string;
+  daemon_status?: string;
+  bytes_replicated?: string;
+  sync_path?: string;
+  sync_snap?: string;
+  last_sync?: number | null;
 }
 
 export type CephfsPool = {
