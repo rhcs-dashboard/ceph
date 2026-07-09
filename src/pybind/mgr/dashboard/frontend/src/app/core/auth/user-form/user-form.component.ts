@@ -1,5 +1,5 @@
 import { Component, OnInit, TemplateRef, ViewChild, ViewEncapsulation } from '@angular/core';
-import { Validators } from '@angular/forms';
+import { AbstractControl, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
@@ -105,7 +105,7 @@ export class UserFormComponent extends CdForm implements OnInit {
         password: [
           '',
           [
-            (control: any) =>
+            (control: AbstractControl) =>
               this.mode === this.userFormMode.editing || this.isSSO
                 ? null
                 : Validators.required(control)
@@ -126,7 +126,7 @@ export class UserFormComponent extends CdForm implements OnInit {
         confirmpassword: [
           '',
           [
-            (control: any) =>
+            (control: AbstractControl) =>
               this.mode === this.userFormMode.editing || this.isSSO
                 ? null
                 : Validators.required(control)
@@ -134,7 +134,10 @@ export class UserFormComponent extends CdForm implements OnInit {
         ],
         pwdExpirationDate: [''],
         email: ['', [CdValidators.email]],
-        roles: [[], [(control: any) => (this.isSSO ? null : Validators.required(control))]],
+        roles: [
+          [],
+          [(control: AbstractControl) => (this.isSSO ? null : Validators.required(control))]
+        ],
         enabled: [true, [Validators.required]],
         pwdUpdateRequired: [true]
       },
