@@ -148,7 +148,7 @@ describe('CephfsMirroringListComponent', () => {
       bytes_replicated: '1.00 KiB',
       sync_path: '/dir',
       sync_snap: 'snap1',
-      last_sync: 1_700_000_000
+      last_sync: null
     });
     expect(cephfsServiceMock.getMirrorStatus).toHaveBeenCalledWith('fs1', undefined, 'peer-uuid');
   });

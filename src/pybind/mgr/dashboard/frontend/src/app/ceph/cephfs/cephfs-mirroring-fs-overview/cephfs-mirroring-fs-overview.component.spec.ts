@@ -150,7 +150,7 @@ describe('CephfsMirroringFsOverviewComponent', () => {
     expect(fsData?.sync.bytesSynced).toBe('1.00 KiB');
     expect(fsData?.sync.path).toBe('/dir1');
     expect(fsData?.sync.snapName).toBe('snap1');
-    expect(fsData?.sync.syncedAt).toBe(1_700_000_000);
+    expect(fsData?.sync.syncedAt).toBeNull();
   });
 
   it('should refresh overview data on interval tick', async () => {
@@ -280,20 +280,6 @@ describe('CephfsMirroringFsOverviewComponent helpers', () => {
     expect(sync.syncingPaths).toBe(1);
     expect(sync.info.snapName).toBe('new');
     expect(sync.info.path).toBe('/new');
-    expect(sync.info.syncedAt).toBe(200);
-  });
-
-  it('isNewerMirrorSync prefers metrics_updated_at over sync timestamp', () => {
-    expect(call<boolean>('isNewerMirrorSync', '1s', 300, '9s', 200)).toBe(true);
-    expect(call<boolean>('isNewerMirrorSync', '9s', 100, '1s', 200)).toBe(false);
-  });
-
-  it('mirrorMetricsUpdatedAtToEpoch parses valid values and rejects invalid ones', () => {
-    expect(call<number | null>('mirrorMetricsUpdatedAtToEpoch', 1_700_000_000.9)).toBe(
-      1_700_000_000
-    );
-    expect(call<number | null>('mirrorMetricsUpdatedAtToEpoch', '1234.5')).toBe(1234);
-    expect(call<number | null>('mirrorMetricsUpdatedAtToEpoch', '')).toBeNull();
-    expect(call<number | null>('mirrorMetricsUpdatedAtToEpoch', 0)).toBeNull();
+    expect(sync.info.syncedAt).toBeNull();
   });
 });

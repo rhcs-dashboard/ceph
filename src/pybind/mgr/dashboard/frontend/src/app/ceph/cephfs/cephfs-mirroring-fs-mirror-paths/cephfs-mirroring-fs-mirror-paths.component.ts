@@ -225,12 +225,10 @@ export class CephfsMirroringFsMirrorPathsComponent implements OnInit, OnDestroy 
     this.tableActions = [
       {
         name: $localize`Add mirror path`,
-        permission: 'update',
+        permission: 'create',
         icon: Icons.add,
         click: () => this.openAddPath(),
-        disable: () => !this.filesystemId,
-        canBePrimary: () => false,
-        buttonKind: 'secondary'
+        disable: () => !this.filesystemId
       },
       {
         name: $localize`Remove path`,
