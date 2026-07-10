@@ -7,10 +7,9 @@ import { catchError, finalize, map, switchMap, take } from 'rxjs/operators';
 import { CephfsService } from '~/app/shared/api/cephfs.service';
 import { CdFormGroup } from '~/app/shared/forms/cd-form-group';
 import { TearsheetStep } from '~/app/shared/models/tearsheet-step';
-import { MirroringPathUtils } from '../mirroring-path-utils';
+import { MirroringPathUtils, FS_ROOT, FS_ROOT_PATH_SENTINEL } from '../mirroring-path-utils';
 import { createPathEntry, PathEntry } from '../mirroring-path.model';
 
-const VOLUMES_ROOT = '/volumes';
 const LS_DEPTH = 1;
 
 @Component({
@@ -26,6 +25,7 @@ export class MirroringPathsStepComponent implements OnInit, TearsheetStep {
   formGroup!: CdFormGroup;
   paths: PathEntry[] = [];
   loadingLevels: Record<string, true> = {};
+  readonly formatLevelOption = MirroringPathUtils.formatLevelOption;
 
   private trackedPaths = new Set<string>();
   private destroyRef = inject(DestroyRef);
@@ -57,7 +57,7 @@ export class MirroringPathsStepComponent implements OnInit, TearsheetStep {
 
   addPath(): void {
     this.paths.push(createPathEntry());
-    this.loadLevelOptions(this.paths.length - 1, 0, VOLUMES_ROOT);
+    this.loadLevelOptions(this.paths.length - 1, 0, FS_ROOT);
   }
 
   removePath(index: number): void {
@@ -98,6 +98,23 @@ export class MirroringPathsStepComponent implements OnInit, TearsheetStep {
       return;
     }
 
+    if (MirroringPathUtils.isRootSelection(selected)) {
+      this.paths[pathIndex] = {
+        ...updated,
+        fullPath: FS_ROOT,
+        levels: levels.slice(0, levelIndex + 1).map((level, index) =>
+          index === levelIndex ? { ...level, selected: FS_ROOT_PATH_SENTINEL } : level
+        )
+      };
+      this.syncFormValue();
+      return;
+    }
+
+    if (updated.fullPath === FS_ROOT) {
+      this.syncFormValue();
+      return;
+    }
+
     this.loadLevelOptions(pathIndex, levelIndex + 1, updated.fullPath);
   }
 
@@ -113,7 +130,7 @@ export class MirroringPathsStepComponent implements OnInit, TearsheetStep {
       if (!path) {
         return;
       }
-      if (MirroringPathUtils.isPathTracked(path, this.trackedPaths)) {
+      if (MirroringPathUtils.conflictsWithMirroredPath(path, this.trackedPaths)) {
         alreadyMirrored.push(path);
       } else if (this.isPathSelectable(path, pathIndex)) {
         toAdd.push(path);
@@ -165,7 +182,7 @@ export class MirroringPathsStepComponent implements OnInit, TearsheetStep {
           trackedList.map(MirroringPathUtils.normalizePath).filter(Boolean)
         );
         if (fsId) {
-          this.loadLevelOptions(0, 0, VOLUMES_ROOT);
+          this.loadLevelOptions(0, 0, FS_ROOT);
         }
       });
   }
@@ -189,6 +206,11 @@ export class MirroringPathsStepComponent implements OnInit, TearsheetStep {
       return;
     }
 
+    const entry = this.paths[pathIndex];
+    if (!entry || MirroringPathUtils.isRootPathEntry(entry)) {
+      return;
+    }
+
     const loadingKey = `${pathIndex}:${levelIndex}`;
     this.loadingLevels = { ...this.loadingLevels, [loadingKey]: true };
 
@@ -204,42 +226,66 @@ export class MirroringPathsStepComponent implements OnInit, TearsheetStep {
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe((dirs) => {
-        const entry = this.paths[pathIndex];
-        if (!entry) {
+        const currentEntry = this.paths[pathIndex];
+        if (!currentEntry || MirroringPathUtils.isRootPathEntry(currentEntry)) {
+          return;
+        }
+
+        if (
+          levelIndex > 0 &&
+          MirroringPathUtils.buildPathFromLevels(currentEntry.levels, levelIndex) !== parentPath
+        ) {
           return;
         }
 
         const options = dirs
           .map((dir) => dir.name)
-          .filter((name) =>
-            this.isPathSelectable(MirroringPathUtils.joinPath(parentPath, name), pathIndex)
+          .filter(
+            (name) =>
+              !MirroringPathUtils.isPathTracked(
+                MirroringPathUtils.joinPath(parentPath, name),
+                this.trackedPaths
+              )
           )
           .sort();
 
-        const levels = [...entry.levels];
+        if (
+          parentPath === FS_ROOT &&
+          levelIndex === 0 &&
+          !MirroringPathUtils.conflictsWithMirroredPath(FS_ROOT, this.trackedPaths) &&
+          !this.overlapsOtherSelectedPath(FS_ROOT, pathIndex)
+        ) {
+          options.unshift(FS_ROOT_PATH_SENTINEL);
+        }
+
+        const levels = [...currentEntry.levels];
         if (levelIndex < levels.length) {
           levels[levelIndex] = { ...levels[levelIndex], options };
         } else if (options.length) {
           levels.push({ options, selected: '' });
         }
 
-        this.paths[pathIndex] = { ...entry, levels };
+        this.paths[pathIndex] = { ...currentEntry, levels };
         this.syncFormValue();
       });
   }
 
   private isPathSelectable(path: string, pathIndex: number): boolean {
     const normalized = MirroringPathUtils.normalizePath(path);
-    if (!normalized || MirroringPathUtils.isPathTracked(normalized, this.trackedPaths)) {
+    if (!normalized || MirroringPathUtils.conflictsWithMirroredPath(normalized, this.trackedPaths)) {
       return false;
     }
 
-    return !this.paths.some((entry, index) => {
+    return !this.overlapsOtherSelectedPath(normalized, pathIndex);
+  }
+
+  private overlapsOtherSelectedPath(path: string, pathIndex: number): boolean {
+    return this.paths.some((entry, index) => {
       if (index === pathIndex) {
         return false;
       }
       const selected = MirroringPathUtils.normalizePath(entry.fullPath);
-      return selected && MirroringPathUtils.pathsOverlap(normalized, selected);
+      return selected && MirroringPathUtils.pathsOverlap(path, selected);
     });
   }
 

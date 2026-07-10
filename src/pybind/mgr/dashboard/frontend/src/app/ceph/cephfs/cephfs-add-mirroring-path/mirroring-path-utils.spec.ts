@@ -1,4 +1,4 @@
-import { MirroringPathUtils } from './mirroring-path-utils';
+import { MirroringPathUtils, FS_ROOT_PATH_SENTINEL } from './mirroring-path-utils';
 import { PathEntry } from './mirroring-path.model';
 
 describe('MirroringPathUtils', () => {
@@ -8,6 +8,8 @@ describe('MirroringPathUtils', () => {
       expect(MirroringPathUtils.pathsOverlap('/volumes/g1/sv1/dir', '/volumes/g1/sv1')).toBe(true);
       expect(MirroringPathUtils.pathsOverlap('/volumes/g1/sv1', '/volumes/g1/sv1/dir')).toBe(true);
       expect(MirroringPathUtils.pathsOverlap('/volumes/g1/sv1', '/volumes/g2/sv1')).toBe(false);
+      expect(MirroringPathUtils.pathsOverlap('/', '/volumes/g1')).toBe(true);
+      expect(MirroringPathUtils.pathsOverlap('/volumes/g1', '/')).toBe(true);
     });
   });
 
@@ -17,13 +19,38 @@ describe('MirroringPathUtils', () => {
       expect(MirroringPathUtils.isPathTracked('/volumes/g1/sv1', tracked)).toBe(true);
       expect(MirroringPathUtils.isPathTracked('/volumes/g1/sv1/dir', tracked)).toBe(true);
       expect(MirroringPathUtils.isPathTracked('/volumes/g1/sv2', tracked)).toBe(false);
+      expect(MirroringPathUtils.isPathTracked('/volumes/g1', tracked)).toBe(false);
+    });
+  });
+
+  describe('conflictsWithMirroredPath', () => {
+    it('should detect ancestor and descendant conflicts with mirrored paths', () => {
+      const tracked = new Set(['/volumes/g1/sv1']);
+      expect(MirroringPathUtils.conflictsWithMirroredPath('/volumes/g1/sv1', tracked)).toBe(true);
+      expect(MirroringPathUtils.conflictsWithMirroredPath('/volumes/g1/sv1/dir', tracked)).toBe(
+        true
+      );
+      expect(MirroringPathUtils.conflictsWithMirroredPath('/volumes/g1', tracked)).toBe(true);
+      expect(MirroringPathUtils.conflictsWithMirroredPath('/volumes/g1/sv2', tracked)).toBe(false);
+      expect(MirroringPathUtils.conflictsWithMirroredPath('/', tracked)).toBe(true);
     });
   });
 
   describe('buildPathFromSegments', () => {
     it('should build a path from selected segments', () => {
-      expect(MirroringPathUtils.buildPathFromSegments(['g1', 'sv1'])).toBe('/volumes/g1/sv1');
+      expect(MirroringPathUtils.buildPathFromSegments(['volumes', 'g1', 'sv1'])).toBe(
+        '/volumes/g1/sv1'
+      );
+      expect(MirroringPathUtils.buildPathFromSegments([FS_ROOT_PATH_SENTINEL])).toBe('/');
+      expect(MirroringPathUtils.buildPathFromSegments(['/'])).toBe('/');
       expect(MirroringPathUtils.buildPathFromSegments([])).toBe('');
+    });
+  });
+
+  describe('formatLevelOption', () => {
+    it('should display the filesystem root sentinel as /', () => {
+      expect(MirroringPathUtils.formatLevelOption(FS_ROOT_PATH_SENTINEL)).toBe('/');
+      expect(MirroringPathUtils.formatLevelOption('volumes')).toBe('volumes');
     });
   });
 

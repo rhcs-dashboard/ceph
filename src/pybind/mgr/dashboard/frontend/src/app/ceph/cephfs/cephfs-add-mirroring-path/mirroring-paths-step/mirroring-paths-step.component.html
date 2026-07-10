@@ -84,7 +84,7 @@
                   <option value=""
                           i18n>-- Select --</option>
                   @for (opt of level.options; track opt) {
-                    <option [value]="opt">{{ opt }}</option>
+                    <option [value]="opt">{{ formatLevelOption(opt) }}</option>
                   }
                 </cds-select>
               }

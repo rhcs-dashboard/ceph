@@ -3,11 +3,8 @@
      class="cds-mt-6">
   <span class="cds--type-heading-03"
         i18n>Jump in</span>
-  <div cdsCol
-       [columnNumbers]="{sm: 4, md: 4, lg: 8}">
-    <div
-      cdsStack="horizontal"
-      [gap]="4">
+  <div cdsStack="horizontal"
+       [gap]="4">
       @for (tile of jumpInTiles; track tile.title) {
           <cd-clickable-tile
             [title]="tile.title"
@@ -16,7 +13,6 @@
             (tileClick)="tile.action()">
           </cd-clickable-tile>
       }
-    </div>
   </div>
 </div>
 
