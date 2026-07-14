@@ -1,13 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormsModule } from '@angular/forms';
 import { BehaviorSubject, Subscription } from 'rxjs';
-import {
-  IconModule,
-  SearchModule,
-  StructuredListModule,
-  TagModule,
-  GridModule
-} from 'carbon-components-angular';
+import { Location } from '@angular/common';
+import { IconModule, GridModule, LinkModule } from 'carbon-components-angular';
 
 import { NotificationsPageComponent } from './notifications-page.component';
 import { CdNotification } from '~/app/shared/models/cd-notification';
@@ -16,7 +10,8 @@ import { NotificationService } from '~/app/shared/services/notification.service'
 import { PrometheusAlertService } from '~/app/shared/services/prometheus-alert.service';
 import { PrometheusNotificationService } from '~/app/shared/services/prometheus-notification.service';
 import { AuthStorageService } from '~/app/shared/services/auth-storage.service';
-import { ChangeDetectorRef } from '@angular/core';
+import { ChangeDetectorRef, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { SharedModule } from '~/app/shared/shared.module';
 
 describe('NotificationsPageComponent', () => {
   let component: NotificationsPageComponent;
@@ -24,8 +19,8 @@ describe('NotificationsPageComponent', () => {
   let mockNotifications: CdNotification[];
   let dataSourceSubject: BehaviorSubject<CdNotification[]>;
   let notificationService: any;
+  let mockLocation: any;
 
-  // Create mocks
   const createMockNotificationService = () => {
     dataSourceSubject = new BehaviorSubject<CdNotification[]>([]);
     return {
@@ -34,7 +29,9 @@ describe('NotificationsPageComponent', () => {
         getValue: () => dataSourceSubject.getValue(),
         next: (value: CdNotification[]) => dataSourceSubject.next(value)
       },
-      remove: jasmine.createSpy('remove')
+      remove: jasmine.createSpy('remove'),
+      removeAll: jasmine.createSpy('removeAll'),
+      setHasUnread: jasmine.createSpy('setHasUnread')
     };
   };
 
@@ -54,10 +51,9 @@ describe('NotificationsPageComponent', () => {
   };
 
   const mockChangeDetectorRef = {
-    detectChanges: jasmine.createSpy('detectChanges')
+    markForCheck: jasmine.createSpy('markForCheck')
   };
 
-  // Create mock notifications
   const createMockNotification = (overrides: any): CdNotification => {
     return {
       id: overrides.id,
@@ -66,21 +62,11 @@ describe('NotificationsPageComponent', () => {
       application: overrides.application || '',
       timestamp: overrides.timestamp || new Date().toISOString(),
       type: overrides.type || NotificationType.info,
-      priority: 'normal',
       textClass: '',
       iconClass: '',
       duration: 0,
       borderClass: '',
-      timeout: 0,
-      isError: false,
       isFinishedTask: false,
-      progress: 0,
-      progressText: '',
-      task: undefined,
-      error: undefined,
-      isSilent: false,
-      silentNotifications: [],
-      userData: undefined,
       alertSilenced: false,
       ...overrides
     } as CdNotification;
@@ -114,30 +100,31 @@ describe('NotificationsPageComponent', () => {
       })
     ];
 
+    mockLocation = { back: jasmine.createSpy('back') };
     const mockNotificationService = createMockNotificationService();
-    notificationService = mockNotificationService; // Store reference
+    notificationService = mockNotificationService;
+
+    localStorage.removeItem('cdNotificationsRead');
 
     await TestBed.configureTestingModule({
-      imports: [FormsModule, GridModule, IconModule, SearchModule, StructuredListModule, TagModule],
+      imports: [GridModule, IconModule, LinkModule, SharedModule],
       declarations: [NotificationsPageComponent],
       providers: [
         { provide: NotificationService, useValue: mockNotificationService },
         { provide: PrometheusAlertService, useValue: mockPrometheusAlertService },
         { provide: PrometheusNotificationService, useValue: mockPrometheusNotificationService },
         { provide: AuthStorageService, useValue: mockAuthStorageService },
+        { provide: Location, useValue: mockLocation },
         { provide: ChangeDetectorRef, useValue: mockChangeDetectorRef }
-      ]
+      ],
+      schemas: [CUSTOM_ELEMENTS_SCHEMA]
     }).compileComponents();
   });
 
   beforeEach(() => {
     fixture = TestBed.createComponent(NotificationsPageComponent);
     component = fixture.componentInstance;
-
-    // Update the data source with mock notifications BEFORE ngOnInit
     dataSourceSubject.next(mockNotifications);
-
-    // Initialize the component
     fixture.detectChanges();
   });
 
@@ -145,6 +132,7 @@ describe('NotificationsPageComponent', () => {
     if (component['interval']) {
       window.clearInterval(component['interval']);
     }
+    localStorage.removeItem('cdNotificationsRead');
   });
 
   it('should create', () => {
@@ -153,7 +141,6 @@ describe('NotificationsPageComponent', () => {
 
   it('should load notifications on init', () => {
     expect(component.notifications).toEqual(mockNotifications);
-    expect(component.filteredNotifications).toEqual(mockNotifications);
   });
 
   it('should select notification when clicked', () => {
@@ -162,135 +149,114 @@ describe('NotificationsPageComponent', () => {
     expect(component.selectedNotification).toBe(notification);
   });
 
-  describe('search functionality', () => {
-    it('should filter notifications by title', () => {
-      component.onSearch('Success');
-      expect(component.filteredNotifications.length).toBe(1);
-      expect(component.filteredNotifications[0].title).toBe('Success Notification');
-    });
-
-    it('should filter notifications by message', () => {
-      component.onSearch('error');
-      expect(component.filteredNotifications.length).toBe(1);
-      expect(component.filteredNotifications[0].title).toBe('Error Notification');
-    });
-
-    it('should filter notifications by application', () => {
-      component.onSearch('Updates');
-      expect(component.filteredNotifications.length).toBe(1);
-      expect(component.filteredNotifications[0].application).toBe('Updates');
-    });
-
-    it('should show all notifications when search is cleared', () => {
-      component.onSearch('');
-      expect(component.filteredNotifications).toEqual(mockNotifications);
-    });
-
-    it('should be case insensitive', () => {
-      component.onSearch('SUCCESS');
-      expect(component.filteredNotifications.length).toBe(1);
-      expect(component.filteredNotifications[0].title).toBe('Success Notification');
+  describe('back navigation', () => {
+    it('should call location.back()', () => {
+      component.goBack();
+      expect(mockLocation.back).toHaveBeenCalled();
     });
   });
 
-  describe('notification removal', () => {
-    it('should remove notification', () => {
-      const notification = mockNotifications[0];
+  describe('clear all', () => {
+    it('should call removeAll and clear selection', () => {
+      component.selectedNotificationID = '1';
+      component.clearAll();
+      expect(notificationService.removeAll).toHaveBeenCalled();
+      expect(component.selectedNotificationID).toBeNull();
+    });
+  });
+
+  describe('remove notification', () => {
+    it('should remove a notification and stop event propagation', () => {
       const mockEvent = {
-        stopPropagation: jasmine.createSpy('stopPropagation'),
-        preventDefault: jasmine.createSpy('preventDefault')
-      };
-
-      component.removeNotification(notification, mockEvent as any);
-
+        stopPropagation: jasmine.createSpy('stopPropagation')
+      } as any;
+      component.removeNotification(mockNotifications[0], mockEvent);
       expect(mockEvent.stopPropagation).toHaveBeenCalled();
-      expect(mockEvent.preventDefault).toHaveBeenCalled();
       expect(notificationService.remove).toHaveBeenCalledWith(0);
     });
 
     it('should clear selection if removed notification was selected', () => {
-      const notification = mockNotifications[0];
-      component.selectedNotificationID = notification.id;
+      component.selectedNotificationID = '1';
+      const mockEvent = { stopPropagation: jasmine.createSpy() } as any;
+      component.removeNotification(mockNotifications[0], mockEvent);
+      expect(component.selectedNotificationID).toBeNull();
+    });
 
-      const mockEvent = {
-        stopPropagation: jasmine.createSpy('stopPropagation'),
-        preventDefault: jasmine.createSpy('preventDefault')
-      };
-
-      component.removeNotification(notification, mockEvent as any);
-
-      const selectedNotification = component.selectedNotification;
-
-      expect(selectedNotification).toBeUndefined();
+    it('should not clear selection if a different notification was removed', () => {
+      component.selectedNotificationID = '1';
+      const mockEvent = { stopPropagation: jasmine.createSpy() } as any;
+      component.removeNotification(mockNotifications[1], mockEvent);
+      expect(component.selectedNotificationID).toBe('1');
     });
   });
 
-  describe('icon handling', () => {
-    it('should return correct Carbon icon for success', () => {
-      expect(component.getCarbonIcon(NotificationType.success)).toBe('checkmark--filled');
+  describe('read/unread tracking', () => {
+    it('should mark all notifications as unread initially', () => {
+      expect(component.readMap[mockNotifications[0].id]).toBeFalsy();
+      expect(component.readMap[mockNotifications[1].id]).toBeFalsy();
     });
 
-    it('should return correct Carbon icon for error', () => {
-      expect(component.getCarbonIcon(NotificationType.error)).toBe('error--filled');
+    it('should mark notification as read when selected', () => {
+      component.onNotificationSelect(mockNotifications[0]);
+      expect(component.readMap[mockNotifications[0].id]).toBe(true);
     });
 
-    it('should return correct Carbon icon for info', () => {
-      expect(component.getCarbonIcon(NotificationType.info)).toBe('information--filled');
+    it('should persist read state to localStorage', () => {
+      component.onNotificationSelect(mockNotifications[0]);
+      const stored = JSON.parse(localStorage.getItem('cdNotificationsRead'));
+      expect(stored).toContain('1');
     });
 
-    it('should return correct Carbon icon for warning', () => {
-      expect(component.getCarbonIcon(NotificationType.warning)).toBe('warning--filled');
-    });
+    it('should load read state from localStorage', () => {
+      localStorage.setItem('cdNotificationsRead', JSON.stringify(['2']));
 
-    it('should return default icon for unknown type', () => {
-      expect(component.getCarbonIcon('')).toBe('notification--filled');
-    });
-  });
+      const newFixture = TestBed.createComponent(NotificationsPageComponent);
+      const newComponent = newFixture.componentInstance;
+      dataSourceSubject.next(mockNotifications);
+      newFixture.detectChanges();
 
-  describe('icon color classes', () => {
-    it('should return correct class for success', () => {
-      expect(component.getIconColorClass(NotificationType.success)).toBe('icon-success');
-    });
+      expect(newComponent.readMap['2']).toBe(true);
+      expect(newComponent.readMap['1']).toBeFalsy();
 
-    it('should return correct class for error', () => {
-      expect(component.getIconColorClass(NotificationType.error)).toBe('icon-error');
-    });
-
-    it('should return correct class for info', () => {
-      expect(component.getIconColorClass(NotificationType.info)).toBe('icon-info');
-    });
-
-    it('should return correct class for warning', () => {
-      expect(component.getIconColorClass(NotificationType.warning)).toBe('icon-warning');
-    });
-
-    it('should return empty string for unknown type', () => {
-      expect(component.getIconColorClass('')).toBe('');
+      if (newComponent['interval']) {
+        window.clearInterval(newComponent['interval']);
+      }
     });
   });
 
-  describe('date formatting', () => {
-    it('should format today\'s date as "Today"', () => {
-      const today = new Date().toISOString();
-      expect(component.formatDate(today)).toBe('Today');
+  describe('getTitle', () => {
+    it('should return title for regular notifications', () => {
+      expect(component.getTitle(mockNotifications[0])).toBe('Success Notification');
     });
 
-    it('should format yesterday\'s date as "Yesterday"', () => {
-      const yesterday = new Date(Date.now() - 86400000).toISOString();
-      expect(component.formatDate(yesterday)).toBe('Yesterday');
-    });
-
-    it('should format older dates in short format', () => {
-      const oldDate = new Date('2023-01-15').toISOString();
-      expect(component.formatDate(oldDate)).toMatch(/[A-Z][a-z]{2} \d{1,2}/);
+    it('should return alertName for Prometheus notifications', () => {
+      const promNotification = createMockNotification({
+        id: '4',
+        title: 'Alert',
+        prometheusAlert: { alertName: 'HighCPU', status: 'firing', severity: 'critical', description: 'CPU high' }
+      });
+      expect(component.getTitle(promNotification)).toBe('HighCPU');
     });
   });
 
-  describe('time formatting', () => {
-    it('should format time in 12-hour format', () => {
-      const date = new Date('2023-01-15T15:30:00').toISOString();
-      const formattedTime = component.formatTime(date);
-      expect(formattedTime).toMatch(/\d{1,2}:\d{2} [AP]M/);
+  describe('getPreviewText', () => {
+    it('should return message for regular notifications', () => {
+      expect(component.getPreviewText(mockNotifications[0])).toBe('Operation completed successfully');
+    });
+
+    it('should return description for Prometheus notifications', () => {
+      const promNotification = createMockNotification({
+        id: '4',
+        title: 'Alert',
+        message: 'fallback',
+        prometheusAlert: { alertName: 'HighCPU', status: 'firing', severity: 'critical', description: 'CPU is above 90%' }
+      });
+      expect(component.getPreviewText(promNotification)).toBe('CPU is above 90%');
+    });
+
+    it('should return empty string when no message', () => {
+      const emptyNotification = createMockNotification({ id: '5', message: '' });
+      expect(component.getPreviewText(emptyNotification)).toBe('');
     });
   });
 
@@ -300,7 +266,6 @@ describe('NotificationsPageComponent', () => {
       configOpt: { read: true }
     });
 
-    // Re-initialize component to trigger ngOnInit with new permissions
     fixture = TestBed.createComponent(NotificationsPageComponent);
     component = fixture.componentInstance;
     dataSourceSubject.next(mockNotifications);

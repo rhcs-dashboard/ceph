@@ -351,4 +351,8 @@ export class NotificationService {
   getPanelState(): boolean {
     return this.panelState.value;
   }
+
+  setHasUnread(hasUnread: boolean) {
+    this.hasUnreadSource.next(hasUnread);
+  }
 }
