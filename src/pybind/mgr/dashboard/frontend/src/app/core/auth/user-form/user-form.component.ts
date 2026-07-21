@@ -88,7 +88,7 @@ export class UserFormComponent extends CdForm implements OnInit {
       {
         username: [
           '',
-          [Validators.required],
+          [Validators.required, Validators.maxLength(256)],
           [CdValidators.unique(this.userService.validateUserName, this.userService)]
         ],
         name: [''],
