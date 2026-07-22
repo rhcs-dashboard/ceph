@@ -30,7 +30,7 @@ import {
   HardwareCardVM,
   buildHardwareCardVM
 } from '~/app/shared/models/overview';
-import { AlertState } from '~/app/shared/models/prometheus-alerts';
+import { AlertmanagerAlert, AlertState } from '~/app/shared/models/prometheus-alerts';
 import { HardwareService } from '~/app/shared/api/hardware.service';
 import { MgrModuleService } from '~/app/shared/api/mgr-module.service';
 import { RefreshIntervalService } from '~/app/shared/services/refresh-interval.service';
@@ -150,8 +150,9 @@ export class OverviewHealthCardComponent {
     map(
       () =>
         this.prometheusAlertService.alerts.filter(
-          (a) =>
-            a.status.state === AlertState.ACTIVE && a.labels.alertname?.startsWith(PG_ALERT_PREFIX)
+          (alert: AlertmanagerAlert) =>
+            alert.status.state === AlertState.ACTIVE &&
+            alert.labels.alertname?.startsWith(PG_ALERT_PREFIX)
         ).length
     ),
     startWith(0)
@@ -163,17 +164,4 @@ export class OverviewHealthCardComponent {
         shareReplay({ bufferSize: 1, refCount: true })
       )
     : of(false);
-
-  readonly sections$: Observable<HwRowVM[][] | null> = this.hardwareRows$.pipe(
-    map((rows) => {
-      if (!rows) return null;
-
-      const result: HwRowVM[][] = [];
-      for (let i = 0; i < rows.length; i += 2) {
-        result.push(rows.slice(i, i + 2));
-      }
-      return result.slice(0, 3);
-    }),
-    shareReplay({ bufferSize: 1, refCount: true })
-  );
 }
