@@ -155,6 +155,8 @@ HW_FAN_LABELS = ('hostname', 'fan_name')
 
 HW_FIRMWARE_LABELS = ('hostname', 'component', 'version')
 
+HW_DISABLED_LABELS = ('hostname', 'component', 'category')
+
 HEALTH_STATUS_MAP = {
     'OK': 0,
     'Warning': 1,
@@ -1077,6 +1079,13 @@ class Module(MgrModule, OrchestratorClientMixin):
             'hardware_firmware_info',
             'Firmware version information (value is always 1, version in label)',
             HW_FIRMWARE_LABELS
+        )
+
+        metrics['hardware_component_disabled'] = Metric(
+            'gauge',
+            'hardware_component_disabled',
+            'Hardware component disabled state (1=disabled)',
+            HW_DISABLED_LABELS
         )
 
         return metrics
@@ -2115,6 +2124,26 @@ class Module(MgrModule, OrchestratorClientMixin):
                 health_value, (hostname, comp_id, category)
             )
 
+    @staticmethod
+    def _is_state_disabled(status: Any) -> bool:
+        """Check if a Redfish status dict has State 'Disabled' (case-insensitive)."""
+        if not isinstance(status, dict):
+            return False
+        state = status.get('state')
+        return isinstance(state, str) and state.casefold() == 'disabled'
+
+    def _hw_handle_disabled(
+            self, status: Any, hostname: str,
+            comp_id: str, category: str
+    ) -> bool:
+        """If component is disabled, emit disabled metric and return True; else False."""
+        if not self._is_state_disabled(status):
+            return False
+        self.metrics['hardware_component_disabled'].set(
+            1, (hostname, comp_id, category)
+        )
+        return True
+
     def _hw_iter_components(
             self, status: Dict[str, Any], category: str
     ) -> Iterator[Tuple[str, Dict[str, Any]]]:
@@ -2130,17 +2159,23 @@ class Module(MgrModule, OrchestratorClientMixin):
     ) -> None:
         """Set sensor value (temperature/fan) and health gauges using the sensor name."""
         name = comp.get('name', comp_id)
+        status = comp.get('status', {})
+        if self._hw_handle_disabled(status, hostname, name, category):
+            return
         reading = comp.get('reading')
         if reading is not None and reading != 'unknown':
             try:
                 self.metrics[metric_key].set(float(reading), (hostname, name))
             except (ValueError, TypeError):
                 pass
-        self._hw_set_health_metric(comp.get('status', {}), hostname, name, category)
+        self._hw_set_health_metric(status, hostname, name, category)
 
     def _process_storage(self, status: Dict[str, Any], hostname: str) -> None:
         """Set storage capacity and health metrics per drive."""
         for device_id, device in self._hw_iter_components(status, 'storage'):
+            dev_status = device.get('status', {})
+            if self._hw_handle_disabled(dev_status, hostname, device_id, 'storage'):
+                continue
             capacity = device.get('capacity_bytes', 0)
             labels = (
                 hostname,
@@ -2152,11 +2187,14 @@ class Module(MgrModule, OrchestratorClientMixin):
                 device.get('serial_number', 'unknown')
             )
             self.metrics['hardware_storage_capacity_bytes'].set(capacity, labels)
-            self._hw_set_health_metric(device.get('status', {}), hostname, device_id, 'storage')
+            self._hw_set_health_metric(dev_status, hostname, device_id, 'storage')
 
     def _process_processors(self, status: Dict[str, Any], hostname: str) -> None:
         """Set CPU cores count and health metrics per processor."""
         for cpu_id, cpu in self._hw_iter_components(status, 'processors'):
+            cpu_status = cpu.get('status', {})
+            if self._hw_handle_disabled(cpu_status, hostname, cpu_id, 'processors'):
+                continue
             cores = cpu.get('total_cores', 0)
             labels = (
                 hostname,
@@ -2166,11 +2204,14 @@ class Module(MgrModule, OrchestratorClientMixin):
                 cpu.get('total_threads', 'unknown')
             )
             self.metrics['hardware_cpu_cores'].set(cores, labels)
-            self._hw_set_health_metric(cpu.get('status', {}), hostname, cpu_id, 'processors')
+            self._hw_set_health_metric(cpu_status, hostname, cpu_id, 'processors')
 
     def _process_memory(self, status: Dict[str, Any], hostname: str) -> None:
         """Set memory capacity (in bytes) and health metrics per DIMM."""
         for dimm_id, dimm in self._hw_iter_components(status, 'memory'):
+            dimm_status = dimm.get('status', {})
+            if self._hw_handle_disabled(dimm_status, hostname, dimm_id, 'memory'):
+                continue
             capacity_mib = dimm.get('capacity_mi_b', 0)
             capacity_bytes = capacity_mib * MIB_TO_BYTES
             labels = (
@@ -2179,15 +2220,21 @@ class Module(MgrModule, OrchestratorClientMixin):
                 dimm.get('memory_device_type', 'unknown'),
             )
             self.metrics['hardware_memory_capacity_bytes'].set(capacity_bytes, labels)
-            self._hw_set_health_metric(dimm.get('status', {}), hostname, dimm_id, 'memory')
+            self._hw_set_health_metric(dimm_status, hostname, dimm_id, 'memory')
 
     def _process_power_network(self, status: Dict[str, Any], hostname: str) -> None:
         """Set health metrics for power and network"""
         for comp_id, comp in self._hw_iter_components(status, 'power'):
             name = comp.get('name', comp_id)
-            self._hw_set_health_metric(comp.get('status', {}), hostname, name, 'power')
+            comp_status = comp.get('status', {})
+            if self._hw_handle_disabled(comp_status, hostname, name, 'power'):
+                continue
+            self._hw_set_health_metric(comp_status, hostname, name, 'power')
         for comp_id, comp in self._hw_iter_components(status, 'network'):
-            self._hw_set_health_metric(comp.get('status', {}), hostname, comp_id, 'network')
+            comp_status = comp.get('status', {})
+            if self._hw_handle_disabled(comp_status, hostname, comp_id, 'network'):
+                continue
+            self._hw_set_health_metric(comp_status, hostname, comp_id, 'network')
 
     def _process_sensors(self, status: Dict[str, Any], hostname: str) -> None:
         """Set fan and temperature readings and health metrics"""

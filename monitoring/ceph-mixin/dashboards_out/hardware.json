@@ -1,6 +1,6 @@
 {
-   "__inputs": [ ],
-   "__requires": [ ],
+   "__inputs": [],
+   "__requires": [],
    "annotations": {
       "list": [
          {
@@ -11,7 +11,7 @@
             "iconColor": "rgba(0, 211, 255, 1)",
             "name": "Annotations & Alerts",
             "showIn": 0,
-            "tags": [ ],
+            "tags": [],
             "type": "dashboard"
          }
       ]
@@ -28,7 +28,7 @@
          "icon": "external link",
          "includeVars": true,
          "keepTime": true,
-         "tags": [ ],
+         "tags": [],
          "targetBlank": false,
          "title": "Ceph Hardware - Overview",
          "tooltip": "",
@@ -100,7 +100,7 @@
                   "y": 1
                },
                "id": 3,
-               "links": [ ],
+               "links": [],
                "options": {
                   "colorMode": "background_solid",
                   "graphMode": "none",
@@ -134,8 +134,8 @@
                "description": "Highest CPU temperature across all hosts",
                "fieldConfig": {
                   "defaults": {
-                     "links": [ ],
-                     "mappings": [ ],
+                     "links": [],
+                     "mappings": [],
                      "max": 100,
                      "min": 0,
                      "thresholds": {
@@ -165,7 +165,7 @@
                },
                "id": 4,
                "interval": "1m",
-               "links": [ ],
+               "links": [],
                "maxDataPoints": 100,
                "options": {
                   "reduceOptions": {
@@ -207,9 +207,9 @@
                            "viz": false
                         }
                      },
-                     "mappings": [ ]
+                     "mappings": []
                   },
-                  "overrides": [ ]
+                  "overrides": []
                },
                "gridPos": {
                   "h": 8,
@@ -224,15 +224,15 @@
                      "value"
                   ],
                   "legend": {
-                     "calcs": [ ],
+                     "calcs": [],
                      "displayMode": "table",
                      "placement": "bottom",
                      "showLegend": true,
-                     "values": [ ]
+                     "values": []
                   },
                   "pieType": "donut",
-                  "reduceOptions": { },
-                  "tooltip": { }
+                  "reduceOptions": {},
+                  "tooltip": {}
                },
                "targets": [
                   {
@@ -261,9 +261,9 @@
                            "viz": false
                         }
                      },
-                     "mappings": [ ]
+                     "mappings": []
                   },
-                  "overrides": [ ]
+                  "overrides": []
                },
                "gridPos": {
                   "h": 8,
@@ -278,15 +278,15 @@
                      "value"
                   ],
                   "legend": {
-                     "calcs": [ ],
+                     "calcs": [],
                      "displayMode": "table",
                      "placement": "bottom",
                      "showLegend": true,
-                     "values": [ ]
+                     "values": []
                   },
                   "pieType": "donut",
-                  "reduceOptions": { },
-                  "tooltip": { }
+                  "reduceOptions": {},
+                  "tooltip": {}
                },
                "targets": [
                   {
@@ -315,9 +315,9 @@
                            "viz": false
                         }
                      },
-                     "mappings": [ ]
+                     "mappings": []
                   },
-                  "overrides": [ ]
+                  "overrides": []
                },
                "gridPos": {
                   "h": 8,
@@ -331,15 +331,15 @@
                      "value"
                   ],
                   "legend": {
-                     "calcs": [ ],
+                     "calcs": [],
                      "displayMode": "table",
                      "placement": "right",
                      "showLegend": true,
-                     "values": [ ]
+                     "values": []
                   },
                   "pieType": "donut",
-                  "reduceOptions": { },
-                  "tooltip": { }
+                  "reduceOptions": {},
+                  "tooltip": {}
                },
                "targets": [
                   {
@@ -368,9 +368,9 @@
                            "viz": false
                         }
                      },
-                     "mappings": [ ]
+                     "mappings": []
                   },
-                  "overrides": [ ]
+                  "overrides": []
                },
                "gridPos": {
                   "h": 8,
@@ -384,15 +384,15 @@
                      "value"
                   ],
                   "legend": {
-                     "calcs": [ ],
+                     "calcs": [],
                      "displayMode": "table",
                      "placement": "right",
                      "showLegend": true,
-                     "values": [ ]
+                     "values": []
                   },
                   "pieType": "donut",
-                  "reduceOptions": { },
-                  "tooltip": { }
+                  "reduceOptions": {},
+                  "tooltip": {}
                },
                "targets": [
                   {
@@ -414,12 +414,12 @@
                "fieldConfig": {
                   "defaults": {
                      "decimals": 0,
-                     "links": [ ],
-                     "mappings": [ ],
+                     "links": [],
+                     "mappings": [],
                      "noValue": "N/A",
                      "thresholds": {
                         "mode": "absolute",
-                        "steps": [ ]
+                        "steps": []
                      },
                      "unit": "short"
                   }
@@ -431,7 +431,7 @@
                   "y": 5
                },
                "id": 9,
-               "links": [ ],
+               "links": [],
                "options": {
                   "colorMode": "none",
                   "graphMode": "none",
@@ -467,12 +467,12 @@
                "fieldConfig": {
                   "defaults": {
                      "decimals": 0,
-                     "links": [ ],
-                     "mappings": [ ],
+                     "links": [],
+                     "mappings": [],
                      "noValue": "N/A",
                      "thresholds": {
                         "mode": "absolute",
-                        "steps": [ ]
+                        "steps": []
                      },
                      "unit": "short"
                   }
@@ -484,7 +484,7 @@
                   "y": 5
                },
                "id": 10,
-               "links": [ ],
+               "links": [],
                "options": {
                   "colorMode": "none",
                   "graphMode": "none",
@@ -515,11 +515,89 @@
             },
             {
                "datasource": "$datasource",
+               "description": "Number of hardware components in disabled state across all hosts",
+               "fieldConfig": {
+                  "defaults": {
+                     "mappings": [
+                        {
+                           "options": {
+                              "0": {
+                                 "color": "green",
+                                 "index": 0,
+                                 "text": "None"
+                              }
+                           },
+                           "type": "value"
+                        },
+                        {
+                           "options": {
+                              "from": 1,
+                              "result": {
+                                 "color": "semi-dark-orange",
+                                 "index": 1
+                              },
+                              "to": 9999
+                           },
+                           "type": "range"
+                        }
+                     ],
+                     "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                           {
+                              "color": "green"
+                           },
+                           {
+                              "color": "semi-dark-orange",
+                              "value": 1
+                           }
+                        ]
+                     }
+                  }
+               },
+               "gridPos": {
+                  "h": 4,
+                  "w": 3,
+                  "x": 4,
+                  "y": 5
+               },
+               "id": 39,
+               "links": [],
+               "options": {
+                  "colorMode": "background",
+                  "graphMode": "none",
+                  "justifyMode": "auto",
+                  "orientation": "horizontal",
+                  "reduceOptions": {
+                     "calcs": [
+                        "last"
+                     ],
+                     "fields": "",
+                     "values": false
+                  },
+                  "textMode": "auto"
+               },
+               "pluginVersion": "9.1.3",
+               "targets": [
+                  {
+                     "expr": "count(ceph_hardware_component_disabled) or vector(0)",
+                     "format": "time_series",
+                     "intervalFactor": 1,
+                     "legendFormat": "Disabled",
+                     "refId": "A"
+                  }
+               ],
+               "title": "Disabled Components",
+               "transparent": false,
+               "type": "stat"
+            },
+            {
+               "datasource": "$datasource",
                "description": "Highest NVMe drive temperature across all hosts",
                "fieldConfig": {
                   "defaults": {
-                     "links": [ ],
-                     "mappings": [ ],
+                     "links": [],
+                     "mappings": [],
                      "max": 85,
                      "min": 0,
                      "thresholds": {
@@ -544,12 +622,12 @@
                "gridPos": {
                   "h": 4,
                   "w": 3,
-                  "x": 4,
+                  "x": 7,
                   "y": 5
                },
                "id": 11,
                "interval": "1m",
-               "links": [ ],
+               "links": [],
                "maxDataPoints": 100,
                "options": {
                   "reduceOptions": {
@@ -648,7 +726,7 @@
                   "y": 2
                },
                "id": 13,
-               "links": [ ],
+               "links": [],
                "options": {
                   "colorMode": "background_solid",
                   "graphMode": "none",
@@ -684,8 +762,8 @@
                "fieldConfig": {
                   "defaults": {
                      "decimals": 0,
-                     "links": [ ],
-                     "mappings": [ ],
+                     "links": [],
+                     "mappings": [],
                      "noValue": "N/A",
                      "thresholds": {
                         "mode": "absolute",
@@ -713,7 +791,7 @@
                   "y": 2
                },
                "id": 14,
-               "links": [ ],
+               "links": [],
                "options": {
                   "colorMode": "none",
                   "graphMode": "area",
@@ -749,8 +827,8 @@
                "fieldConfig": {
                   "defaults": {
                      "decimals": 0,
-                     "links": [ ],
-                     "mappings": [ ],
+                     "links": [],
+                     "mappings": [],
                      "max": 85,
                      "min": 0,
                      "noValue": "N/A",
@@ -780,7 +858,7 @@
                   "y": 2
                },
                "id": 15,
-               "links": [ ],
+               "links": [],
                "options": {
                   "colorMode": "none",
                   "graphMode": "area",
@@ -816,8 +894,8 @@
                "fieldConfig": {
                   "defaults": {
                      "decimals": 0,
-                     "links": [ ],
-                     "mappings": [ ],
+                     "links": [],
+                     "mappings": [],
                      "max": 88,
                      "min": 0,
                      "noValue": "N/A",
@@ -847,7 +925,7 @@
                   "y": 2
                },
                "id": 16,
-               "links": [ ],
+               "links": [],
                "options": {
                   "colorMode": "none",
                   "graphMode": "area",
@@ -883,12 +961,12 @@
                "fieldConfig": {
                   "defaults": {
                      "decimals": 0,
-                     "links": [ ],
-                     "mappings": [ ],
+                     "links": [],
+                     "mappings": [],
                      "noValue": "N/A",
                      "thresholds": {
                         "mode": "absolute",
-                        "steps": [ ]
+                        "steps": []
                      },
                      "unit": "short"
                   }
@@ -900,7 +978,7 @@
                   "y": 2
                },
                "id": 17,
-               "links": [ ],
+               "links": [],
                "options": {
                   "colorMode": "none",
                   "graphMode": "none",
@@ -940,8 +1018,8 @@
                         "mode": "fixed"
                      },
                      "decimals": 0,
-                     "links": [ ],
-                     "mappings": [ ],
+                     "links": [],
+                     "mappings": [],
                      "max": 100,
                      "min": 0,
                      "noValue": "N/A",
@@ -971,7 +1049,7 @@
                   "y": 2
                },
                "id": 18,
-               "links": [ ],
+               "links": [],
                "options": {
                   "colorMode": "none",
                   "graphMode": "area",
@@ -1011,8 +1089,8 @@
                         "mode": "thresholds"
                      },
                      "decimals": 0,
-                     "links": [ ],
-                     "mappings": [ ],
+                     "links": [],
+                     "mappings": [],
                      "noValue": "N/A",
                      "thresholds": {
                         "mode": "absolute",
@@ -1040,7 +1118,7 @@
                   "y": 2
                },
                "id": 19,
-               "links": [ ],
+               "links": [],
                "options": {
                   "colorMode": "none",
                   "graphMode": "none",
@@ -1080,8 +1158,8 @@
                         "mode": "thresholds"
                      },
                      "decimals": 0,
-                     "links": [ ],
-                     "mappings": [ ],
+                     "links": [],
+                     "mappings": [],
                      "max": 85,
                      "min": 0,
                      "noValue": "N/A",
@@ -1111,7 +1189,7 @@
                   "y": 2
                },
                "id": 20,
-               "links": [ ],
+               "links": [],
                "options": {
                   "colorMode": "none",
                   "graphMode": "area",
@@ -1192,7 +1270,7 @@
                   "y": 5
                },
                "id": 21,
-               "links": [ ],
+               "links": [],
                "options": {
                   "colorMode": "background_solid",
                   "graphMode": "none",
@@ -1273,7 +1351,7 @@
                   "y": 8
                },
                "id": 22,
-               "links": [ ],
+               "links": [],
                "options": {
                   "colorMode": "background_solid",
                   "graphMode": "none",
@@ -1354,7 +1432,7 @@
                   "y": 11
                },
                "id": 23,
-               "links": [ ],
+               "links": [],
                "options": {
                   "colorMode": "background_solid",
                   "graphMode": "none",
@@ -1384,7 +1462,7 @@
                "type": "stat"
             },
             {
-               "columns": [ ],
+               "columns": [],
                "datasource": "$datasource",
                "fieldConfig": {
                   "defaults": {
@@ -1406,7 +1484,7 @@
                         ]
                      }
                   },
-                  "overrides": [ ]
+                  "overrides": []
                },
                "gridPos": {
                   "h": 8,
@@ -1415,7 +1493,7 @@
                   "y": 6
                },
                "id": 24,
-               "links": [ ],
+               "links": [],
                "options": {
                   "footer": {
                      "show": false
@@ -1423,7 +1501,7 @@
                   "showHeader": true
                },
                "pluginVersion": "9.1.3",
-               "styles": [ ],
+               "styles": [],
                "targets": [
                   {
                      "expr": "ceph_hardware_storage_capacity_bytes{hostname=~\"$hostname\"}",
@@ -1461,7 +1539,7 @@
                "type": "table"
             },
             {
-               "columns": [ ],
+               "columns": [],
                "datasource": "$datasource",
                "fieldConfig": {
                   "defaults": {
@@ -1483,7 +1561,7 @@
                         ]
                      }
                   },
-                  "overrides": [ ]
+                  "overrides": []
                },
                "gridPos": {
                   "h": 8,
@@ -1492,7 +1570,7 @@
                   "y": 6
                },
                "id": 25,
-               "links": [ ],
+               "links": [],
                "options": {
                   "footer": {
                      "show": false
@@ -1500,7 +1578,7 @@
                   "showHeader": true
                },
                "pluginVersion": "9.1.3",
-               "styles": [ ],
+               "styles": [],
                "targets": [
                   {
                      "expr": "ceph_hardware_firmware_info{hostname=~\"$hostname\"}",
@@ -1535,6 +1613,242 @@
                   }
                ],
                "type": "table"
+            },
+            {
+               "datasource": "$datasource",
+               "description": "Number of disabled hardware components on this host",
+               "fieldConfig": {
+                  "defaults": {
+                     "mappings": [
+                        {
+                           "options": {
+                              "0": {
+                                 "color": "green",
+                                 "index": 0,
+                                 "text": "None"
+                              }
+                           },
+                           "type": "value"
+                        },
+                        {
+                           "options": {
+                              "from": 1,
+                              "result": {
+                                 "color": "semi-dark-orange",
+                                 "index": 1
+                              },
+                              "to": 9999
+                           },
+                           "type": "range"
+                        }
+                     ],
+                     "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                           {
+                              "color": "green"
+                           },
+                           {
+                              "color": "semi-dark-orange",
+                              "value": 1
+                           }
+                        ]
+                     }
+                  }
+               },
+               "gridPos": {
+                  "h": 3,
+                  "w": 2,
+                  "x": 0,
+                  "y": 14
+               },
+               "id": 40,
+               "links": [],
+               "options": {
+                  "colorMode": "background",
+                  "graphMode": "none",
+                  "justifyMode": "auto",
+                  "orientation": "horizontal",
+                  "reduceOptions": {
+                     "calcs": [
+                        "last"
+                     ],
+                     "fields": "",
+                     "values": false
+                  },
+                  "textMode": "auto"
+               },
+               "pluginVersion": "9.1.3",
+               "targets": [
+                  {
+                     "expr": "count(ceph_hardware_component_disabled{hostname=~\"$hostname\"}) or vector(0)",
+                     "format": "time_series",
+                     "intervalFactor": 1,
+                     "legendFormat": "Disabled",
+                     "refId": "A"
+                  }
+               ],
+               "title": "Disabled",
+               "transparent": false,
+               "type": "stat"
+            },
+            {
+               "datasource": "$datasource",
+               "description": "List of disabled hardware components on this host",
+               "fieldConfig": {
+                  "defaults": {},
+                  "overrides": [
+                     {
+                        "matcher": {
+                           "id": "byName",
+                           "options": "Time"
+                        },
+                        "properties": [
+                           {
+                              "id": "custom.hidden",
+                              "value": true
+                           }
+                        ]
+                     },
+                     {
+                        "matcher": {
+                           "id": "byName",
+                           "options": "Value"
+                        },
+                        "properties": [
+                           {
+                              "id": "custom.hidden",
+                              "value": true
+                           }
+                        ]
+                     },
+                     {
+                        "matcher": {
+                           "id": "byName",
+                           "options": "__name__"
+                        },
+                        "properties": [
+                           {
+                              "id": "custom.hidden",
+                              "value": true
+                           }
+                        ]
+                     },
+                     {
+                        "matcher": {
+                           "id": "byName",
+                           "options": "cluster"
+                        },
+                        "properties": [
+                           {
+                              "id": "custom.hidden",
+                              "value": true
+                           }
+                        ]
+                     },
+                     {
+                        "matcher": {
+                           "id": "byName",
+                           "options": "hostname"
+                        },
+                        "properties": [
+                           {
+                              "id": "custom.hidden",
+                              "value": true
+                           }
+                        ]
+                     },
+                     {
+                        "matcher": {
+                           "id": "byName",
+                           "options": "instance"
+                        },
+                        "properties": [
+                           {
+                              "id": "custom.hidden",
+                              "value": true
+                           }
+                        ]
+                     },
+                     {
+                        "matcher": {
+                           "id": "byName",
+                           "options": "job"
+                        },
+                        "properties": [
+                           {
+                              "id": "custom.hidden",
+                              "value": true
+                           }
+                        ]
+                     },
+                     {
+                        "matcher": {
+                           "id": "byName",
+                           "options": "component"
+                        },
+                        "properties": [
+                           {
+                              "id": "displayName",
+                              "value": "Component"
+                           }
+                        ]
+                     },
+                     {
+                        "matcher": {
+                           "id": "byName",
+                           "options": "category"
+                        },
+                        "properties": [
+                           {
+                              "id": "displayName",
+                              "value": "Category"
+                           }
+                        ]
+                     }
+                  ]
+               },
+               "gridPos": {
+                  "h": 5,
+                  "w": 11,
+                  "x": 2,
+                  "y": 14
+               },
+               "id": 41,
+               "links": [],
+               "options": {
+                  "showHeader": true
+               },
+               "pluginVersion": "9.1.3",
+               "targets": [
+                  {
+                     "expr": "ceph_hardware_component_disabled{hostname=~\"$hostname\"}",
+                     "format": "table",
+                     "instant": true,
+                     "intervalFactor": 1,
+                     "legendFormat": "",
+                     "refId": "A"
+                  }
+               ],
+               "title": "Disabled Components",
+               "transformations": [
+                  {
+                     "id": "organize",
+                     "options": {
+                        "excludeByName": {
+                           "Time": true,
+                           "Value": true,
+                           "__name__": true,
+                           "cluster": true,
+                           "hostname": true,
+                           "instance": true,
+                           "job": true
+                        }
+                     }
+                  }
+               ],
+               "transparent": false,
+               "type": "table"
             }
          ],
          "repeat": null,
@@ -1567,12 +1881,12 @@
                         "mode": "fixed"
                      },
                      "decimals": 0,
-                     "links": [ ],
-                     "mappings": [ ],
+                     "links": [],
+                     "mappings": [],
                      "noValue": "N/A",
                      "thresholds": {
                         "mode": "absolute",
-                        "steps": [ ]
+                        "steps": []
                      },
                      "unit": "locale"
                   }
@@ -1584,7 +1898,7 @@
                   "y": 3
                },
                "id": 27,
-               "links": [ ],
+               "links": [],
                "maxPerRow": 6,
                "options": {
                   "colorMode": "none",
@@ -1627,12 +1941,12 @@
                         "mode": "fixed"
                      },
                      "decimals": 0,
-                     "links": [ ],
-                     "mappings": [ ],
+                     "links": [],
+                     "mappings": [],
                      "noValue": "N/A",
                      "thresholds": {
                         "mode": "absolute",
-                        "steps": [ ]
+                        "steps": []
                      },
                      "unit": "locale"
                   }
@@ -1644,7 +1958,7 @@
                   "y": 8
                },
                "id": 28,
-               "links": [ ],
+               "links": [],
                "options": {
                   "colorMode": "none",
                   "graphMode": "area",
@@ -1684,12 +1998,12 @@
                         "mode": "fixed"
                      },
                      "decimals": 0,
-                     "links": [ ],
-                     "mappings": [ ],
+                     "links": [],
+                     "mappings": [],
                      "noValue": "N/A",
                      "thresholds": {
                         "mode": "absolute",
-                        "steps": [ ]
+                        "steps": []
                      },
                      "unit": "locale"
                   }
@@ -1701,7 +2015,7 @@
                   "y": 8
                },
                "id": 29,
-               "links": [ ],
+               "links": [],
                "options": {
                   "colorMode": "none",
                   "graphMode": "area",
@@ -1751,7 +2065,7 @@
          "id": 30,
          "panels": [
             {
-               "aliasColors": { },
+               "aliasColors": {},
                "bars": false,
                "dashLength": 10,
                "dashes": false,
@@ -1779,7 +2093,7 @@
                },
                "lines": true,
                "linewidth": 1,
-               "links": [ ],
+               "links": [],
                "nullPointMode": "null",
                "percentage": false,
                "pointradius": 5,
@@ -1813,7 +2127,7 @@
                      "refId": "B"
                   }
                ],
-               "thresholds": [ ],
+               "thresholds": [],
                "timeFrom": null,
                "timeShift": null,
                "title": "CPU Temperature",
@@ -1828,17 +2142,17 @@
                   "mode": "time",
                   "name": null,
                   "show": true,
-                  "values": [ ]
+                  "values": []
                },
                "yaxes": [
                   {
                      "min": 0
                   },
-                  { }
+                  {}
                ]
             },
             {
-               "aliasColors": { },
+               "aliasColors": {},
                "bars": false,
                "dashLength": 10,
                "dashes": false,
@@ -1866,7 +2180,7 @@
                },
                "lines": true,
                "linewidth": 1,
-               "links": [ ],
+               "links": [],
                "nullPointMode": "null",
                "percentage": false,
                "pointradius": 5,
@@ -1900,7 +2214,7 @@
                      "refId": "B"
                   }
                ],
-               "thresholds": [ ],
+               "thresholds": [],
                "timeFrom": null,
                "timeShift": null,
                "title": "DIMM Temperatures",
@@ -1915,17 +2229,17 @@
                   "mode": "time",
                   "name": null,
                   "show": true,
-                  "values": [ ]
+                  "values": []
                },
                "yaxes": [
                   {
                      "min": 0
                   },
-                  { }
+                  {}
                ]
             },
             {
-               "aliasColors": { },
+               "aliasColors": {},
                "bars": false,
                "dashLength": 10,
                "dashes": false,
@@ -1953,7 +2267,7 @@
                },
                "lines": true,
                "linewidth": 1,
-               "links": [ ],
+               "links": [],
                "nullPointMode": "null",
                "percentage": false,
                "pointradius": 5,
@@ -1987,7 +2301,7 @@
                      "refId": "B"
                   }
                ],
-               "thresholds": [ ],
+               "thresholds": [],
                "timeFrom": null,
                "timeShift": null,
                "title": "Motherboard Temperatures",
@@ -2002,17 +2316,17 @@
                   "mode": "time",
                   "name": null,
                   "show": true,
-                  "values": [ ]
+                  "values": []
                },
                "yaxes": [
                   {
                      "min": 0
                   },
-                  { }
+                  {}
                ]
             },
             {
-               "aliasColors": { },
+               "aliasColors": {},
                "bars": false,
                "dashLength": 10,
                "dashes": false,
@@ -2040,7 +2354,7 @@
                },
                "lines": true,
                "linewidth": 1,
-               "links": [ ],
+               "links": [],
                "nullPointMode": "null",
                "percentage": false,
                "pointradius": 5,
@@ -2074,7 +2388,7 @@
                      "refId": "B"
                   }
                ],
-               "thresholds": [ ],
+               "thresholds": [],
                "timeFrom": null,
                "timeShift": null,
                "title": "NVMe Temperatures",
@@ -2089,17 +2403,17 @@
                   "mode": "time",
                   "name": null,
                   "show": true,
-                  "values": [ ]
+                  "values": []
                },
                "yaxes": [
                   {
                      "min": 0
                   },
-                  { }
+                  {}
                ]
             },
             {
-               "aliasColors": { },
+               "aliasColors": {},
                "bars": false,
                "dashLength": 10,
                "dashes": false,
@@ -2127,7 +2441,7 @@
                },
                "lines": true,
                "linewidth": 1,
-               "links": [ ],
+               "links": [],
                "nullPointMode": "null",
                "percentage": false,
                "pointradius": 5,
@@ -2161,7 +2475,7 @@
                      "refId": "B"
                   }
                ],
-               "thresholds": [ ],
+               "thresholds": [],
                "timeFrom": null,
                "timeShift": null,
                "title": "PSU Temperatures",
@@ -2176,13 +2490,13 @@
                   "mode": "time",
                   "name": null,
                   "show": true,
-                  "values": [ ]
+                  "values": []
                },
                "yaxes": [
                   {
                      "min": 0
                   },
-                  { }
+                  {}
                ]
             }
          ],
@@ -2206,7 +2520,7 @@
          "id": 36,
          "panels": [
             {
-               "aliasColors": { },
+               "aliasColors": {},
                "bars": false,
                "dashLength": 10,
                "dashes": false,
@@ -2235,14 +2549,14 @@
                },
                "lines": true,
                "linewidth": 1,
-               "links": [ ],
+               "links": [],
                "nullPointMode": "null",
                "percentage": false,
                "pointradius": 5,
                "points": false,
                "renderer": "flot",
                "repeat": null,
-               "seriesOverrides": [ ],
+               "seriesOverrides": [],
                "spaceLength": 10,
                "stack": false,
                "steppedLine": false,
@@ -2255,7 +2569,7 @@
                      "refId": "A"
                   }
                ],
-               "thresholds": [ ],
+               "thresholds": [],
                "timeFrom": null,
                "timeShift": null,
                "title": "AVG PSU Fan Speed",
@@ -2270,7 +2584,7 @@
                   "mode": "time",
                   "name": null,
                   "show": true,
-                  "values": [ ]
+                  "values": []
                },
                "yaxes": [
                   {
@@ -2292,7 +2606,7 @@
                ]
             },
             {
-               "aliasColors": { },
+               "aliasColors": {},
                "bars": false,
                "dashLength": 10,
                "dashes": false,
@@ -2320,14 +2634,14 @@
                },
                "lines": true,
                "linewidth": 1,
-               "links": [ ],
+               "links": [],
                "nullPointMode": "null",
                "percentage": false,
                "pointradius": 5,
                "points": false,
                "renderer": "flot",
                "repeat": null,
-               "seriesOverrides": [ ],
+               "seriesOverrides": [],
                "spaceLength": 10,
                "stack": false,
                "steppedLine": false,
@@ -2340,7 +2654,7 @@
                      "refId": "A"
                   }
                ],
-               "thresholds": [ ],
+               "thresholds": [],
                "timeFrom": null,
                "timeShift": null,
                "title": "AVG Cooling Fan RPMs",
@@ -2355,7 +2669,7 @@
                   "mode": "time",
                   "name": null,
                   "show": true,
-                  "values": [ ]
+                  "values": []
                },
                "yaxes": [
                   {
@@ -2387,7 +2701,7 @@
       }
    ],
    "refresh": "10s",
-   "rows": [ ],
+   "rows": [],
    "schemaVersion": 22,
    "style": "dark",
    "tags": [
@@ -2403,7 +2717,7 @@
             "hide": 0,
             "label": "Data Source",
             "name": "datasource",
-            "options": [ ],
+            "options": [],
             "query": "prometheus",
             "refresh": 1,
             "regex": "",
@@ -2411,60 +2725,60 @@
          },
          {
             "allValue": null,
-            "current": { },
+            "current": {},
             "datasource": "$datasource",
             "hide": 0,
             "includeAll": false,
             "label": "cluster",
             "multi": false,
             "name": "cluster",
-            "options": [ ],
+            "options": [],
             "query": "label_values(ceph_health_status, cluster)",
             "refresh": 1,
             "regex": "(.*)",
             "sort": 1,
             "tagValuesQuery": "",
-            "tags": [ ],
+            "tags": [],
             "tagsQuery": "",
             "type": "query",
             "useTags": false
          },
          {
             "allValue": null,
-            "current": { },
+            "current": {},
             "datasource": "$datasource",
             "hide": 0,
             "includeAll": false,
             "label": "Host",
             "multi": false,
             "name": "hostname",
-            "options": [ ],
+            "options": [],
             "query": "label_values(ceph_hardware_health, hostname)",
             "refresh": 1,
             "regex": "",
             "sort": 1,
             "tagValuesQuery": "",
-            "tags": [ ],
+            "tags": [],
             "tagsQuery": "",
             "type": "query",
             "useTags": false
          },
          {
             "allValue": "",
-            "current": { },
+            "current": {},
             "datasource": "$datasource",
             "hide": 2,
             "includeAll": true,
             "label": "",
             "multi": true,
             "name": "fan_speeds",
-            "options": [ ],
+            "options": [],
             "query": "label_values(ceph_hardware_fan_rpm{hostname=~\"$hostname\"},fan_name)",
             "refresh": 1,
             "regex": "/.*TACH_OUT/",
             "sort": 0,
             "tagValuesQuery": "",
-            "tags": [ ],
+            "tags": [],
             "tagsQuery": "",
             "type": "query",
             "useTags": false

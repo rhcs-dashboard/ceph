@@ -279,6 +279,7 @@ class HardwareMetricsTest(TestCase):
         from prometheus.module import (
             Module, HW_STORAGE_LABELS, HW_CPU_LABELS, HW_MEMORY_LABELS,
             HW_HEALTH_LABELS, HW_TEMP_LABELS, HW_FAN_LABELS, HW_FIRMWARE_LABELS,
+            HW_DISABLED_LABELS,
         )
         self.module = mock.MagicMock(spec=Module)
         self.module.log = mock.MagicMock()
@@ -297,6 +298,8 @@ class HardwareMetricsTest(TestCase):
                 'gauge', 'hardware_fan_rpm', '', HW_FAN_LABELS),
             'hardware_firmware_info': Metric(
                 'gauge', 'hardware_firmware_info', '', HW_FIRMWARE_LABELS),
+            'hardware_component_disabled': Metric(
+                'gauge', 'hardware_component_disabled', '', HW_DISABLED_LABELS),
         }
         self.hostname = 'host.example.com'
         self.data = MOCK_HW_FULLREPORT[self.hostname]
@@ -311,6 +314,8 @@ class HardwareMetricsTest(TestCase):
         self.module._process_power_network = Module._process_power_network.__get__(self.module)
         self.module._process_sensors = Module._process_sensors.__get__(self.module)
         self.module._process_firmware = Module._process_firmware.__get__(self.module)
+        self.module._is_state_disabled = Module._is_state_disabled
+        self.module._hw_handle_disabled = Module._hw_handle_disabled.__get__(self.module)
 
     # --- _hw_get_health_value ---
 
@@ -471,3 +476,127 @@ class HardwareMetricsTest(TestCase):
         self.module._process_processors(self.status, self.hostname)
         for labels in self.module.metrics['hardware_cpu_cores'].value:
             self.assertEqual(len(labels), 5)
+
+    # --- disabled component handling ---
+
+    def test_disabled_fan_emits_disabled_metric(self):
+        status = {'fans': {'Self': {
+            '0': {
+                'name': 'FAN1_TACH_IN',
+                'reading': None,
+                'status': {'health': 'OK', 'state': 'disabled'},
+            },
+        }}}
+        self.module._process_sensors(status, self.hostname)
+        disabled = self.module.metrics['hardware_component_disabled'].value
+        self.assertIn((self.hostname, 'FAN1_TACH_IN', 'fans'), disabled)
+        self.assertEqual(disabled[(self.hostname, 'FAN1_TACH_IN', 'fans')], 1)
+        self.assertNotIn(
+            (self.hostname, 'FAN1_TACH_IN'),
+            self.module.metrics['hardware_fan_rpm'].value)
+        self.assertNotIn(
+            (self.hostname, 'FAN1_TACH_IN', 'fans'),
+            self.module.metrics['hardware_health'].value)
+
+    def test_disabled_temperature_emits_disabled_metric(self):
+        status = {'temperatures': {'Self': {
+            '0': {
+                'name': 'C1_CPU_TEMP',
+                'reading': None,
+                'status': {'health': 'OK', 'state': 'disabled'},
+            },
+        }}}
+        self.module._process_sensors(status, self.hostname)
+        disabled = self.module.metrics['hardware_component_disabled'].value
+        self.assertIn((self.hostname, 'C1_CPU_TEMP', 'temperatures'), disabled)
+        self.assertNotIn(
+            (self.hostname, 'C1_CPU_TEMP'),
+            self.module.metrics['hardware_temperature_celsius'].value)
+        self.assertNotIn(
+            (self.hostname, 'C1_CPU_TEMP', 'temperatures'),
+            self.module.metrics['hardware_health'].value)
+
+    def test_disabled_storage_emits_disabled_metric(self):
+        status = {'storage': {'Self': {
+            'nvme0': {
+                'capacity_bytes': 512110190592,
+                'model': 'TestDrive',
+                'protocol': 'NVMe',
+                'serial_number': 'SN123',
+                'firmware_version': 'v1',
+                'slot': '0',
+                'status': {'health': 'OK', 'state': 'disabled'},
+            },
+        }}}
+        self.module._process_storage(status, self.hostname)
+        disabled = self.module.metrics['hardware_component_disabled'].value
+        self.assertIn((self.hostname, 'nvme0', 'storage'), disabled)
+        self.assertEqual(
+            self.module.metrics['hardware_storage_capacity_bytes'].value, {})
+        self.assertNotIn(
+            (self.hostname, 'nvme0', 'storage'),
+            self.module.metrics['hardware_health'].value)
+
+    def test_disabled_memory_emits_disabled_metric(self):
+        status = {'memory': {'Self': {
+            'dimm0': {
+                'memory_device_type': 'DDR5',
+                'capacity_mi_b': 131072,
+                'status': {'health': 'OK', 'state': 'disabled'},
+            },
+        }}}
+        self.module._process_memory(status, self.hostname)
+        disabled = self.module.metrics['hardware_component_disabled'].value
+        self.assertIn((self.hostname, 'dimm0', 'memory'), disabled)
+        self.assertEqual(
+            self.module.metrics['hardware_memory_capacity_bytes'].value, {})
+
+    def test_disabled_processor_emits_disabled_metric(self):
+        status = {'processors': {'Self': {
+            'cpu0': {
+                'total_cores': 48,
+                'total_threads': 96,
+                'model': 'TestCPU',
+                'manufacturer': 'AMD',
+                'status': {'health': 'OK', 'state': 'disabled'},
+            },
+        }}}
+        self.module._process_processors(status, self.hostname)
+        disabled = self.module.metrics['hardware_component_disabled'].value
+        self.assertIn((self.hostname, 'cpu0', 'processors'), disabled)
+        self.assertEqual(
+            self.module.metrics['hardware_cpu_cores'].value, {})
+
+    def test_disabled_power_emits_disabled_metric(self):
+        status = {'power': {'Self': {
+            '1': {
+                'name': 'PSU1',
+                'status': {'health': 'OK', 'state': 'disabled'},
+            },
+        }}}
+        self.module._process_power_network(status, self.hostname)
+        disabled = self.module.metrics['hardware_component_disabled'].value
+        self.assertIn((self.hostname, 'PSU1', 'power'), disabled)
+        self.assertNotIn(
+            (self.hostname, 'PSU1', 'power'),
+            self.module.metrics['hardware_health'].value)
+
+    def test_disabled_network_emits_disabled_metric(self):
+        status = {'network': {'Self': {
+            'nic0': {
+                'name': 'NetworkAdapter_0',
+                'status': {'health': 'OK', 'state': 'disabled'},
+            },
+        }}}
+        self.module._process_power_network(status, self.hostname)
+        disabled = self.module.metrics['hardware_component_disabled'].value
+        self.assertIn((self.hostname, 'nic0', 'network'), disabled)
+        self.assertNotIn(
+            (self.hostname, 'nic0', 'network'),
+            self.module.metrics['hardware_health'].value)
+
+    def test_enabled_sensor_no_disabled_metric(self):
+        """Enabled sensors should not emit a disabled metric."""
+        self.module._process_sensors(self.status, self.hostname)
+        self.assertEqual(
+            self.module.metrics['hardware_component_disabled'].value, {})

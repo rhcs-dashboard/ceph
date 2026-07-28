@@ -800,6 +800,24 @@ groups:
         labels:
           severity: "warning"
           type: "ceph_default"
+      - alert: "HardwareSensorDisabled"
+        annotations:
+          description: "Sensor {{ $labels.component }} ({{ $labels.category }}) is disabled on {{ $labels.hostname }}. Disabled sensors do not report health or readings, creating a monitoring blind spot. Investigate the sensor status via BMC or 'ipmitool sdr elist'."
+          summary: "Hardware sensor {{ $labels.component }} disabled on {{ $labels.hostname }} on cluster {{ $labels.cluster }}"
+        expr: "ceph_hardware_component_disabled{category=~\"fans|temperatures\"} == 1"
+        for: "5m"
+        labels:
+          severity: "warning"
+          type: "ceph_default"
+      - alert: "HardwareComponentDisabled"
+        annotations:
+          description: "Hardware component {{ $labels.component }} ({{ $labels.category }}) is disabled on {{ $labels.hostname }}. Investigate the component status via BMC or 'ipmitool sdr elist'."
+          summary: "Hardware component {{ $labels.component }} disabled on {{ $labels.hostname }} on cluster {{ $labels.cluster }}"
+        expr: "ceph_hardware_component_disabled{category=~\"memory|storage|processors|power|network\"} == 1"
+        for: "1m"
+        labels:
+          severity: "critical"
+          type: "ceph_default"
   - name: "PrometheusServer"
     rules:
       - alert: "PrometheusJobMissing"
