@@ -10,26 +10,34 @@
     <formly-field class="col"
                   [field]="field"></formly-field>
     <div class="action-btn">
-      <button class="btn btn-light ms-1"
-              type="button"
-              (click)="addWrapper()">
-        <i [ngClass]="icons.add"></i>
+      <button
+        class="btn btn-light ms-1"
+        type="button"
+        (click)="addWrapper()"
+      >
+        <svg [cdsIcon]="icons.add"></svg>
       </button>
-      <button class="btn btn-light ms-1"
-              type="button"
-              (click)="remove(i)"
-              *ngIf="field.props.removable !== false">
-        <i [ngClass]="icons.trash"></i>
+      <button
+        class="btn btn-light ms-1"
+        type="button"
+        (click)="remove(i)"
+        *ngIf="field.props.removable !== false"
+      >
+        <svg [cdsIcon]="icons.trash"></svg>
       </button>
     </div>
   </div>
-  <div *ngIf="field.fieldGroup.length === 0"
-       class="text-right">
-    <button class="btn btn-light"
-            type="button"
-            (click)="addWrapper()"
-            i18n>
-      <i [ngClass]="icons.add"></i>
+  <div
+    *ngIf="field.fieldGroup.length === 0"
+    class="text-right"
+  >
+    <button
+      class="btn btn-light"
+      type="button"
+      (click)="addWrapper()"
+      i18n
+    >
+      <svg [cdsIcon]="icons.add"></svg>
       Add {{ props.label }}
     </button>
   </div>

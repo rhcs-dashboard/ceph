@@ -3,6 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormGroup } from '@angular/forms';
 import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core';
 
+import { IconModule } from 'carbon-components-angular';
 import { FormlyArrayTypeComponent } from './formly-array-type.component';
 import { configureTestBed } from '~/testing/unit-test-helper';
 
@@ -27,6 +28,7 @@ describe('FormlyArrayTypeComponent', () => {
   configureTestBed({
     declarations: [FormlyArrayTypeComponent],
     imports: [
+      IconModule,
       FormlyModule.forRoot({
         types: [{ name: 'array', component: FormlyArrayTypeComponent }]
       })
