@@ -5,6 +5,10 @@
 import { Component, OnInit } from '@angular/core';
 import { FieldArrayType } from '@ngx-formly/core';
 import { forEach } from 'lodash';
+import { IconService } from 'carbon-components-angular';
+import Add16 from '@carbon/icons/es/add/16';
+import TrashCan16 from '@carbon/icons/es/trash-can/16';
+
 import { Icons } from '~/app/shared/enum/icons.enum';
 
 @Component({
@@ -15,6 +19,11 @@ import { Icons } from '~/app/shared/enum/icons.enum';
 })
 export class FormlyArrayTypeComponent extends FieldArrayType implements OnInit {
   icons = Icons;
+
+  constructor(private iconService: IconService) {
+    super();
+    this.iconService.registerAll([Add16, TrashCan16]);
+  }
 
   ngOnInit(): void {
     this.propagateTemplateOptions();

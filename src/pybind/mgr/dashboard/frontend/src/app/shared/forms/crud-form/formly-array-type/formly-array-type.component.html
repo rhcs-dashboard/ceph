@@ -27,7 +27,7 @@
         type="button"
         (click)="addWrapper()"
       >
-        <i [ngClass]="icons.add"></i>
+        <svg [cdsIcon]="icons.add"></svg>
       </button>
       <button
         class="btn btn-light ms-1"
@@ -35,7 +35,7 @@
         (click)="remove(i)"
         *ngIf="field.props.removable !== false"
       >
-        <i [ngClass]="icons.trash"></i>
+        <svg [cdsIcon]="icons.trash"></svg>
       </button>
     </div>
   </div>
@@ -49,7 +49,7 @@
       (click)="addWrapper()"
       i18n
     >
-      <i [ngClass]="icons.add"></i>
+      <svg [cdsIcon]="icons.add"></svg>
       Add {{ props.label }}
     </button>
   </div>
