@@ -165,7 +165,7 @@ describe('ApiInterceptorService', () => {
       );
     });
 
-    it('should show notification (error object with unknown keys)', () => {
+    it('should show network error notification for status 0', () => {
       runNotificationTest(
         { type: 'error' },
         {
@@ -178,7 +178,7 @@ describe('ApiInterceptorService', () => {
         },
         createCdNotification(
           0,
-          '0 - Unknown Error',
+          'Network Error',
           'Http failure response for api/xyz: 0 Unknown Error'
         )
       );
