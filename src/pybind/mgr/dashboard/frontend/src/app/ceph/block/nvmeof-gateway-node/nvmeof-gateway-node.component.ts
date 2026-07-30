@@ -2,9 +2,11 @@ import {
   Component,
   EventEmitter,
   Input,
+  OnChanges,
   OnDestroy,
   OnInit,
   Output,
+  SimpleChanges,
   TemplateRef,
   ViewChild
 } from '@angular/core';
@@ -45,7 +47,7 @@ import { NotificationType } from '~/app/shared/enum/notification-type.enum';
   styleUrls: ['./nvmeof-gateway-node.component.scss'],
   standalone: false
 })
-export class NvmeofGatewayNodeComponent implements OnInit, OnDestroy {
+export class NvmeofGatewayNodeComponent implements OnInit, OnDestroy, OnChanges {
   @ViewChild(TableComponent, { static: true })
   table!: TableComponent;
 
@@ -66,6 +68,7 @@ export class NvmeofGatewayNodeComponent implements OnInit, OnDestroy {
 
   @Input() groupName: string | undefined;
   @Input() mode: 'selector' | 'details' = NvmeofGatewayNodeMode.SELECTOR;
+  @Input() preSelectedHostnames: string[] = [];
 
   usedHostnames: Set<string> = new Set();
   serviceSpec: CephServiceSpec | undefined;
@@ -140,6 +143,31 @@ export class NvmeofGatewayNodeComponent implements OnInit, OnDestroy {
         cellTemplate: this.labelsTpl
       }
     ];
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (
+      changes['preSelectedHostnames'] &&
+      !changes['preSelectedHostnames'].firstChange &&
+      changes['preSelectedHostnames'].currentValue?.length > 0
+    ) {
+      this.table.refreshBtn();
+    }
+  }
+
+  private applyPreSelection(): void {
+    if (!this.preSelectedHostnames?.length || !this.table) {
+      return;
+    }
+
+    const hostsToSelect = this.hosts.filter((host) =>
+      this.preSelectedHostnames.includes(host.hostname)
+    );
+
+    if (hostsToSelect.length > 0) {
+      this.selection.selected = hostsToSelect;
+      this.selectionChange.emit(this.selection);
+    }
   }
 
   private setTableActions() {
@@ -245,8 +273,11 @@ export class NvmeofGatewayNodeComponent implements OnInit, OnDestroy {
       this.sub.unsubscribe();
     }
 
+    const useEditMode =
+      this.mode === NvmeofGatewayNodeMode.SELECTOR && this.preSelectedHostnames?.length > 0;
+
     const fetchData$: Observable<any> =
-      this.mode === NvmeofGatewayNodeMode.DETAILS
+      this.mode === NvmeofGatewayNodeMode.DETAILS || useEditMode
         ? this.nvmeofService.fetchHostsAndGroups()
         : this.nvmeofService.getAvailableHosts(this.tableContext?.toParams());
 
@@ -260,6 +291,8 @@ export class NvmeofGatewayNodeComponent implements OnInit, OnDestroy {
         next: (result: any) => {
           if (this.mode === NvmeofGatewayNodeMode.DETAILS) {
             this.processDetailsData(result.groups, result.hosts);
+          } else if (useEditMode) {
+            this.processEditModeData(result.groups, result.hosts);
           } else {
             this.hosts = result;
             this.count = this.hosts.length;
@@ -268,6 +301,41 @@ export class NvmeofGatewayNodeComponent implements OnInit, OnDestroy {
         },
         error: () => context?.error()
       });
+  }
+
+  private processEditModeData(groups: any[][], hostList: Host[]) {
+    const groupList = groups?.[0] ?? [];
+    const preSelectedSet = new Set(this.preSelectedHostnames);
+
+    const usedByOtherGroups = new Set<string>();
+    groupList.forEach((group: CephServiceSpec) => {
+      const hosts = group.placement?.hosts || [];
+      const isCurrentGroup =
+        hosts.every((h: string) => preSelectedSet.has(h)) && hosts.length === preSelectedSet.size;
+
+      if (!isCurrentGroup) {
+        hosts.forEach((hostname: string) => usedByOtherGroups.add(hostname));
+
+        const label = group.placement?.label;
+        if (label) {
+          (hostList || []).forEach((host: Host) => {
+            if (host.labels?.includes(label as string)) {
+              usedByOtherGroups.add(host.hostname);
+            }
+          });
+        }
+      }
+    });
+
+    this.hosts = (hostList || []).filter((host: Host) => {
+      const isPreSelected = preSelectedSet.has(host.hostname);
+      const isAvailable = !usedByOtherGroups.has(host.hostname);
+      return isPreSelected || isAvailable;
+    });
+
+    this.count = this.hosts.length;
+    this.hostsLoaded.emit(this.count);
+    this.applyPreSelection();
   }
 
   private processDetailsData(groups: any[][], hostList: Host[]) {
