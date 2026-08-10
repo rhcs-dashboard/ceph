@@ -347,7 +347,7 @@ export class HostsComponent extends ListWithDetails implements OnDestroy, OnInit
             }
           }
         ],
-        submitButtonText: $localize`Edit Host`,
+        submitButtonText: this.actionLabels.SAVE_CHANGES,
         onSubmit: (values: any) => {
           this.hostService.update(host['hostname'], true, values.labels).subscribe(() => {
             const selectedHost = this.selection.first();

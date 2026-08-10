@@ -27,6 +27,14 @@ import {
 import { HostsComponent } from './hosts.component';
 import { TagModule } from 'carbon-components-angular';
 
+jest.mock('jspdf', () => ({
+  jsPDF: jest.fn().mockImplementation(() => ({
+    text: jest.fn(),
+    addImage: jest.fn(),
+    save: jest.fn()
+  }))
+}));
+
 class MockShowForceMaintenanceModal {
   showModal = false;
   showModalDialog(msg: string) {
