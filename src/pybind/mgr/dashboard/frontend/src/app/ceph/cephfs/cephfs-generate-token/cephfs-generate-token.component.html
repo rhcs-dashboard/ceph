@@ -50,12 +50,14 @@
           <div class="form-item cds-mb-5">
             <div class="cds-input-group">
               <div class="fit-content">
-                <cds-text-label cdRequiredField="Username"
-                                i18n>
-                  <input cdsText
-                         value="client."
-                         readonly
-                         name="client_prefix" />
+                <cds-text-label i18n>
+                  Username
+                  <input
+                    cdsText
+                    value="client."
+                    readonly
+                    name="client_prefix"
+                  />
                 </cds-text-label>
               </div>
               <cds-text-label labelInputID="username"
@@ -89,24 +91,34 @@
               @if (tokenForm.controls['username'].hasError('invalidChars')) {
               <span i18n>Only letters, numbers, underscores, and hyphens are allowed.</span>
               }
+              @if (tokenForm.controls['username'].hasError('invalidMdsCaps')) {
+                <span i18n>Invalid capabilities on the MDS.</span>
+              }
             </ng-template>
           </div>
 
           <div class="form-item cds-mb-5">
-            <cds-text-label for="sitename"
-                            cdRequiredField="Sitename"
-                            [helperText]="sitenameHelper"
-                            [invalid]="tokenForm.controls['sitename'].invalid && tokenForm.controls['sitename'].touched"
-                            [invalidText]="sitenameError"
-                            i18n>Sitename
-              <input cdsText
-                     type="text"
-                     id="sitename"
-                     name="sitename"
-                     formControlName="sitename"
-                     placeholder="Enter a sitename"
-                     i18n-placeholder
-                     [invalid]="tokenForm.controls['sitename'].invalid && tokenForm.controls['sitename'].touched">
+            <cds-text-label
+              for="sitename"
+              [helperText]="sitenameHelper"
+              [invalid]="
+                tokenForm.controls['sitename'].invalid && tokenForm.controls['sitename'].touched
+              "
+              [invalidText]="sitenameError"
+              i18n
+              >Sitename
+              <input
+                cdsText
+                type="text"
+                id="sitename"
+                name="sitename"
+                formControlName="sitename"
+                placeholder="Enter a sitename"
+                i18n-placeholder
+                [invalid]="
+                  tokenForm.controls['sitename'].invalid && tokenForm.controls['sitename'].touched
+                "
+              />
             </cds-text-label>
             <ng-template #sitenameHelper>
               <span i18n>A unique name for this storage site. Used by the primary cluster to identify this replication target.</span>
