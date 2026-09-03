@@ -789,9 +789,18 @@ class CephadmServe:
                 r = True
                 hosts_altered.update(conflict_hosts_altered)
             if daemons_to_redeploy:
-                daemon_redeployed, daemon_redeployed_hosts, redeploy_failed_daemons = await self.deploy_given_daemons(daemons_to_redeploy, reconfig=True)
-                if daemon_redeployed:
-                    hosts_altered.update(daemon_redeployed_hosts)
+                # RGW daemons need a full redeploy (not just reconfig) because
+                # rgw_frontends can't be changed at runtime.
+                rgw_redeploy = [d for d in daemons_to_redeploy if d.daemon_type == 'rgw']
+                other_redeploy = [d for d in daemons_to_redeploy if d.daemon_type != 'rgw']
+                if rgw_redeploy:
+                    daemon_redeployed, daemon_redeployed_hosts, redeploy_failed_daemons = await self.deploy_given_daemons(rgw_redeploy, reconfig=False)
+                    if daemon_redeployed:
+                        hosts_altered.update(daemon_redeployed_hosts)
+                if other_redeploy:
+                    daemon_redeployed, daemon_redeployed_hosts, redeploy_failed_daemons = await self.deploy_given_daemons(other_redeploy, reconfig=True)
+                    if daemon_redeployed:
+                        hosts_altered.update(daemon_redeployed_hosts)
 
             return (r, hosts_altered, daemon_place_fails)
 
