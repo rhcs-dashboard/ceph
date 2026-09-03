@@ -83,6 +83,8 @@ import ChevronDown16 from '@carbon/icons/es/chevron--down/16';
 import ChevronUp16 from '@carbon/icons/es/chevron--up/16';
 import WarningAltFilled16 from '@carbon/icons/es/warning--alt--filled/16';
 import FolderIcon16 from '@carbon/icons/es/folder/16';
+import CheckmarkFilled24 from '@carbon/icons/es/checkmark--filled/24';
+import Warning24 from '@carbon/icons/es/warning/24';
 
 @NgModule({
   imports: [
@@ -172,7 +174,9 @@ export class CephfsModule {
       ChevronDown16,
       ChevronUp16,
       WarningAltFilled16,
-      FolderIcon16
+      FolderIcon16,
+      CheckmarkFilled24,
+      Warning24
     ]);
   }
 }
