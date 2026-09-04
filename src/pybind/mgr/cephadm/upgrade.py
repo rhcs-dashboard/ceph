@@ -1072,6 +1072,17 @@ class CephadmUpgrade:
                         'flag was passed to upgrade start command'
                     )
                     self.mgr.accept_license(target_name)
+                    # accept_license is decorated with @handle_orch_error and may
+                    # fail silently. Verify the entry was actually persisted.
+                    license_acceptance_entry = self.mgr.get_store(entry_key, None)
+                    if not license_acceptance_entry:
+                        raise OrchestratorError(
+                            f'Failed to store IBM license acceptance for image {target_name}. '
+                            'The accept_license call did not persist the entry. '
+                            'Please try manually accepting the license with '
+                            f'"ceph orch accept-license --image {target_name}" '
+                            'before starting the upgrade.'
+                        )
 
         # Validate the failure domain upgrade options
         # if the user has provided the either or both of the
@@ -2886,23 +2897,32 @@ class CephadmUpgrade:
         image_info = self.mgr.wait_async(CephadmServe(self.mgr)._get_container_image_info(self.target_image))
         if image_info.image_vendor is not None and image_info.image_vendor.lower() == 'ibm':
             license = self.mgr.wait_async(CephadmServe(self.mgr)._get_container_ibm_license(self.target_image))
-            entry_key = get_license_acceptance_key_value_entry_name(image_info.ceph_version or 'unknown_release', license)
+            entry_key = get_license_acceptance_key_value_entry_name(image_info.ceph_version or 'unknown_version', license)
             license_acceptance_entry = self.mgr.get_store(entry_key, None)
             if not license_acceptance_entry:
-                self.mgr.set_health_warning(
-                    'IBM_LICENSE_NOT_ACCEPTED',
-                    'Cannot find IBM license acceptance entry',
-                    1,
-                    [f'To accept license use `ceph orch display-license --image {self.target_image}` and `ceph orch accept-license --image {self.target_image}` ']
+                logger.info(
+                    'Upgrade: License entry not found during finalization, '
+                    'retrying accept_license for target image'
                 )
-            else:
-                mgr_map = self.mgr.get('mgr_map')
-                if 'call_home_agent' not in mgr_map.get('services', {}):
-                    self.mgr.raise_call_home_warning()
-                    self.mgr.check_mon_command({
-                        'prefix': 'mgr module enable',
-                        'module': 'call_home_agent'
-                    })
+                self.mgr.accept_license(self.target_image)
+                # accept_license is decorated with @handle_orch_error and may
+                # fail silently. Verify the entry was actually persisted.
+                license_acceptance_entry = self.mgr.get_store(entry_key, None)
+                if not license_acceptance_entry:
+                    self.mgr.set_health_warning(
+                        'IBM_LICENSE_NOT_ACCEPTED',
+                        'Cannot find IBM license acceptance entry',
+                        1,
+                        [f'To accept license use `ceph orch display-license --image {self.target_image}` and `ceph orch accept-license --image {self.target_image}` ']
+                    )
+
+            mgr_map = self.mgr.get('mgr_map')
+            if license_acceptance_entry and 'call_home_agent' not in mgr_map.get('services', {}):
+                self.mgr.raise_call_home_warning()
+                self.mgr.check_mon_command({
+                    'prefix': 'mgr module enable',
+                    'module': 'call_home_agent'
+                })
 
         for daemon_type in CEPH_UPGRADE_ORDER:
             ret, image, err = self.mgr.check_mon_command({
