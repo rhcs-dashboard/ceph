@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { DetailsCardComponent } from './details-card.component';
+import { ProductiveCardComponent } from '../productive-card/productive-card.component';
 
 describe('DetailsCardComponent', () => {
   let component: DetailsCardComponent;
@@ -8,7 +9,8 @@ describe('DetailsCardComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [DetailsCardComponent]
+      declarations: [DetailsCardComponent],
+      imports: [ProductiveCardComponent]
     }).compileComponents();
 
     fixture = TestBed.createComponent(DetailsCardComponent);
@@ -36,6 +38,11 @@ describe('DetailsCardComponent', () => {
     expect(component.isStatusDisabled('Enabled')).toBe(false);
   });
 
+  it('should emit editClicked event', () => {
+    spyOn(component.editClicked, 'emit');
+    component.onEditClick();
+    expect(component.editClicked.emit).toHaveBeenCalled();
+  });
   it('should handle empty details array', () => {
     component.details = [];
     const visible = component.getVisibleDetails();

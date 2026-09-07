@@ -265,8 +265,8 @@ export class NvmeofGatewayNodeComponent implements OnInit, OnDestroy, OnChanges 
 
     const { status, ...updatedSpec } = _.cloneDeep(this.serviceSpec);
 
-    if (updatedSpec.events) {
-      delete updatedSpec.events;
+    if (updatedSpec['events']) {
+      delete updatedSpec['events'];
     }
 
     if (!updatedSpec.placement) {
@@ -458,9 +458,9 @@ export class NvmeofGatewayNodeComponent implements OnInit, OnDestroy, OnChanges 
       },
       {
         label: $localize`mTLS`,
-        value: $localize`Disabled`,
+        value: serviceSpec.spec?.enable_auth ? $localize`Enabled` : $localize`Disabled`,
         type: 'status',
-        statusIcon: 'error'
+        statusIcon: serviceSpec.spec?.enable_auth ? 'success' : 'error'
       }
     ];
   }

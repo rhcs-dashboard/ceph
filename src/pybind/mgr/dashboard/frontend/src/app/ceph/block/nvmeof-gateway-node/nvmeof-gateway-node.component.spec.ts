@@ -460,6 +460,38 @@ describe('NvmeofGatewayNodeComponent', () => {
     expect(mtlsDetail.statusIcon).toBe('error');
   }));
 
+  it('should show mTLS as Enabled when enable_auth is true', fakeAsync(() => {
+    (component as any).route.snapshot.data = { mode: 'details' };
+    component.ngOnInit();
+    component.groupName = 'group1';
+
+    spyOn(nvmeofService, 'fetchHostsAndGroups').and.returnValue(
+      of({
+        groups: [
+          [
+            {
+              service_id: 'nvmeof.group1',
+              spec: {
+                group: 'group1',
+                enable_auth: true
+              },
+              placement: { hosts: ['gateway-node-1'] }
+            }
+          ]
+        ],
+        hosts: mockGatewayNodes
+      } as any)
+    );
+
+    fixture.detectChanges();
+    component.getHosts(new CdTableFetchDataContext(() => undefined));
+    tick(100);
+
+    const mtlsDetail = component.gatewayDetails.find((d) => d.label === 'mTLS');
+    expect(mtlsDetail.value).toBe('Enabled');
+    expect(mtlsDetail.statusIcon).toBe('success');
+  }));
+
   it('should set selectionType to multiClick in selector mode', () => {
     (component as any).route.snapshot.data = { mode: 'selector' };
     component.ngOnInit();
