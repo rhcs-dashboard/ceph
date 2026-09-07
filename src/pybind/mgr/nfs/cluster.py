@@ -11,14 +11,23 @@ from mgr_module import NFS_POOL_NAME as POOL_NAME
 from object_format import ErrorResponse
 from orchestrator.module import IngressType
 
-from .exception import ClusterNotFound, NFSInvalidOperation
+from .exception import NFSInvalidOperation, ClusterNotFound, NFSObjectNotFound
 from .ganesha_conf import GaneshaConfParser, format_block
 from .qos_conf import QOS, QOSBandwidthControl, QOSOpsControl, QOSParams, \
     QOSType, validate_clust_qos_msg_interval
 from .rados_utils import NFSRados
-from .utils import USER_CONF_PREFIX, ManualRestartRequired, NonFatalError, \
-    available_clusters, conf_obj_name, qos_conf_obj_name, restart_nfs_service, \
-    user_conf_obj_name
+from .utils import (
+    ManualRestartRequired,
+    NonFatalError,
+    available_clusters,
+    conf_obj_name,
+    restart_nfs_service,
+    redeploy_nfs_service,
+    user_conf_obj_name,
+    USER_CONF_PREFIX,
+    qos_conf_obj_name,
+    normalize_auth_entity,
+    entity_belongs_to_nfs_cluster)
 
 if TYPE_CHECKING:
     from mgr_module import MgrModule
