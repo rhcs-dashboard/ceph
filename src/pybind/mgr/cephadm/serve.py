@@ -1706,22 +1706,13 @@ class CephadmServe:
                     if not sym_diff and not self.mgr.cache.get_scheduled_daemon_action(dd.hostname, dd.name()):
                         action = None
                     else:
-                        # Skip NFS actions when only gRPC deps change during upgrade
-                        upgrade_in_progress = self.mgr.upgrade.upgrade_state is not None
-                        only_grpc_changed = all(s.startswith('grpc_') for s in list(sym_diff))
-                        scheduled_action = self.mgr.cache.get_scheduled_daemon_action(dd.hostname, dd.name())
-                        if upgrade_in_progress and only_grpc_changed and not scheduled_action:
-                            # Do nothing - NFS will be redeployed later during NFS upgrade
-                            self.log.info(f'Skipping {dd.name()} action during upgrade (only gRPC deps changed, will redeploy during NFS upgrade)')
-                            action = None
+                        # check what has changed, based on that decide action
+                        only_kmip_updated = all(s.startswith('kmip') for s in list(sym_diff))
+                        if not only_kmip_updated:
+                            action = 'redeploy'
                         else:
-                            # check what has changed, based on that decide action
-                            only_kmip_updated = all(s.startswith('kmip') for s in list(sym_diff))
-                            if not only_kmip_updated:
-                                action = 'redeploy'
-                            else:
-                                skip_restart_for_reconfig = True
-                                send_signal_to_daemon = 'SIGHUP'
+                            skip_restart_for_reconfig = True
+                            send_signal_to_daemon = 'SIGHUP'
 
                 elif dd.daemon_type == 'keepalived':
                     # Redeploy when deps changed while keepalived is down
