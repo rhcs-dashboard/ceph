@@ -4149,6 +4149,8 @@ int POSIXObject::copy_object(const ACLOwner& owner,
     }
   }
   dobj->make_ent(ent->get_type());
+  if (mtime)
+    *mtime = dobj->get_mtime();
 
   /* Set up attributes for destination */
   Attrs src_attrs = state.attrset;
