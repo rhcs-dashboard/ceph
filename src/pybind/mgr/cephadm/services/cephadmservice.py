@@ -2316,17 +2316,23 @@ class CephadmAgent(CephService):
     TYPE = 'agent'
 
     @classmethod
+    def _get_ceph_volume_image(cls, mgr: "CephadmOrchestrator") -> str:
+        return mgr.get_container_image('osd') or ''
+
+    @classmethod
     def get_dependencies(cls, mgr: "CephadmOrchestrator",
                          spec: Optional[ServiceSpec] = None,
                          daemon_type: Optional[str] = None,
                          hostname: Optional[str] = None) -> List[str]:
         agent = mgr.http_server.agent
+        container_image = cls._get_ceph_volume_image(mgr)
         return sorted(
             [
                 str(mgr.get_mgr_ip()),
                 str(agent.server_port),
                 mgr.cert_mgr.get_root_ca(),
                 str(mgr.get_module_option("device_enhanced_scan")),
+                container_image,
             ]
         )
 
@@ -2356,11 +2362,13 @@ class CephadmAgent(CephService):
             raise OrchestratorError(
                 'Cannot deploy agent daemons until cephadm endpoint has finished generating certs')
 
+        container_image = self._get_ceph_volume_image(self.mgr)
         cfg = {'target_ip': self.mgr.get_mgr_ip(),
                'target_port': agent.server_port,
                'refresh_period': self.mgr.agent_refresh_rate,
                'listener_port': self.mgr.agent_starting_port,
                'host': daemon_spec.host,
+               'container_image': container_image,
                'device_enhanced_scan': str(self.mgr.device_enhanced_scan)}
 
         tls_creds = self.get_certificates(daemon_spec)
@@ -2372,6 +2380,4 @@ class CephadmAgent(CephService):
             'listener.key': tls_creds.key,
         }
 
-        return config, sorted([str(self.mgr.get_mgr_ip()), str(agent.server_port),
-                               self.mgr.cert_mgr.get_root_ca(),
-                               str(self.mgr.get_module_option('device_enhanced_scan'))])
+        return config, self.get_dependencies(self.mgr)
