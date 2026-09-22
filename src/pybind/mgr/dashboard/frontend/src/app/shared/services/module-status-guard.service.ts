@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { ActivatedRouteSnapshot, Router } from '@angular/router';
 
 import { of as observableOf } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, switchMap } from 'rxjs/operators';
 
 import { MgrModuleService } from '~/app/shared/api/mgr-module.service';
 import { Icons } from '~/app/shared/enum/icons.enum';
@@ -56,53 +56,59 @@ export class ModuleStatusGuardService {
     return this.doCheck(childRoute);
   }
 
+  private redirectUnavailable(config: any, message: string) {
+    this.router.navigate([config.redirectTo || ''], {
+      state: {
+        header: config.header,
+        message,
+        section: config.section,
+        section_info: config.section_info,
+        button_name: config.button_name,
+        button_route: config.button_route,
+        button_title: config.button_title,
+        secondary_button_name: config.secondary_button_name,
+        secondary_button_route: config.secondary_button_route,
+        secondary_button_title: config.secondary_button_title,
+        module_name: config.module_name,
+        navigate_to: config.navigate_to,
+        uiConfig: config.uiConfig,
+        uiApiPath: config.uiApiPath,
+        icon: Icons.wrench,
+        component: config.component
+      }
+    });
+  }
+
+  private redirectOnError(config: any) {
+    this.router.navigate([config.redirectTo]);
+    return observableOf(false);
+  }
+
+  private checkStatus(config: any, backendCheck: boolean) {
+    return this.http.get(`ui-api/${config.uiApiPath}/status`).pipe(
+      map((resp: any) => {
+        if (!resp.available && !backendCheck) {
+          this.redirectUnavailable(config, resp.message);
+        }
+        return resp.available;
+      }),
+      catchError(() => this.redirectOnError(config))
+    );
+  }
+
   private doCheck(route: ActivatedRouteSnapshot) {
     if (route.url.length > 0 && ModuleStatusGuardService.ALLOWLIST.includes(route.url[0].path)) {
       return observableOf(true);
     }
     const config = route.data['moduleStatusGuardConfig'];
-    let backendCheck = false;
+
     if (config.backend && this.authStorageService.getPermissions().configOpt?.read) {
-      this.mgrModuleService.getConfig('orchestrator').subscribe(
-        (resp) => {
-          backendCheck = config.backend === resp['orchestrator'];
-        },
-        () => {
-          this.router.navigate([config.redirectTo]);
-          return observableOf(false);
-        }
+      return this.mgrModuleService.getConfig('orchestrator').pipe(
+        switchMap((resp) => this.checkStatus(config, config.backend === resp['orchestrator'])),
+        catchError(() => this.redirectOnError(config))
       );
     }
-    return this.http.get(`ui-api/${config.uiApiPath}/status`).pipe(
-      map((resp: any) => {
-        if (!resp.available && !backendCheck) {
-          this.router.navigate([config.redirectTo || ''], {
-            state: {
-              header: config.header,
-              message: resp.message,
-              section: config.section,
-              section_info: config.section_info,
-              button_name: config.button_name,
-              button_route: config.button_route,
-              button_title: config.button_title,
-              secondary_button_name: config.secondary_button_name,
-              secondary_button_route: config.secondary_button_route,
-              secondary_button_title: config.secondary_button_title,
-              module_name: config.module_name,
-              navigate_to: config.navigate_to,
-              uiConfig: config.uiConfig,
-              uiApiPath: config.uiApiPath,
-              icon: Icons.wrench,
-              component: config.component
-            }
-          });
-        }
-        return resp.available;
-      }),
-      catchError(() => {
-        this.router.navigate([config.redirectTo]);
-        return observableOf(false);
-      })
-    );
+
+    return this.checkStatus(config, false);
   }
 }
