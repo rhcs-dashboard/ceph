@@ -379,7 +379,8 @@ class Export:
             qos_block: Optional[QOS] = None,
             kmip_key_id: Optional[str] = None,
             xprtsec: Optional[str] = None,
-            delegation: Optional[str] = None) -> None:
+            delegation: Optional[str] = None,
+            server_addrs: Optional[List[str]] = None) -> None:
         self.export_id = export_id
         self.path = path
         self.fsal = fsal
@@ -397,6 +398,7 @@ class Export:
         self.kmip_key_id = kmip_key_id
         self.xprtsec = xprtsec
         self.delegation = delegation
+        self.server_addrs: Optional[List[str]] = server_addrs
 
     @classmethod
     def from_export_block(cls, export_block: RawBlock, cluster_id: str) -> 'Export':
@@ -436,6 +438,12 @@ class Export:
         delegation = (export_block.values.get("Delegations")
                       or export_block.values.get("delegations") or None)
 
+        server_addrs = export_block.values.get('server_addrs')
+        if isinstance(server_addrs, str):
+            server_addrs = [server_addrs]
+        elif not isinstance(server_addrs, list):
+            server_addrs = None
+
         return cls(export_block.values['export_id'],
                    export_block.values['path'],
                    cluster_id,
@@ -452,7 +460,9 @@ class Export:
                    qos_block=qos_block,
                    kmip_key_id=export_block.values.get('kmip_key_id'),
                    xprtsec=xprtsec,
-                   delegation=delegation)
+                   delegation=delegation,
+                   server_addrs=server_addrs
+                   )
 
     def to_export_block(self) -> RawBlock:
         # if kmip_key_id is present, it should be first line of export block
@@ -477,6 +487,8 @@ class Export:
             values['XprtSec'] = self.xprtsec
         if self.delegation:
             values['Delegations'] = self.delegation
+        if self.server_addrs:
+            values['server_addrs'] = self.server_addrs
         result = RawBlock("EXPORT", values=values)
         result.blocks = [
             self.fsal.to_fsal_block()
@@ -509,7 +521,8 @@ class Export:
                    qos_block=qos_block,
                    kmip_key_id=ex_dict.get('kmip_key_id'),
                    xprtsec=ex_dict.get('XprtSec'),
-                   delegation=ex_dict.get('delegations'))
+                   delegation=ex_dict.get('delegations'),
+                   server_addrs=ex_dict.get('server_addrs'))
 
     def to_dict(self) -> Dict[str, Any]:
         values = {
@@ -527,6 +540,8 @@ class Export:
         }
         if self.sectype:
             values['sectype'] = self.sectype
+        if self.server_addrs:
+            values['server_addrs'] = self.server_addrs
         if self.qos_block:
             values['qos_block'] = self.qos_block.to_dict()
         if self.kmip_key_id:
@@ -579,6 +594,10 @@ class Export:
             _validate_sec_type(st)
         if self.xprtsec:
             _validate_xprtsec_type(self.xprtsec)
+        if self.server_addrs is not None and len(self.server_addrs) == 0:
+            raise NFSInvalidOperation(
+                'server_addrs must contain at least one IP address if specified'
+            )
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Export):

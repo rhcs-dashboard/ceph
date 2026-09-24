@@ -324,7 +324,7 @@ Create CephFS Export
 .. prompt:: bash #
 
 
-   ceph nfs export create cephfs --cluster-id <cluster_id> --pseudo-path <pseudo_path> --fsname <fsname> [--readonly] [--path=/path/in/cephfs] [--client_addr <value>...] [--squash <value>] [--sectype <value>...] [--cmount_path <value>] [--xprtsec <value>] [--transports <value>...] [--delegations <value>] [-i <client spec_file>]
+   ceph nfs export create cephfs --cluster-id <cluster_id> --pseudo-path <pseudo_path> --fsname <fsname> [--readonly] [--path=/path/in/cephfs] [--client_addr <value>...] [--squash <value>] [--sectype <value>...] [--cmount_path <value>] [--xprtsec <value>] [--transports <value>...] [--delegations <value>] [-i <client spec_file>] [--server_addr <value>...]
 
 This creates export RADOS objects containing the export block, where
 
@@ -347,7 +347,13 @@ permissions will be applicable. By default all clients can access the export
 according to specified export permissions. See the `NFS-Ganesha Export Sample`_
 for permissible values.
 
-``<squash>`` defines the kind of user id squashing to be performed. The default
+``<server_addr>`` is the list of server IP addresses on which this export will
+be accessible. When set, NFS-Ganesha restricts the export to respond only on
+the specified destination IPs. This is applicable on any NFS server with
+multiple IP addresses. If not specified, the export is accessible on all
+server addresses. At least one address must be provided if this option is used.
+
+``<squash>`` defines the kind of user ID squashing to be performed. The default
 value is ``no_root_squash``. See the `NFS-Ganesha Export Sample`_ for
 permissible values.
 
@@ -401,9 +407,12 @@ RGW bucket export
 To export a *bucket*:
 
 .. prompt:: bash #
-ceph nfs export create rgw --cluster-id <cluster_id> --pseudo-path <pseudo_path> --bucket <bucket_name> [--user-id <user-id>] [--readonly] [--client_addr <value>...] [--squash <value>] [--sectype <value>...] [--xprtsec <value>] [--transports <value>...] [--delegations <value>] [-i <client spec_file>]
+   ceph nfs export create rgw --cluster-id <cluster_id> \
+          --pseudo-path <pseudo_path> --bucket <bucket_name> \
+          [--user-id <user-id>] [--readonly] [--client_addr <value>...] [--squash <value>] \
+          [--sectype <value>...] [--xprtsec <value>] [--transports <value>...] \
+          [--delegations <value>] [-i <client spec_file>] [--server_addr <value>...]
 
-   
 For example, to export ``mybucket`` via NFS cluster ``mynfs`` at the
 pseudo-path ``/bucketdata`` to any host in the ``192.168.10.0/24`` network
 
@@ -434,7 +443,13 @@ permissions will be applicable. By default all clients can access the export
 according to specified export permissions. See the `NFS-Ganesha Export
 Sample`_ for permissible values.
 
-``<squash>`` defines the kind of user id squashing to be performed. The
+``<server_addr>`` is the list of server IP addresses on which this export will
+be accessible. When set, NFS-Ganesha restricts the export to respond only on
+the specified destination IPs. This is applicable on any NFS server with
+multiple IP addresses. If not specified, the export is accessible on all
+server addresses. At least one address must be provided if this option is used.
+
+``<squash>`` defines the kind of user ID squashing to be performed. The
 default value is ``no_root_squash``. See the `NFS-Ganesha Export Sample`_ for
 permissible values.
 
