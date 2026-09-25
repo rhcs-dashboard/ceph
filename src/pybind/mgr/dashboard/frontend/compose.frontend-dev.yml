@@ -1,0 +1,21 @@
+# Convenience compose file for the dashboard frontend dev server.
+#
+# Usage (from repo root):
+#   CEPH_HOST=https://<host>:11000 podman compose \
+#     -f src/pybind/mgr/dashboard/frontend/compose.frontend-dev.yml up
+#
+# Live reload: src/ is bind-mounted so edits reflect immediately.
+
+services:
+  frontend:
+    build:
+      context: src/pybind/mgr/dashboard/frontend
+      dockerfile: Dockerfile.frontend-dev
+    image: dashboard-frontend-dev:latest
+    ports:
+      - "4200:4200"
+    environment:
+      - CEPH_HOST=${CEPH_HOST:-https://localhost:11000}
+    volumes:
+      - ./src/pybind/mgr/dashboard/frontend/src:/app/src:z
+    restart: unless-stopped

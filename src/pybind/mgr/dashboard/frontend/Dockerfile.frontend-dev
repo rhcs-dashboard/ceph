@@ -1,0 +1,43 @@
+# Dashboard frontend dev server
+# Builds and serves the Angular app with live reload.
+# API calls are proxied to a running Ceph cluster via CEPH_HOST.
+#
+# Build:
+#   podman build -t dashboard-frontend-dev \
+#     -f src/pybind/mgr/dashboard/frontend/Dockerfile.frontend-dev \
+#     src/pybind/mgr/dashboard/frontend
+#
+# Run (replace CEPH_HOST with your ceph-dev cluster IP/hostname and port):
+#   podman run --rm -it -p 4200:4200 \
+#     -e CEPH_HOST=https://<your-ceph-host>:11000 \
+#     -v $(pwd)/src/pybind/mgr/dashboard/frontend/src:/app/src:z \
+#     dashboard-frontend-dev
+
+FROM node:22-slim
+
+WORKDIR /app
+
+# Install dependencies first (layer cached unless package-lock.json changes)
+COPY package.json package-lock.json ./
+RUN npm ci --prefer-offline
+
+# Copy rest of frontend source
+COPY . .
+
+# Generate env files needed by ng serve
+RUN node cd --env || true
+
+EXPOSE 4200
+
+# Entrypoint rewrites proxy target from env var at runtime then starts ng serve
+ENTRYPOINT ["/bin/sh", "-c", "\
+  CEPH_HOST=${CEPH_HOST:-https://localhost:11000} && \
+  cat > /app/proxy.conf.json <<EOF\n\
+{\n\
+  \"/api/\": { \"target\": \"$CEPH_HOST\", \"secure\": false, \"logLevel\": \"debug\" },\n\
+  \"/ui-api/\": { \"target\": \"$CEPH_HOST\", \"secure\": false, \"logLevel\": \"debug\" },\n\
+  \"/docs/\": { \"target\": \"$CEPH_HOST\", \"secure\": false, \"logLevel\": \"debug\" }\n\
+}\n\
+EOF\n\
+  exec npx ng serve --host 0.0.0.0 --port 4200 --proxy-config proxy.conf.json --ssl false\
+"]
