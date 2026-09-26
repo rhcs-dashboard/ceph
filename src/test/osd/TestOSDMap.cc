@@ -14,6 +14,8 @@
 #include <iostream>
 #include <cmath>
 
+#include "include/stringify.h"
+
 using namespace std;
 
 int main(int argc, char **argv) {
