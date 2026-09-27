@@ -278,6 +278,12 @@ add_ceph_unittest(unittest_rgw_string)
 target_include_directories(unittest_rgw_string
   SYSTEM PRIVATE "${CMAKE_SOURCE_DIR}/src/rgw")
 
+add_executable(unittest_rgw_etag test_rgw_etag.cc)
+add_ceph_unittest(unittest_rgw_etag)
+target_include_directories(unittest_rgw_etag
+  SYSTEM PRIVATE "${CMAKE_SOURCE_DIR}/src/rgw")
+target_link_libraries(unittest_rgw_etag rgw_common ${UNITTEST_LIBS})
+
 # unittest_rgw_dmclock_queue
 add_executable(unittest_rgw_dmclock_scheduler test_rgw_dmclock_scheduler.cc $<TARGET_OBJECTS:unit-main>)
 add_ceph_unittest(unittest_rgw_dmclock_scheduler)
