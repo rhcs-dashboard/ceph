@@ -70,6 +70,7 @@ from . import (
     get_alt_client,
     get_iam_root_client,
     get_iam_root_s3client,
+    get_iam_alt_root_client,
     get_tenant_client,
     get_v2_tenant_client,
     get_tenant_iam_client,
@@ -13562,6 +13563,19 @@ def test_copy_object_ifnonematch_failed():
     response = client.get_object(Bucket=bucket_name, Key='bar')
     body = _get_body(response)
     assert body == 'bar'
+
+def test_copy_object_different_source_account_owner():
+    """
+    test that CopyObject correctly applies cross-account policy evaluation to source bucket permissions
+    """
+    alts3 = get_iam_alt_root_client(service_name='s3')
+    source_bucket = get_new_bucket(alts3)
+    alts3.put_object(Bucket=source_bucket, Key='foo', Body='bar')
+
+    roots3 = get_iam_root_client(service_name='s3')
+    bucket_name = get_new_bucket(roots3)
+    e = assert_raises(ClientError, roots3.copy_object, Bucket=bucket_name, CopySource=source_bucket+'/foo', Key='bar')
+    assert (403, 'AccessDenied') == _get_status_and_error_code(e.response)
 
 # TODO: results in a 404 instead of 400 on the RGW
 @pytest.mark.fails_on_rgw
