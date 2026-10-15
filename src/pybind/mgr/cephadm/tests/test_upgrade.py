@@ -184,6 +184,162 @@ def test_upgrade_daemons_limit_counts_only_actual_upgrades(cephadm_module: Cepha
     assert cephadm_module.upgrade.upgrade_state.remaining_count == 0
 
 
+def _redeploy_entries(*names: str) -> List[Tuple[DaemonDescription, bool]]:
+    return [
+        (DaemonDescription(
+            daemon_type=name.split('.')[0],
+            daemon_id=name.split('.', 1)[1],
+            hostname=host,
+            container_image_id='old_digest',
+        ), False)
+        for name, host in zip(names, ['host1', 'host1', 'host2', 'host2'])
+    ]
+
+
+def _per_host_success(hostname, daemons, target_image):
+    return hostname, {d[0].name(): 'ok' for d in daemons}, {}
+
+
+@mock.patch("cephadm.serve.CephadmServe._run_cephadm", _run_cephadm('{}'))
+@pytest.mark.parametrize("max_concurrent", [0, 4, 8])
+def test_redeploy_daemons_unlimited(
+        max_concurrent: int, cephadm_module: CephadmOrchestrator):
+    # 0 disables the cap, and a cap of at least the size of the pass does not
+    # kick in either, both redeploy the whole pass at once
+    cephadm_module.cache.prime_empty_host('host1')
+    cephadm_module.cache.prime_empty_host('host2')
+    cephadm_module.max_parallel_daemon_upgrades = max_concurrent
+    to_upgrade = _redeploy_entries('crash.0', 'crash.1', 'crash.2', 'crash.3')
+
+    with mock.patch.object(
+        cephadm_module.upgrade,
+        '_redeploy_daemons_per_host',
+        side_effect=_per_host_success,
+    ) as per_host:
+        results = cephadm_module.wait_async(
+            cephadm_module.upgrade._redeploy_daemons(to_upgrade, 'target_image'))
+
+    # one call per host, carrying every daemon of that host
+    assert [(c.args[0], [d[0].name() for d in c.args[1]])
+            for c in per_host.call_args_list] == [
+        ('host1', ['crash.0', 'crash.1']),
+        ('host2', ['crash.2', 'crash.3']),
+    ]
+    assert {r[0] for r in results} == {'host1', 'host2'}
+
+
+@mock.patch("cephadm.serve.CephadmServe._run_cephadm", _run_cephadm('{}'))
+def test_redeploy_daemons_one_at_a_time(cephadm_module: CephadmOrchestrator):
+    cephadm_module.cache.prime_empty_host('host1')
+    cephadm_module.cache.prime_empty_host('host2')
+    # the default of 1
+    assert cephadm_module.max_parallel_daemon_upgrades == 1
+    to_upgrade = _redeploy_entries('crash.0', 'crash.1', 'crash.2', 'crash.3')
+
+    with mock.patch.object(
+        cephadm_module.upgrade,
+        '_redeploy_daemons_per_host',
+        side_effect=_per_host_success,
+    ) as per_host:
+        results = cephadm_module.wait_async(
+            cephadm_module.upgrade._redeploy_daemons(to_upgrade, 'target_image'))
+
+    # one daemon per call, in the order _to_upgrade picked them
+    assert [(c.args[0], [d[0].name() for d in c.args[1]])
+            for c in per_host.call_args_list] == [
+        ('host1', ['crash.0']),
+        ('host1', ['crash.1']),
+        ('host2', ['crash.2']),
+        ('host2', ['crash.3']),
+    ]
+    # the per daemon results are still reported as one entry per host
+    assert results == [
+        ('host1', {'crash.0': 'ok', 'crash.1': 'ok'}, {}),
+        ('host2', {'crash.2': 'ok', 'crash.3': 'ok'}, {}),
+    ]
+
+
+@mock.patch("cephadm.serve.CephadmServe._run_cephadm", _run_cephadm('{}'))
+def test_redeploy_daemons_in_batches(cephadm_module: CephadmOrchestrator):
+    cephadm_module.cache.prime_empty_host('host1')
+    cephadm_module.cache.prime_empty_host('host2')
+    cephadm_module.max_parallel_daemon_upgrades = 3
+    # host1: crash.0, crash.1, host2: crash.2, crash.3
+    to_upgrade = _redeploy_entries('crash.0', 'crash.1', 'crash.2', 'crash.3')
+
+    with mock.patch.object(
+        cephadm_module.upgrade,
+        '_redeploy_daemons_per_host',
+        side_effect=_per_host_success,
+    ) as per_host:
+        results = cephadm_module.wait_async(
+            cephadm_module.upgrade._redeploy_daemons(to_upgrade, 'target_image'))
+
+    # batch of 3 daemons spanning 2 hosts, then the remaining daemon. The
+    # daemons of a batch that share a host go out in one call
+    assert [(c.args[0], [d[0].name() for d in c.args[1]])
+            for c in per_host.call_args_list] == [
+        ('host1', ['crash.0', 'crash.1']),
+        ('host2', ['crash.2']),
+        ('host2', ['crash.3']),
+    ]
+    assert results == [
+        ('host1', {'crash.0': 'ok', 'crash.1': 'ok'}, {}),
+        ('host2', {'crash.2': 'ok', 'crash.3': 'ok'}, {}),
+    ]
+
+
+@mock.patch("cephadm.serve.CephadmServe._run_cephadm", _run_cephadm('{}'))
+def test_redeploy_daemons_stops_at_failed_batch(cephadm_module: CephadmOrchestrator):
+    cephadm_module.cache.prime_empty_host('host1')
+    cephadm_module.cache.prime_empty_host('host2')
+    to_upgrade = _redeploy_entries('crash.0', 'crash.1', 'crash.2', 'crash.3')
+
+    def _fail_second(hostname, daemons, target_image):
+        if daemons[0][0].name() == 'crash.1':
+            return hostname, {}, {'crash.1': 'deploy failed'}
+        return _per_host_success(hostname, daemons, target_image)
+
+    with mock.patch.object(
+        cephadm_module.upgrade,
+        '_redeploy_daemons_per_host',
+        side_effect=_fail_second,
+    ) as per_host:
+        results = cephadm_module.wait_async(
+            cephadm_module.upgrade._redeploy_daemons(to_upgrade, 'target_image'))
+
+    # crash.2 and crash.3 are left for the following upgrade passes
+    assert [d[0].name() for c in per_host.call_args_list for d in c.args[1]] == [
+        'crash.0', 'crash.1']
+    assert results == [('host1', {'crash.0': 'ok'}, {'crash.1': 'deploy failed'})]
+
+
+@mock.patch("cephadm.serve.CephadmServe._run_cephadm", _run_cephadm('{}'))
+@mock.patch.object(CephadmUpgrade, '_enough_mds_for_ok_to_stop', return_value=False)
+@pytest.mark.parametrize("max_concurrent,expected", [(0, 3), (2, 3), (1, 1)])
+def test_to_upgrade_mds_batch_follows_max_parallel_daemon_upgrades(
+        _enough_mds_for_ok_to_stop: mock.MagicMock,
+        max_concurrent: int,
+        expected: int,
+        cephadm_module: CephadmOrchestrator):
+    need_upgrade = [
+        (DaemonDescription(
+            daemon_type='mds',
+            daemon_id=f'fs.host{i}.abcdef',
+            hostname=f'host{i}',
+            container_image_id='old_digest',
+        ), False)
+        for i in range(1, 4)
+    ]
+    cephadm_module.upgrade.upgrade_state = UpgradeState(
+        'target_image', 'pid', fail_fs=True)
+    cephadm_module.max_parallel_daemon_upgrades = max_concurrent
+
+    cont, to_upgrade = cephadm_module.upgrade._to_upgrade(need_upgrade, 'target_image')
+    assert cont
+    assert len(to_upgrade) == expected
+
+
 @mock.patch("cephadm.serve.CephadmServe._run_cephadm", _run_cephadm('{}'))
 def test_do_upgrade_offline_hosts(cephadm_module: CephadmOrchestrator):
     with with_host(cephadm_module, 'test'):

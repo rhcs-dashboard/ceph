@@ -452,6 +452,20 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule):
             desc='Maximum number of OSD daemons upgraded in parallel.'
         ),
         Option(
+            'max_parallel_daemon_upgrades',
+            type='int',
+            default=1,
+            desc='Maximum number of daemons upgraded at the same time within one '
+            'upgrade pass. The daemons selected for the pass are upgraded in batches '
+            'of this many, and the pass stops once an upgrade in a batch has failed. '
+            'This caps how many daemons are down at once, it does not change which '
+            'daemons a pass picks up (ok-to-stop, ok-to-upgrade and '
+            'max_parallel_osd_upgrades still decide that), and the serve loop is only '
+            're-entered between passes. The default of 1 upgrades one daemon after '
+            'another. Set to 0 to upgrade the whole pass at once, batched per host '
+            'and with all hosts handled concurrently.'
+        ),
+        Option(
             'pg_autoscale_during_upgrade',
             type='bool',
             default=False,
@@ -699,6 +713,7 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule):
             self.apply_spec_fails: List[Tuple[str, str]] = []
             self.max_osd_draining_count = 10
             self.max_parallel_osd_upgrades = 16
+            self.max_parallel_daemon_upgrades = 1
             self.upgrade_osd_flags = 'noout,noscrub,nodeep-scrub'
             self.device_enhanced_scan = False
             self.inventory_list_all = False

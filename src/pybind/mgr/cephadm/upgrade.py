@@ -2015,7 +2015,9 @@ class CephadmUpgrade:
             # For MDS daemons, don't break after first daemon - collect all MDS daemons
             # that need upgrading so they can be upgraded in parallel.
             # The _redeploy_daemons function already handles parallel deployment per host.
-            if self.upgrade_state:
+            # Skipped when daemons are redeployed one at a time, so that one MDS
+            # daemon is queued per pass as it is without the parallel upgrades.
+            if self.upgrade_state and not self._upgrades_one_daemon_at_a_time:
                 if d.daemon_type == 'mds' and self.upgrade_state.fail_fs:
                     continue
             # ACADIA END
@@ -2077,11 +2079,55 @@ class CephadmUpgrade:
         self.mgr.cache.invalidate_host_daemons(hostname)
         return hostname, successes, failures
 
+    @property
+    def _upgrades_one_daemon_at_a_time(self) -> bool:
+        return self.mgr.max_parallel_daemon_upgrades == 1
+
+    async def _redeploy_daemons_in_batches(
+        self,
+        daemons: List[Tuple[DaemonDescription, bool]],
+        target_image: str,
+        max_concurrent: int
+    ) -> List[Tuple[str, Dict[str, str], Dict[str, str]]]:
+        # Redeploy the daemons of this pass mgr/cephadm/max_parallel_daemon_upgrades
+        # at a time, in the order _to_upgrade picked them, awaiting one batch before
+        # starting the next. We stop before the next batch once a redeploy has failed,
+        # so that a broken daemon does not take the rest of the pass down with it.
+        # The daemons that are left are picked up by the following upgrade passes.
+        results: Dict[str, Tuple[Dict[str, str], Dict[str, str]]] = {}
+        for i in range(0, len(daemons), max_concurrent):
+            by_host: Dict[str, List[Tuple[DaemonDescription, bool]]] = {}
+            for d_entry in daemons[i:i + max_concurrent]:
+                if d_entry[0].hostname is None:
+                    continue
+                by_host.setdefault(d_entry[0].hostname, []).append(d_entry)
+            batch_results = await gather(*[
+                self._redeploy_daemons_per_host(host, host_daemons, target_image)
+                for host, host_daemons in by_host.items()
+            ])
+            failed: List[str] = []
+            for host, successes, failures in batch_results:
+                host_successes, host_failures = results.setdefault(host, ({}, {}))
+                host_successes.update(successes)
+                host_failures.update(failures)
+                failed.extend(failures.keys())
+            if failed:
+                logger.error(
+                    'Upgrade: Redeploy of %s failed, not continuing with the '
+                    'remaining daemons of this pass', ', '.join(failed))
+                break
+        return [(host, successes, failures)
+                for host, (successes, failures) in results.items()]
+
     async def _redeploy_daemons(
         self,
         daemons: List[Tuple[DaemonDescription, bool]],
         target_image: str
     ) -> List[Tuple[str, Dict[str, str], Dict[str, str]]]:
+        max_concurrent = self.mgr.max_parallel_daemon_upgrades
+        if 0 < max_concurrent < len(daemons):
+            return await self._redeploy_daemons_in_batches(
+                daemons, target_image, max_concurrent)
         futures = []
         for host in self.mgr.cache.get_hosts():
             daemons_to_upgrade = [d for d in daemons if d[0].hostname == host]
