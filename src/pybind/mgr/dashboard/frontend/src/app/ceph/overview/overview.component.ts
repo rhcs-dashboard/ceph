@@ -38,11 +38,12 @@ import { DataTableModule } from '~/app/shared/datatable/datatable.module';
 import { PipesModule } from '~/app/shared/pipes/pipes.module';
 import { OverviewStorageService } from '~/app/shared/api/storage-overview.service';
 import { PrometheusService } from '~/app/shared/api/prometheus.service';
-
-const SECONDS_PER_HOUR = 3600;
-const SECONDS_PER_DAY = 86400;
-const TREND_DAYS = 7;
-const PROMETHUES_CONFIG_POLL_INTERVAL = 60000;
+import {
+  PROMETHUES_CONFIG_POLL_INTERVAL,
+  SECONDS_PER_DAY,
+  SECONDS_PER_HOUR,
+  TREND_DAYS
+} from '~/app/shared/constants/query.constants';
 
 @Component({
   selector: 'cd-overview',

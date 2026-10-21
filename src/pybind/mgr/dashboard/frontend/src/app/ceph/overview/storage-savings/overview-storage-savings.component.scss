@@ -1,0 +1,28 @@
+cd-overview-storage-savings {
+  display: block;
+}
+
+.savings-header {
+  cd-icon {
+    vertical-align: middle;
+  }
+}
+
+.savings-no-data {
+  color: var(--cds-text-secondary);
+}
+
+$savings-chart-height: 200px;
+$savings-axis-height: 2rem;
+
+.savings-stats-col {
+  align-self: flex-end;
+}
+
+.savings-stats {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: calc(#{$savings-chart-height} - #{$savings-axis-height});
+  margin-bottom: $savings-axis-height;
+}

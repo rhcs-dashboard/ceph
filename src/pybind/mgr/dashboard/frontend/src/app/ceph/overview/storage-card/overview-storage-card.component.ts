@@ -12,7 +12,8 @@ import {
   SkeletonModule,
   LayoutModule,
   TagModule,
-  ButtonModule
+  ButtonModule,
+  TabsModule
 } from 'carbon-components-angular';
 import { ProductiveCardComponent } from '~/app/shared/components/productive-card/productive-card.component';
 import { MeterChartComponent, MeterChartOptions } from '@carbon/charts-angular';
@@ -23,6 +24,13 @@ import { BreakdownChartData, CapacityThreshold, TrendPoint } from '~/app/shared/
 import { EmptyStateComponent } from '~/app/shared/components/empty-state/empty-state.component';
 import { RouterModule } from '@angular/router';
 import { AuthStorageService } from '~/app/shared/services/auth-storage.service';
+import { HardwareService } from '~/app/shared/api/hardware.service';
+import { CompressionStats } from '~/app/shared/enum/hardware.enum';
+import { RefreshIntervalService } from '~/app/shared/services/refresh-interval.service';
+import { OverviewStorageSavingsComponent } from '../storage-savings/overview-storage-savings.component';
+import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
+import { Observable, of } from 'rxjs';
+import { catchError, exhaustMap, map, scan, startWith, switchMap } from 'rxjs/operators';
 
 const CHART_HEIGHT = '45px';
 
@@ -40,7 +48,11 @@ const CHART_HEIGHT = '45px';
     TagModule,
     EmptyStateComponent,
     ButtonModule,
-    RouterModule
+    RouterModule,
+    TabsModule,
+    OverviewStorageSavingsComponent,
+    AsyncPipe,
+    NgTemplateOutlet
   ],
   standalone: true,
   templateUrl: './overview-storage-card.component.html',
@@ -52,6 +64,25 @@ export class OverviewStorageCardComponent {
   private readonly formatterService = inject(FormatterService);
   private readonly cdr = inject(ChangeDetectorRef);
   readonly canAddStorage = inject(AuthStorageService).getPermissions().configOpt?.update;
+
+  private readonly hardwareService = inject(HardwareService);
+  private readonly refreshIntervalService = inject(RefreshIntervalService);
+
+  // Polls on the dashboard refresh interval; a failed poll keeps the last known stats.
+  private readonly compression$: Observable<CompressionStats | null> =
+    this.refreshIntervalService.intervalData$.pipe(
+      exhaustMap(() => this.hardwareService.getCompression().pipe(catchError(() => of(undefined)))),
+      scan(
+        (last: CompressionStats | null, next: CompressionStats | undefined) => next ?? last,
+        null
+      )
+    );
+
+  readonly savings$ = this.hardwareService.isHardwareMonitoringEnabled$.pipe(
+    switchMap((enabled) => (enabled ? this.compression$ : of(null))),
+    map((stats) => ({ stats: stats?.fcm_drive_count ? stats : null })),
+    startWith(null as { stats: CompressionStats | null } | null)
+  );
 
   @Input() storageEmptyState: boolean = false;
   @Input() prometheusEmptyState: boolean = false;

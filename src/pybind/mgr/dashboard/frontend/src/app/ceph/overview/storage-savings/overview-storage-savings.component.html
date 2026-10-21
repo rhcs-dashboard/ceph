@@ -1,0 +1,118 @@
+@let stats = compression();
+<div
+  cdsRow
+  class="cds-ml-2 cds-mt-4"
+>
+  <div cdsCol>
+    <div class="savings-header">
+      <p class="cds--label">
+        <span i18n>Total savings</span>
+        <cds-tooltip
+          class="cds-ml-3"
+          [caret]="true"
+          description="Amount of physical storage capacity saved through hardware compression. Needs at least 100 GiB of data to be shown."
+          i18n-description
+        >
+          <cd-icon type="help"></cd-icon>
+        </cds-tooltip>
+      </p>
+      @if (stats.savings_bytes !== null) {
+        <h3 class="cds--type-heading-05">
+          {{ totalSavingsFormatted() }}
+          @if (isSavingsTrendingUp()) {
+            <cd-icon
+              type="growth"
+              i18n-aria-label
+              aria-label="Savings trending up"
+            ></cd-icon>
+          }
+        </h3>
+      } @else {
+        <p
+          class="cds--type-body-02 savings-no-data"
+          i18n
+        >
+          Not available
+        </p>
+      }
+    </div>
+  </div>
+</div>
+
+<!-- SAVINGS TREND CHART + STATS -->
+<div
+  cdsRow
+  class="align-items-center cds-ml-2 cds-mt-4"
+>
+  <div
+    cdsCol
+    [columnNumbers]="{ lg: 14, md: 10, sm: 16 }"
+  >
+    @if (savingsTrendData().length) {
+      <cd-area-chart
+        chartTitle="Saving trend"
+        i18n-chartTitle
+        [chartKey]="'Storage saved'"
+        [dataUnit]="'B'"
+        [legendEnabled]="false"
+        [rawData]="savingsTrendData()"
+        subHeading="Shows last 7 days storage consumption trends based on recent usage."
+        i18n-subHeading
+        [height]="'200px'"
+        [decimals]="2"
+        [chartType]="'area'"
+      ></cd-area-chart>
+    } @else {
+      <p
+        class="cds--type-body-01"
+        i18n
+      >
+        No trend data available.
+      </p>
+    }
+  </div>
+
+  <!-- RIGHT SIDE STATS -->
+  <div
+    cdsCol
+    class="savings-stats-col"
+    [columnNumbers]="{ lg: 2, md: 8, sm: 8 }"
+  >
+    <div class="savings-stats">
+      @for (stat of savingsStats; track stat.key) {
+        @let value = stats[stat.key];
+        <div
+          cdsStack="vertical"
+          gap="1"
+        >
+          <span
+            class="cds--type-heading-03"
+            [class.savings-no-data]="value === null"
+          >
+            @if (value !== null) {
+              {{ value }}{{ stat.unit }}
+            } @else {
+              <span
+                class="cds--type-body-02"
+                i18n
+                >Not available</span
+              >
+            }
+          </span>
+          <div class="consumption-stats-wrapper">
+            <cds-tooltip-definition
+              [autoAlign]="true"
+              [highContrast]="true"
+              [openOnHover]="false"
+              [dropShadow]="true"
+              [caret]="true"
+              [description]="stat.description"
+            >
+              {{ stat.label }}
+            </cds-tooltip-definition>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</div>
