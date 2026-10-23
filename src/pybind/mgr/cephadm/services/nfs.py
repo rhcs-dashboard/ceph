@@ -527,6 +527,7 @@ class NFSService(CephService):
                     with_units_to_int(str(spec.client_object_cache_max_dirty))
                     if spec.client_object_cache_max_dirty is not None else None
                 ),
+                "ceph_nodeid": daemon_id
             }
             if spec.enable_haproxy_protocol:
                 context["haproxy_hosts"] = self._haproxy_hosts()

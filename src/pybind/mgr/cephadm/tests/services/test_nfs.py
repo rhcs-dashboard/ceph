@@ -60,6 +60,8 @@ class TestNFS:
                     CephadmDaemonDeploySpec(host='test', daemon_id='foo.test.0.0', service_name=nfs_spec.service_name()))
                 ganesha_conf = nfs_generated_conf['files']['ganesha.conf']
                 assert "Monitoring_Addr = 1.2.3.1" in ganesha_conf
+                assert 'register_service = true' in ganesha_conf
+                assert 'nodeid = "foo.test.0.0"' in ganesha_conf
 
             nfs_spec = NFSServiceSpec(service_id="foo", placement=PlacementSpec(hosts=['test']),
                                       monitoring_networks=['1.2.3.0/24'])
@@ -690,6 +692,8 @@ class TestNFS:
                     CephadmDaemonDeploySpec(host='test', daemon_id='foo.test.0.0', service_name=nfs_spec.service_name()))
                 ganesha_conf = nfs_generated_conf['files']['ganesha.conf']
                 assert "Protocols = 4;" in ganesha_conf
+                assert 'register_service = true' in ganesha_conf
+                assert 'nodeid = "foo.test.0.0"' in ganesha_conf
 
             # Test with enable_nfsv3=True
             nfs_spec = NFSServiceSpec(service_id="foo", placement=PlacementSpec(hosts=['test']),
