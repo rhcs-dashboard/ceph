@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA, ChangeDetectorRef } from '@angular/core';
+import { By } from '@angular/platform-browser';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { BehaviorSubject, of } from 'rxjs';
 
@@ -13,6 +14,16 @@ describe('RgwBucketResourcePageComponent', () => {
   let paramMapSubject: BehaviorSubject<any>;
   let mockRgwBucketService: any;
   let mockChangeDetectorRef: any;
+
+  const mockBucketRateLimit = {
+    enabled: true,
+    max_read_ops: 100,
+    max_write_ops: 200,
+    max_list_ops: 40,
+    max_delete_ops: 10,
+    max_read_bytes: 0,
+    max_write_bytes: 0
+  };
 
   beforeEach(async () => {
     paramMapSubject = new BehaviorSubject(
@@ -32,7 +43,7 @@ describe('RgwBucketResourcePageComponent', () => {
       getLockDays: jest.fn().mockReturnValue(5),
       getBucketRateLimit: jest.fn().mockReturnValue(
         of({
-          bucket_ratelimit: { max_read_ops: 100 }
+          bucket_ratelimit: mockBucketRateLimit
         })
       )
     };
@@ -131,7 +142,20 @@ describe('RgwBucketResourcePageComponent', () => {
     (component as any).fetchRateLimit();
 
     expect(mockRgwBucketService.getBucketRateLimit).toHaveBeenCalledWith('test-bucket');
-    expect(component.bucketRateLimit).toEqual({ max_read_ops: 100 } as any);
+    expect(component.bucketRateLimit).toEqual(mockBucketRateLimit as any);
+    expect(component.bucketRateLimit.max_list_ops).toBe(40);
+    expect(component.bucketRateLimit.max_delete_ops).toBe(10);
+  });
+
+  it('should pass list and delete limits to the rate limit details component', () => {
+    component.selection = { bid: 'test-bucket' } as unknown as Bucket;
+    (component as any).fetchRateLimit();
+    fixture.detectChanges();
+
+    const details = fixture.debugElement.query(By.css('cd-rgw-rate-limit-details'));
+    expect(details).toBeTruthy();
+    expect(details.componentInstance.rateLimitConfig).toEqual(mockBucketRateLimit);
+    expect(details.componentInstance.type).toBe('bucket');
   });
 
   it('should parse XML ACL accurately', () => {

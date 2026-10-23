@@ -355,6 +355,48 @@ describe('RgwUserFormComponent', () => {
       });
     });
 
+    it('should send list and delete ops when editing the user rate limit', () => {
+      const rateLimitSpy = spyOn(rgwUserService, 'updateUserRateLimit').and.returnValue(
+        observableOf([])
+      );
+      spyOn(rgwUserService, 'update');
+      component.editing = true;
+      const rateLimitComponent = fixture.debugElement.query(
+        By.directive(RgwRateLimitComponent)
+      ).componentInstance;
+      rateLimitComponent.form.patchValue({
+        rate_limit_enabled: true,
+        rate_limit_max_listOps_unlimited: false,
+        rate_limit_max_listOps: 40,
+        rate_limit_max_deleteOps_unlimited: false,
+        rate_limit_max_deleteOps: 10
+      });
+      rateLimitComponent.form.get('rate_limit_max_listOps').markAsDirty();
+      rateLimitComponent.form.get('rate_limit_max_deleteOps').markAsDirty();
+      component.onSubmit();
+
+      expect(rgwUserService.update).not.toHaveBeenCalled();
+      expect(rateLimitSpy).toHaveBeenCalledWith(null, {
+        enabled: true,
+        max_read_ops: 0,
+        max_write_ops: 0,
+        max_list_ops: 40,
+        max_delete_ops: 10,
+        max_read_bytes: 0,
+        max_write_bytes: 0
+      });
+    });
+
+    it('should not update the user rate limit when list and delete ops are untouched', () => {
+      const rateLimitSpy = spyOn(rgwUserService, 'updateUserRateLimit');
+      spyOn(rgwUserService, 'update').and.returnValue(observableOf([]));
+      component.editing = true;
+      formHelper.setValue('email', 'a@b.c', true);
+      component.onSubmit();
+
+      expect(rateLimitSpy).not.toHaveBeenCalled();
+    });
+
     it('tests create success notification', () => {
       spyOn(rgwUserService, 'create').and.returnValue(observableOf([]));
       component.editing = false;

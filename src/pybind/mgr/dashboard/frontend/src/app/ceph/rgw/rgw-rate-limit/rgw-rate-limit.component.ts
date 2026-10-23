@@ -104,6 +104,32 @@ export class RgwRateLimitComponent implements OnInit, AfterViewInit {
           )
         ]
       ],
+      rate_limit_max_listOps_unlimited: [true],
+      rate_limit_max_listOps: [
+        null,
+        [
+          CdValidators.composeIf(
+            {
+              rate_limit_enabled: true,
+              rate_limit_max_listOps_unlimited: false
+            },
+            [Validators.required, this.rateLimitIopmMaxSizeValidator]
+          )
+        ]
+      ],
+      rate_limit_max_deleteOps_unlimited: [true],
+      rate_limit_max_deleteOps: [
+        null,
+        [
+          CdValidators.composeIf(
+            {
+              rate_limit_enabled: true,
+              rate_limit_max_deleteOps_unlimited: false
+            },
+            [Validators.required, this.rateLimitIopmMaxSizeValidator]
+          )
+        ]
+      ],
       rate_limit_max_readBytes_unlimited: [true],
       rate_limit_max_readBytes: [
         null,
@@ -157,6 +183,16 @@ export class RgwRateLimitComponent implements OnInit, AfterViewInit {
       'rate_limit_max_writeOps',
       'rate_limit_max_writeOps_unlimited',
       data.max_write_ops
+    );
+    this._setRateLimitProperty(
+      'rate_limit_max_listOps',
+      'rate_limit_max_listOps_unlimited',
+      data.max_list_ops ?? 0
+    );
+    this._setRateLimitProperty(
+      'rate_limit_max_deleteOps',
+      'rate_limit_max_deleteOps_unlimited',
+      data.max_delete_ops ?? 0
     );
   }
   /**
@@ -218,6 +254,10 @@ export class RgwRateLimitComponent implements OnInit, AfterViewInit {
       'rate_limit_max_readOps',
       'rate_limit_max_writeOps_unlimited',
       'rate_limit_max_writeOps',
+      'rate_limit_max_listOps_unlimited',
+      'rate_limit_max_listOps',
+      'rate_limit_max_deleteOps_unlimited',
+      'rate_limit_max_deleteOps',
       'rate_limit_max_readBytes_unlimited',
       'rate_limit_max_readBytes',
       'rate_limit_max_writeBytes_unlimited',
@@ -235,6 +275,8 @@ export class RgwRateLimitComponent implements OnInit, AfterViewInit {
       enabled: this.form.getValue('rate_limit_enabled'),
       max_read_ops: 0,
       max_write_ops: 0,
+      max_list_ops: 0,
+      max_delete_ops: 0,
       max_read_bytes: 0,
       max_write_bytes: 0
     };
@@ -243,6 +285,12 @@ export class RgwRateLimitComponent implements OnInit, AfterViewInit {
     }
     if (!this.form.getValue('rate_limit_max_writeOps_unlimited')) {
       result['max_write_ops'] = this.form.getValue('rate_limit_max_writeOps');
+    }
+    if (!this.form.getValue('rate_limit_max_listOps_unlimited')) {
+      result['max_list_ops'] = this.form.getValue('rate_limit_max_listOps');
+    }
+    if (!this.form.getValue('rate_limit_max_deleteOps_unlimited')) {
+      result['max_delete_ops'] = this.form.getValue('rate_limit_max_deleteOps');
     }
     if (!this.form.getValue('rate_limit_max_readBytes_unlimited')) {
       // Convert the given value to bytes.

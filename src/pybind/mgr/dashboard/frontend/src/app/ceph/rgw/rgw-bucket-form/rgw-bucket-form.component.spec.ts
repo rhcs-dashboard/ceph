@@ -403,6 +403,49 @@ describe('RgwBucketFormComponent', () => {
       expect(rateLimitSpy).toHaveBeenCalledWith('bucket1', rateLimitConfig);
     });
 
+    it('should send list and delete ops when editing the bucket rate limit', () => {
+      const rateLimitSpy = spyOn(rgwBucketService, 'updateBucketRateLimit').and.returnValue(
+        observableOf([])
+      );
+      component.editing = true;
+      formHelper.setMultipleValues({
+        bid: 'bucket1',
+        owner: 'user1'
+      });
+      childComponent.form.patchValue({
+        rate_limit_enabled: true,
+        rate_limit_max_listOps_unlimited: false,
+        rate_limit_max_listOps: 40,
+        rate_limit_max_deleteOps_unlimited: false,
+        rate_limit_max_deleteOps: 10
+      });
+      childComponent.form.get('rate_limit_max_listOps').markAsDirty();
+      childComponent.form.get('rate_limit_max_deleteOps').markAsDirty();
+      component.updateBucketRateLimit();
+
+      expect(rateLimitSpy).toHaveBeenCalledWith('bucket1', {
+        enabled: true,
+        max_read_ops: 0,
+        max_write_ops: 0,
+        max_list_ops: 40,
+        max_delete_ops: 10,
+        max_read_bytes: 0,
+        max_write_bytes: 0
+      });
+    });
+
+    it('should not call the bucket rate limit API when the rate limit form is untouched', () => {
+      const rateLimitSpy = spyOn(rgwBucketService, 'updateBucketRateLimit');
+      component.editing = true;
+      formHelper.setMultipleValues({
+        bid: 'bucket1',
+        owner: 'user1'
+      });
+      component.updateBucketRateLimit();
+
+      expect(rateLimitSpy).not.toHaveBeenCalled();
+    });
+
     it('Scenario 3: tenanted owner and with non-tenanted bucket name', () => {
       const rateLimitSpy = spyOn(rgwBucketService, 'updateBucketRateLimit').and.returnValue(
         observableOf([])

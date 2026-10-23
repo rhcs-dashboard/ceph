@@ -7,14 +7,18 @@
       Rate Limit
       @if (type === 'user') {
         <cd-help-text>
-          The User Rate Limit controls the max read/write operations and data per minute for each
-          user.
+          The User Rate Limit controls the max read/write/list/delete operations and data per minute
+          for each user. List operations also count against the read operations limit, and delete
+          operations also count against the write operations limit. S3 multi-object delete is not
+          rate limited.
         </cd-help-text>
       }
       @if (type === 'bucket') {
         <cd-help-text>
-          The Bucket Rate Limit controls the max read/write operations and data per minute for each
-          bucket.
+          The Bucket Rate Limit controls the max read/write/list/delete operations and data per
+          minute for each bucket. List operations also count against the read operations limit, and
+          delete operations also count against the write operations limit. S3 multi-object delete is
+          not rate limited.
         </cd-help-text>
       }
     </legend>
@@ -41,7 +45,9 @@
                   : {{ globalRateLimit.max_read_ops }} <br />Max. write bytes :
                   {{ globalRateLimit.max_write_bytes | dimlessBinaryPerMinute }} <br />Max. write
                   ops :
-                  {{ globalRateLimit.max_write_ops }}
+                  {{ globalRateLimit.max_write_ops }} <br />Max. list ops :
+                  {{ globalRateLimit.max_list_ops ?? 0 }} <br />Max. delete ops :
+                  {{ globalRateLimit.max_delete_ops ?? 0 }}
                 </div>
               </cd-alert-panel>
             </div>
@@ -164,6 +170,127 @@
               >
             }
             @if (form.showError('rate_limit_max_writeOps', frm, 'min')) {
+              <span
+                class="invalid-feedback"
+                i18n
+                >Enter a positive number.</span
+              >
+            }
+          </ng-template>
+        </div>
+      }
+      <!-- Unlimited List Ops -->
+      @if (form.controls.rate_limit_enabled.value) {
+        <div class="form-item">
+          <cds-checkbox
+            id="rate_limit_max_listOps_unlimited"
+            formControlName="rate_limit_max_listOps_unlimited"
+          >
+            <ng-container i18n>Unlimited list ops</ng-container>
+            <cd-help-text i18n
+              >Select this box to allow unlimited list operations. List operations also count
+              against the maximum read ops.</cd-help-text
+            >
+          </cds-checkbox>
+        </div>
+      }
+      <!-- Maximum List Ops -->
+      @if (
+        form.controls.rate_limit_enabled.value && !form.getValue('rate_limit_max_listOps_unlimited')
+      ) {
+        <div class="form-item">
+          <cds-number
+            id="rate_limit_max_listOps"
+            formControlName="rate_limit_max_listOps"
+            label="Maximum list ops"
+            i18n-label
+            cdRequiredField="Maximum list ops"
+            helperText="Limits the number of list operations per minute. List operations also count against the maximum read ops."
+            i18n-helperText
+            [invalid]="
+              form.controls.rate_limit_max_listOps.invalid &&
+              form.controls.rate_limit_max_listOps.dirty
+            "
+            [invalidText]="rateLimitMaxListOpsError"
+          >
+          </cds-number>
+          <ng-template #rateLimitMaxListOpsError>
+            @if (form.showError('rate_limit_max_listOps', frm, 'required')) {
+              <span
+                class="invalid-feedback"
+                i18n
+                >This field is required.</span
+              >
+            }
+            @if (form.showError('rate_limit_max_listOps', frm, 'rateOpsMaxSize')) {
+              <span
+                class="invalid-feedback"
+                i18n
+                >The value is not valid.</span
+              >
+            }
+            @if (form.showError('rate_limit_max_listOps', frm, 'min')) {
+              <span
+                class="invalid-feedback"
+                i18n
+                >Enter a positive number.</span
+              >
+            }
+          </ng-template>
+        </div>
+      }
+      <!-- Unlimited Delete Ops -->
+      @if (form.controls.rate_limit_enabled.value) {
+        <div class="form-item">
+          <cds-checkbox
+            id="rate_limit_max_deleteOps_unlimited"
+            formControlName="rate_limit_max_deleteOps_unlimited"
+          >
+            <ng-container i18n>Unlimited delete ops</ng-container>
+            <cd-help-text i18n
+              >Select this box to allow unlimited delete operations. Delete operations also count
+              against the maximum write ops.</cd-help-text
+            >
+          </cds-checkbox>
+        </div>
+      }
+      <!-- Maximum Delete Ops -->
+      @if (
+        form.controls.rate_limit_enabled.value &&
+        !form.getValue('rate_limit_max_deleteOps_unlimited')
+      ) {
+        <div class="form-item">
+          <cds-number
+            id="rate_limit_max_deleteOps"
+            formControlName="rate_limit_max_deleteOps"
+            label="Maximum delete ops"
+            i18n-label
+            cdRequiredField="Maximum delete ops"
+            helperText="Limits the number of delete operations per minute. Delete operations also count against the maximum write ops. S3 multi-object delete is not rate limited."
+            i18n-helperText
+            [invalid]="
+              form.controls.rate_limit_max_deleteOps.invalid &&
+              form.controls.rate_limit_max_deleteOps.dirty
+            "
+            [invalidText]="rateLimitMaxDeleteOpsError"
+          >
+          </cds-number>
+          <ng-template #rateLimitMaxDeleteOpsError>
+            @if (form.showError('rate_limit_max_deleteOps', frm, 'required')) {
+              <span
+                class="invalid-feedback"
+                i18n
+                >This field is required.</span
+              >
+            }
+            @if (form.showError('rate_limit_max_deleteOps', frm, 'rateOpsMaxSize')) {
+              <span
+                class="invalid-feedback"
+                i18n
+                >The value is not valid.</span
+              >
+            }
+            @if (form.showError('rate_limit_max_deleteOps', frm, 'min')) {
               <span
                 class="invalid-feedback"
                 i18n

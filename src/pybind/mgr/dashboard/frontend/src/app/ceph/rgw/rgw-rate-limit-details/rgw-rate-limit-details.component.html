@@ -55,6 +55,48 @@
     <tr>
       <td
         i18n
+        i18n-title
+        class="bold"
+        title="Limits bucket listing requests. List operations also count against the maximum read ops."
+      >
+        Maximum List Ops
+      </td>
+      @if (!rateLimitConfig.enabled) {
+        <td>-</td>
+      }
+      @if (rateLimitConfig.enabled && !(rateLimitConfig.max_list_ops > 0)) {
+        <td i18n>Unlimited</td>
+      }
+      @if (rateLimitConfig.enabled && rateLimitConfig.max_list_ops > 0) {
+        <td>
+          {{ rateLimitConfig.max_list_ops }}
+        </td>
+      }
+    </tr>
+    <tr>
+      <td
+        i18n
+        i18n-title
+        class="bold"
+        title="Limits delete operations. Delete operations also count against the maximum write ops. S3 multi-object delete is not rate limited."
+      >
+        Maximum Delete Ops
+      </td>
+      @if (!rateLimitConfig.enabled) {
+        <td>-</td>
+      }
+      @if (rateLimitConfig.enabled && !(rateLimitConfig.max_delete_ops > 0)) {
+        <td i18n>Unlimited</td>
+      }
+      @if (rateLimitConfig.enabled && rateLimitConfig.max_delete_ops > 0) {
+        <td>
+          {{ rateLimitConfig.max_delete_ops }}
+        </td>
+      }
+    </tr>
+    <tr>
+      <td
+        i18n
         class="bold"
       >
         Maximum Read Bytes
