@@ -88,9 +88,10 @@ class HardwareService(object):
         )
 
     @staticmethod
-    def get_compression() -> CompressionStats:
+    def get_compression(hostname: Optional[str] = None) -> CompressionStats:
         """
-        GET /api/hardware/compression -- cluster-wide FCM hardware compression stats.
+        GET /api/hardware/compression -- FCM hardware compression stats of the
+        whole cluster, or of a single host when hostname is given.
 
         Aggregates FCM data from node-proxy cache across all hosts and drives.
         FCM data shape: status['fcm'][sys_id][device] = {
@@ -104,7 +105,8 @@ class HardwareService(object):
         MIN_PHY_UTIL_BYTES = 107_374_182_400  # 100 GiB
 
         try:
-            fcm_data = OrchClient.instance().hardware.common('fcm')
+            hardware = OrchClient.instance().hardware
+            fcm_data = hardware.common('fcm', hostname) if hostname else hardware.common('fcm')
         except OrchestratorError as e:
             logger.error("Failed to retrieve FCM data: %s", e)
             return CompressionStats(

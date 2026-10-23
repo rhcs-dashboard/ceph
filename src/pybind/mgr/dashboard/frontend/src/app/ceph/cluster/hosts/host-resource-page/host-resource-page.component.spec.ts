@@ -7,7 +7,9 @@ import { ActivatedRoute, convertToParamMap, ParamMap } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { BehaviorSubject, of, throwError } from 'rxjs';
 
+import { HardwareService } from '~/app/shared/api/hardware.service';
 import { HostService } from '~/app/shared/api/host.service';
+import { CompressionStats, HardwareHost } from '~/app/shared/enum/hardware.enum';
 import { ICON_TYPE } from '~/app/shared/enum/icons.enum';
 import { Permissions } from '~/app/shared/models/permissions';
 import { AuthStorageService } from '~/app/shared/services/auth-storage.service';
@@ -36,6 +38,11 @@ describe('HostResourcePageComponent', () => {
       }
     )
   };
+  const hardwareServiceSpy = {
+    isHardwareMonitoringEnabled$: of(false),
+    getHost: jest.fn(),
+    getCompression: jest.fn()
+  };
   const parentParamMap$ = new BehaviorSubject<ParamMap>(convertToParamMap({ hostname: 'node-1' }));
 
   configureTestBed({
@@ -59,6 +66,10 @@ describe('HostResourcePageComponent', () => {
         useValue: hostServiceSpy
       },
       {
+        provide: HardwareService,
+        useValue: hardwareServiceSpy
+      },
+      {
         provide: AuthStorageService,
         useValue: {
           getPermissions: () => new Permissions({ hosts: ['read'], grafana: ['read'] })
@@ -76,6 +87,9 @@ describe('HostResourcePageComponent', () => {
     hostServiceSpy.list.mockClear();
     hostServiceSpy.getTotalMemoryBytes.mockClear();
     hostServiceSpy.getRawCapacityBytes.mockClear();
+    hardwareServiceSpy.isHardwareMonitoringEnabled$ = of(false);
+    hardwareServiceSpy.getHost.mockReset();
+    hardwareServiceSpy.getCompression.mockReset();
   });
 
   const getField = (label: string) => {
@@ -161,6 +175,153 @@ describe('HostResourcePageComponent', () => {
 
       expect(getField('Total Memory')?.value).toEqual('-');
       expect(getField('Raw Capacity')?.value).toEqual('-');
+    });
+  });
+
+  describe('Hardware fields', () => {
+    const category = (total: number, components: object[] = []) => ({
+      health: 'OK',
+      total,
+      ok: total,
+      warning: 0,
+      critical: 0,
+      unknown: 0,
+      components
+    });
+    const sensor = (name: string, physical_context: string, reading: number | 'unknown') => ({
+      id: name,
+      chassis_id: '1',
+      health: 'OK',
+      state: 'Enabled',
+      name,
+      physical_context,
+      reading,
+      reading_units: 'Cel'
+    });
+    const report = {
+      hostname: 'node-1',
+      sn: 'SN1',
+      health: 'OK',
+      status: {
+        storage: category(7),
+        processors: category(2),
+        memory: category(0),
+        network: category(0),
+        power: category(0),
+        fans: category(0),
+        temperatures: category(4, [
+          sensor('CPU1 Temp', 'CPU', 44),
+          sensor('CPU2 Temp', 'CPU', 47.6),
+          sensor('Inlet Temp', 'Intake', 24),
+          sensor('NVMe 0', 'StorageDevice', 52)
+        ])
+      },
+      firmware: {
+        BMC: '4.86.00',
+        BIOS: '2.14.1',
+        'Platform firmware': 'v0.50.d57cfd'
+      }
+    } as unknown as HardwareHost;
+    const compression: CompressionStats = {
+      fcm_drive_count: 2,
+      phy_util_percent: 20,
+      log_util_percent: 40,
+      savings_bytes: 17.1 * 1024 ** 4,
+      compression_ratio: 4.21,
+      efficiency_percent: 50
+    };
+
+    beforeEach(() => {
+      hostServiceSpy.list.mockReturnValue(of([{ hostname: 'node-1' }]));
+    });
+
+    it('should not fetch or show hardware when hardware monitoring is disabled', () => {
+      fixture.detectChanges();
+
+      expect(hardwareServiceSpy.getHost).not.toHaveBeenCalled();
+      expect(hardwareServiceSpy.getCompression).not.toHaveBeenCalled();
+      expect(getField('BMC version')).toBeUndefined();
+      expect(getField('Savings')).toBeUndefined();
+    });
+
+    it('should show the hardware of the host when hardware monitoring is enabled', () => {
+      hardwareServiceSpy.isHardwareMonitoringEnabled$ = of(true);
+      hardwareServiceSpy.getHost.mockReturnValue(of(report));
+      hardwareServiceSpy.getCompression.mockReturnValue(of(compression));
+
+      fixture.detectChanges();
+
+      expect(hardwareServiceSpy.getHost).toHaveBeenCalledWith('node-1');
+      expect(hardwareServiceSpy.getCompression).toHaveBeenCalledWith('node-1');
+      expect(getField('Hostname')?.value).toBe('node-1');
+      expect(getField('CPU temperature')?.value).toBe('48°C');
+      expect(getField('NVMe temperature')?.value).toBe('52°C');
+      expect(getField('BMC version')?.value).toBe('4.86.00');
+      expect(getField('BIOS version')?.value).toBe('2.14.1');
+      expect(getField('Platform firmware')?.value).toBe('v0.50.d57cfd');
+      expect(getField('Drives')?.value).toBe(7);
+      expect(getField('Savings')?.value).toBe('17.1 TiB');
+      expect(getField('Compression ratio')?.value).toBe('4.21:1');
+    });
+
+    it('should leave out savings when the host has no FCM drives', () => {
+      hardwareServiceSpy.isHardwareMonitoringEnabled$ = of(true);
+      hardwareServiceSpy.getHost.mockReturnValue(of(report));
+      hardwareServiceSpy.getCompression.mockReturnValue(of({ ...compression, fcm_drive_count: 0 }));
+
+      fixture.detectChanges();
+
+      expect(getField('BMC version')?.value).toBe('4.86.00');
+      expect(getField('Savings')).toBeUndefined();
+      expect(getField('Compression ratio')).toBeUndefined();
+    });
+
+    it('should show empty savings while there is too little data', () => {
+      hardwareServiceSpy.isHardwareMonitoringEnabled$ = of(true);
+      hardwareServiceSpy.getHost.mockReturnValue(of(report));
+      hardwareServiceSpy.getCompression.mockReturnValue(
+        of({ ...compression, savings_bytes: null, compression_ratio: null })
+      );
+
+      fixture.detectChanges();
+
+      expect(getField('Savings')?.value).toBeNull();
+      expect(getField('Compression ratio')?.value).toBeNull();
+    });
+
+    it('should leave out hardware fields without a node-proxy report, silently', () => {
+      const error = { status: 404, preventDefault: jest.fn() };
+      hardwareServiceSpy.isHardwareMonitoringEnabled$ = of(true);
+      hardwareServiceSpy.getHost.mockReturnValue(throwError(error));
+      hardwareServiceSpy.getCompression.mockReturnValue(of(compression));
+
+      fixture.detectChanges();
+
+      expect(error.preventDefault).toHaveBeenCalled();
+      expect(getField('Hostname')?.value).toBe('node-1');
+      expect(getField('BMC version')).toBeUndefined();
+      expect(getField('Savings')?.value).toBe('17.1 TiB');
+    });
+
+    it('should show empty values for sensors and firmware the host does not report', () => {
+      hardwareServiceSpy.isHardwareMonitoringEnabled$ = of(true);
+      hardwareServiceSpy.getHost.mockReturnValue(
+        of({
+          ...report,
+          status: {
+            ...report.status,
+            temperatures: category(1, [sensor('CPU1', 'CPU', 'unknown')])
+          },
+          firmware: {}
+        })
+      );
+      hardwareServiceSpy.getCompression.mockReturnValue(of(compression));
+
+      fixture.detectChanges();
+
+      expect(getField('CPU temperature')?.value).toBeNull();
+      expect(getField('NVMe temperature')?.value).toBeNull();
+      expect(getField('BMC version')?.value).toBeNull();
     });
   });
 

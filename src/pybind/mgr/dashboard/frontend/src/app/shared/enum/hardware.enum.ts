@@ -31,3 +31,38 @@ export interface CompressionStats {
   compression_ratio: number | null;
   efficiency_percent: number | null;
 }
+
+export type HardwareHealth = 'OK' | 'Warning' | 'Critical' | 'Unknown';
+
+export interface HardwareComponent {
+  id: string;
+  chassis_id: string;
+  health: HardwareHealth;
+  state: string;
+  /* Sensor fields (fans, temperatures) */
+  name?: string;
+  physical_context?: string;
+  reading?: number | 'unknown';
+  reading_units?: string;
+  [field: string]: unknown;
+}
+
+export interface HardwareCategory {
+  health: HardwareHealth;
+  total: number;
+  ok: number;
+  warning: number;
+  critical: number;
+  unknown: number;
+  components: HardwareComponent[];
+}
+
+/* Response of GET /api/hardware/hosts/{hostname} */
+export interface HardwareHost {
+  hostname: string;
+  sn: string;
+  health: HardwareHealth;
+  status: Record<keyof typeof HardwareNameMapping, HardwareCategory>;
+  /* Installed firmware: name -> version */
+  firmware: Record<string, string>;
+}

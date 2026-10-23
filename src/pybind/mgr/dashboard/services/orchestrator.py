@@ -2,7 +2,7 @@
 
 import logging
 from functools import wraps
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from ceph.deployment.service_spec import ServiceSpec
 from orchestrator import NODE_PROXY_REPORT_KEYS, DaemonDescription, \
@@ -231,7 +231,8 @@ class HardwareManager(ResourceManager):
         return self.api.node_proxy_fullreport(hostname=hostname)
 
     @wait_api_result
-    def common(self, category: str, hostname: Optional[List[str]] = None) -> str:
+    def common(self, category: str,
+               hostname: Optional[Union[str, List[str]]] = None) -> str:
         return self.api.node_proxy_common(category, hostname=hostname)
 
 

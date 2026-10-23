@@ -805,6 +805,18 @@ class HardwareCompressionTest(unittest.TestCase):
             'efficiency_percent': 50.0})
 
     @mock.patch('dashboard.services.hardware.OrchClient.instance')
+    def test_single_host(self, mock_instance):
+        self._fcm(mock_instance, 200 * self.GIB, 400 * self.GIB, 1000 * self.GIB)
+        stats = HardwareService.get_compression('host1')
+        mock_instance.return_value.hardware.common.assert_called_once_with('fcm', 'host1')
+        self.assertEqual(stats['compression_ratio'], 2.0)
+
+    @mock.patch('dashboard.services.hardware.OrchClient.instance')
+    def test_host_without_report(self, mock_instance):
+        mock_instance.return_value.hardware.common.side_effect = HardwareNoReport('no data')
+        self.assertEqual(HardwareService.get_compression('host9')['fcm_drive_count'], 0)
+
+    @mock.patch('dashboard.services.hardware.OrchClient.instance')
     def test_small_usage_hides_ratio(self, mock_instance):
         # Below 100 GiB physically used, ratio/savings are not meaningful yet.
         self._fcm(mock_instance, 10 * self.GIB, 20 * self.GIB, 1000 * self.GIB)

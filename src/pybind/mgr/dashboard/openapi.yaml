@@ -8276,7 +8276,13 @@ paths:
       - Grafana
   /api/hardware/compression:
     get:
-      parameters: []
+      parameters:
+      - allowEmptyValue: true
+        description: Only count the FCM drives of this host
+        in: query
+        name: hostname
+        schema:
+          type: string
       responses:
         '200':
           content:
@@ -8298,7 +8304,8 @@ paths:
             trace.
       security:
       - jwt: []
-      summary: Retrieve cluster-wide FCM hardware compression statistics
+      summary: Retrieve FCM hardware compression statistics of the cluster or of one
+        host
       tags:
       - Hardware
   /api/hardware/hosts:

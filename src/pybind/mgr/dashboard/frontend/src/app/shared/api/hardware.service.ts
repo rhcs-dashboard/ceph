@@ -4,7 +4,7 @@ import { Observable, of } from 'rxjs';
 import { catchError, map, shareReplay } from 'rxjs/operators';
 import { MgrModuleService } from './mgr-module.service';
 import { AuthStorageService } from '../services/auth-storage.service';
-import { CompressionStats, HardwareSummary } from '../enum/hardware.enum';
+import { CompressionStats, HardwareHost, HardwareSummary } from '../enum/hardware.enum';
 
 @Injectable({
   providedIn: 'root'
@@ -39,9 +39,19 @@ export class HardwareService {
     });
   }
 
-  getCompression(): Observable<CompressionStats> {
+  /**
+   * FCM compression stats of the whole cluster, or of one host when
+   * hostname is given.
+   */
+  getCompression(hostname?: string): Observable<CompressionStats> {
     return this.http.get<CompressionStats>(`${this.baseURL}/compression`, {
+      params: hostname ? { hostname } : {},
       headers: { Accept: 'application/vnd.ceph.api.v0.1+json' }
     });
+  }
+
+  /* Hardware report of one host; 404 when the host has no node-proxy report. */
+  getHost(hostname: string): Observable<HardwareHost> {
+    return this.http.get<HardwareHost>(`${this.baseURL}/hosts/${encodeURIComponent(hostname)}`);
   }
 }

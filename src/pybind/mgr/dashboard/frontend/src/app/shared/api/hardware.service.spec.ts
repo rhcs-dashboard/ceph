@@ -63,6 +63,28 @@ describe('HardwareService', () => {
       req.flush(COMPRESSION_STATS);
       expect(result).toEqual(COMPRESSION_STATS);
     });
+
+    it('should filter by host when a hostname is given', () => {
+      const service = createService();
+
+      service.getCompression('node-1').subscribe();
+
+      const req = httpTesting.expectOne('api/hardware/compression?hostname=node-1');
+      expect(req.request.params.get('hostname')).toBe('node-1');
+      req.flush(COMPRESSION_STATS);
+    });
+  });
+
+  describe('getHost', () => {
+    it('should request the hardware report of the host', () => {
+      const service = createService();
+
+      service.getHost('node/1').subscribe();
+
+      const req = httpTesting.expectOne('api/hardware/hosts/node%2F1');
+      expect(req.request.method).toBe('GET');
+      req.flush({});
+    });
   });
 
   describe('isHardwareMonitoringEnabled$', () => {

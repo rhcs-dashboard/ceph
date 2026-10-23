@@ -61,9 +61,12 @@ class Hardware(RESTController):
 @APIDoc("Hardware compression API", "Hardware")
 class HardwareCompression(RESTController):
 
-    @EndpointDoc("Retrieve cluster-wide FCM hardware compression statistics")
-    def list(self):
-        return HardwareService.get_compression()
+    @EndpointDoc("Retrieve FCM hardware compression statistics of the cluster or of one host",
+                 parameters={
+                     'hostname': (str, 'Only count the FCM drives of this host'),
+                 })
+    def list(self, hostname: Optional[str] = None):
+        return HardwareService.get_compression(hostname)
 
 
 @APIRouter('/hardware/hosts')
