@@ -4201,115 +4201,6 @@ int RadosMultipartUpload::link_recorded_head(const DoutPrefixProvider* dpp, opti
                                     ceph::real_time(), false, y, nullptr, log_data_change);
 }
 
-// Mark every part prefix, current or past, whose objects the head's
-// manifest names as processed. The rest were uploaded after the head
-// write and no head names them, so their objects go to GC and their
-// index entries are removed.
-int RadosMultipartUpload::reconcile_parts_with_head(const DoutPrefixProvider* dpp,
-                                                    optional_yield y, rgw::sal::Object* head,
-                                                    prefix_map_t& processed_prefixes)
-{
-  auto* const rados = store->getRados();
-  auto* const cct = rados->ctx();
-  RGWObjManifest head_manifest;
-  {
-    const auto& attrs = head->get_attrs();
-    auto i = attrs.find(RGW_ATTR_MANIFEST);
-    if (i == attrs.end()) {
-      ldpp_dout(dpp, 0) << "WARNING: the head of a recorded completion, " << head->get_obj()
-                        << ", has no manifest; leaving its upload's parts" << dendl;
-      return 0;
-    }
-    try {
-      auto p = i->second.cbegin();
-      decode(head_manifest, p);
-    } catch (const buffer::error&) {
-      ldpp_dout(dpp, 0) << "ERROR: failed to decode the manifest of " << head->get_obj() << dendl;
-      return -EIO;
-    }
-  }
-  boost::container::flat_set<std::string> named;
-  for (auto it = head_manifest.obj_begin(dpp); it != head_manifest.obj_end(dpp); ++it) {
-    named.insert(it.get_location().get_raw_obj(rados).oid);
-  }
-  // a part's objects are the head's if its first one is
-  auto head_names = [&](const RGWObjManifest& m) {
-    auto it = m.obj_begin(dpp);
-    return it != m.obj_end(dpp) && named.count(it.get_location().get_raw_obj(rados).oid) > 0;
-  };
-  auto collect = [&](const RGWObjManifest& m, cls_rgw_obj_chain& chain) {
-    for (auto it = m.obj_begin(dpp); it != m.obj_end(dpp); ++it) {
-      const rgw_raw_obj raw = it.get_location().get_raw_obj(rados);
-      chain.push_obj(raw.pool.to_str(), cls_rgw_obj_key(raw.oid), raw.loc);
-    }
-  };
-
-  cls_rgw_obj_chain chain;
-  std::list<rgw_obj_index_key> remove_keys;
-  int marker = 0;
-  bool truncated = false;
-  do {
-    int ret = list_parts(dpp, cct, 1000, marker, &marker, &truncated, y);
-    if (ret < 0) {
-      return (ret == -ENOENT) ? -ERR_NO_SUCH_UPLOAD : ret;
-    }
-    for (auto& [num, p] : parts) {
-      auto* part = static_cast<RadosMultipartPart*>(p.get());
-      auto& prefixes = processed_prefixes[part->info.num];
-      if (!part->info.manifest.empty()) {
-        const std::string prefix = part->info.manifest.get_prefix();
-        if (!prefix.empty() && prefixes.insert(prefix).second && !head_names(part->info.manifest)) {
-          // uploaded after the head write
-          rgw_obj part_obj;
-          RGWSI_Tier_RADOS::raw_obj_to_obj(bucket->get_key(),
-                                           part->info.manifest.obj_begin(dpp).get_location().get_raw_obj(rados),
-                                           &part_obj);
-          rgw_obj_index_key key;
-          part_obj.key.get_index_key(&key);
-          remove_keys.push_back(key);
-          collect(part->info.manifest, chain);
-        }
-      }
-      for (const auto& ppfx : part->get_past_prefixes()) {
-        if (!prefixes.insert(ppfx).second) {
-          continue;
-        }
-        RGWObjManifest past = part->get_manifest();
-        past.set_prefix(ppfx);
-        if (head_names(past)) {
-          continue; // the head's part, which a later upload of the number displaced
-        }
-        rgw_obj past_obj;
-        past_obj.init_ns(bucket->get_key(), ppfx + "." + std::to_string(part->info.num), mp_ns);
-        rgw_obj_index_key past_key;
-        past_obj.key.get_index_key(&past_key);
-        remove_keys.push_back(past_key);
-        collect(past, chain);
-      }
-    }
-  } while (truncated);
-
-  if (!chain.empty()) {
-    if (rados->get_gc() == nullptr) {
-      rados->delete_objs_inline(dpp, chain, mp_obj.get_upload_id(), y);
-    } else {
-      auto [ret, leftover_chain] = rados->send_chain_to_gc(chain, mp_obj.get_upload_id(), y);
-      if (ret < 0 && leftover_chain) {
-        ldpp_dout(dpp, 5) << __func__ << ": gc->send_chain() returned " << ret << dendl;
-        rados->delete_objs_inline(dpp, *leftover_chain, mp_obj.get_upload_id(), y);
-      }
-    }
-  }
-  if (!remove_keys.empty()) {
-    int ret = rados->remove_objs_from_index(dpp, bucket->get_info(), remove_keys);
-    if (ret < 0) {
-      ldpp_dout(dpp, 0) << "WARNING: failed to remove the index entries of parts uploaded after "
-                           "the completion of " << get_upload_id() << ", ret=" << ret << dendl;
-    }
-  }
-  return 0;
-}
-
 std::unique_ptr<rgw::sal::Object> RadosMultipartUpload::get_meta_obj()
 {
   return bucket->get_object(rgw_obj_key(get_meta(), string(), mp_ns));
@@ -4569,17 +4460,6 @@ int RadosMultipartUpload::complete(const DoutPrefixProvider *dpp,
         if (ret < 0) {
           return ret;
         }
-      }
-      // A part uploaded since the completion's head write is in the upload
-      // and in no head. The caller's meta delete finds it as a version
-      // mismatch and cleans up the parts it was not told are the head's;
-      // answered from here without a part walk, it would be told none, and
-      // take the head's parts (jhoblitt). walk the parts once: mark every
-      // prefix the head names as the head's, and free the rest now, so a
-      // raced part goes whether or not the meta delete sees it
-      ret = reconcile_parts_with_head(dpp, y, head.get(), processed_prefixes);
-      if (ret < 0) {
-        return ret;
       }
       // answer with the version the earlier completion wrote, not the one
       // generated for this request

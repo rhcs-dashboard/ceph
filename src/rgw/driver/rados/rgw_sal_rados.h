@@ -918,9 +918,6 @@ protected:
   // write was not able to.
   int link_recorded_head(const DoutPrefixProvider* dpp, optional_yield y,
                          rgw::sal::Object* head);
-  // Mark the parts the head names as processed, free the rest
-  int reconcile_parts_with_head(const DoutPrefixProvider* dpp, optional_yield y,
-                                rgw::sal::Object* head, prefix_map_t& processed_prefixes);
 };
 
 class MPRadosSerializer : public StoreMPSerializer {
