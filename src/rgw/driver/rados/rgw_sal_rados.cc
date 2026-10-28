@@ -3987,13 +3987,6 @@ int RadosMultipartUpload::abort(const DoutPrefixProvider *dpp, CephContext *cct,
         return ret;
       }
       if (ret > 0) {
-        // the head may have been written and never linked (see complete())
-        if (bucket->versioned()) {
-          ret = link_recorded_head(dpp, y, head.get());
-          if (ret < 0) {
-            return ret;
-          }
-        }
         std::unique_ptr<rgw::sal::Object::DeleteOp> del_op = meta_obj->get_delete_op();
         del_op->params.bucket_owner = bucket->get_info().owner;
         del_op->params.versioning_status = 0;
@@ -4148,57 +4141,6 @@ int RadosMultipartUpload::head_carries(const DoutPrefixProvider* dpp, optional_y
   }
   bufferlist id_tag;
   return head->get_attr(RGW_ATTR_ID_TAG, id_tag) && id_tag.contents_equal(tag);
-}
-
-// link the head a completion record names into its key's olh, used if
-// the write was unable to do so. Returns 0 on successful link, or if
-// the link already existed.
-int RadosMultipartUpload::link_recorded_head(const DoutPrefixProvider* dpp, optional_yield y,
-                                             rgw::sal::Object* head)
-{
-  RGWBucketInfo& bucket_info = bucket->get_info();
-  rgw_obj obj = head->get_obj();
-  const bool null_version = (obj.key.instance == "null");
-  if (null_version) {
-    // the null version links under an empty instance, as its write does
-    obj.key.instance.clear();
-  }
-  int ret;
-  if (null_version) {
-    // the null version is linked when the olh points at it
-    rgw_bucket_olh_entry olh;
-    ret = store->getRados()->bi_get_olh(dpp, bucket_info, obj, &olh, y);
-    if (ret < 0 && ret != -ENOENT) {
-      return ret;
-    }
-    if (ret == 0 && olh.exists && !olh.delete_marker &&
-        (olh.key.instance.empty() || olh.key.instance == "null")) {
-      return 0;
-    }
-  } else {
-    // an instance is linked once link_olh gave its entry an epoch; one
-    // with none is what `bucket check unlinked` reports
-    rgw_bucket_dir_entry dirent;
-    ret = store->getRados()->bi_get_instance(dpp, bucket_info, obj, &dirent, y);
-    if (ret < 0 && ret != -ENOENT) {
-      return ret;
-    }
-    if (ret == 0 && dirent.versioned_epoch != 0) {
-      return 0;
-    }
-  }
-  // the link's epoch is the time the head was written. cls link_olh
-  // promotes a version to current only for an epoch past the olh's, so a
-  // version written since this head stays current and this one is linked
-  // behind it, as it would have been had its own link run
-  const uint64_t epoch = std::chrono::duration_cast<std::chrono::nanoseconds>(
-      head->get_mtime().time_since_epoch()).count();
-  ldpp_dout(dpp, 5) << "linking the head " << obj << " of a recorded completion, epoch "
-                    << epoch << dendl;
-  RGWObjectCtx obj_ctx(store);
-  const bool log_data_change = store->svc()->zone->need_to_log_data();
-  return store->getRados()->set_olh(dpp, obj_ctx, bucket_info, obj, false, nullptr, epoch,
-                                    ceph::real_time(), false, y, nullptr, log_data_change);
 }
 
 std::unique_ptr<rgw::sal::Object> RadosMultipartUpload::get_meta_obj()
@@ -4424,17 +4366,8 @@ int RadosMultipartUpload::complete(const DoutPrefixProvider *dpp,
         return ret;
       }
       if (ret == 0) {
-        // The upload cannot be completed again; so we answer as we
-        // would for one that does not exist and abort it. Left as it
-        // is, the meta object keeps the upload listed while refusing
-        // every completion.
         ldpp_dout(dpp, 0) << "NOTICE: an earlier completion of upload " << get_upload_id()
-                          << " did not take effect, or was replaced; aborting it" << dendl;
-        ret = abort(dpp, cct, y);
-        if (ret < 0 && ret != -ERR_NO_SUCH_UPLOAD) {
-          ldpp_dout(dpp, 0) << "ERROR: failed to abort upload " << get_upload_id()
-                            << ", ret=" << ret << dendl;
-        }
+                          << " did not take effect, or was replaced; not completing it again" << dendl;
         return -ERR_NO_SUCH_UPLOAD;
       }
       // the part list must be the one the earlier completion used
@@ -4450,16 +4383,6 @@ int RadosMultipartUpload::complete(const DoutPrefixProvider *dpp,
       bufferlist head_etag;
       if (!head->get_attr(RGW_ATTR_ETAG, head_etag) || rgw_bl_str(head_etag) != want) {
         return -ERR_NO_SUCH_UPLOAD;
-      }
-      // The head may have been written and never linked: its write failed
-      // or died between the index completion and the olh link
-      // (_do_write_meta cancels before set_olh). If we answered as is
-      // the completion would succeed for an object no key reads.
-      if (bucket->versioned()) {
-        ret = link_recorded_head(dpp, y, head.get());
-        if (ret < 0) {
-          return ret;
-        }
       }
       // answer with the version the earlier completion wrote, not the one
       // generated for this request

@@ -914,10 +914,6 @@ protected:
   std::unique_ptr<rgw::sal::Object> recorded_head(const rgw::sal::Attrs& meta_attrs);
   int head_carries(const DoutPrefixProvider* dpp, optional_yield y,
                    rgw::sal::Object* head, const bufferlist& tag);
-  // Link the head a record names into its key's olh, for use if the
-  // write was not able to.
-  int link_recorded_head(const DoutPrefixProvider* dpp, optional_yield y,
-                         rgw::sal::Object* head);
 };
 
 class MPRadosSerializer : public StoreMPSerializer {
