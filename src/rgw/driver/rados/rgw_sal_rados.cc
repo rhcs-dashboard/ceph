@@ -4558,17 +4558,6 @@ int RadosMultipartUpload::complete(const DoutPrefixProvider *dpp,
       fmt::format_to(std::back_inserter(want), "-{}", part_etags.size());
       bufferlist head_etag;
       if (!head->get_attr(RGW_ATTR_ETAG, head_etag) || rgw_bl_str(head_etag) != want) {
-        // a different part list for an upload that was completed: S3 has
-        // no such upload. the abort finds the record and the head carrying
-        // its tag, and removes the meta object only, so the upload is not
-        // left listed; the parts are the head's and stay
-        ldpp_dout(dpp, 5) << "NOTICE: the completion of upload " << get_upload_id()
-                          << " was replayed with a different part list; removing the upload" << dendl;
-        ret = abort(dpp, cct, y);
-        if (ret < 0 && ret != -ERR_NO_SUCH_UPLOAD) {
-          ldpp_dout(dpp, 0) << "ERROR: failed to remove upload " << get_upload_id()
-                            << ", ret=" << ret << dendl;
-        }
         return -ERR_NO_SUCH_UPLOAD;
       }
       // The head may have been written and never linked: its write failed
