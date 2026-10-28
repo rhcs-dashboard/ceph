@@ -4573,27 +4573,22 @@ int RadosMultipartUpload::complete(const DoutPrefixProvider *dpp,
   // record this completion's tag, the ID tag its head will carry, and the
   // version it writes: its own instance in a version-enabled bucket,
   // otherwise the null one
-  const std::string recorded_instance = target_obj->get_instance().empty() ? "null" : target_obj->get_instance();
-  bufferlist tag_bl;
-  tag_bl.append(tag.c_str(), tag.size() + 1);
-  ret = set_completion_record(dpp, y, &tag_bl, recorded_instance);
-  if (ret < 0) {
-    return ret;
+  {
+    const std::string& instance = target_obj->get_instance();
+    bufferlist tag_bl;
+    tag_bl.append(tag.c_str(), tag.size() + 1);
+    ret = set_completion_record(dpp, y, &tag_bl, instance.empty() ? "null" : instance);
+    if (ret < 0) {
+      return ret;
+    }
   }
 
   const req_context rctx{dpp, y, nullptr};
   ret = obj_op.write_meta(ofs, accounted_size, attrs, rctx, get_trace());
   if (ret < 0) {
     if (ret != -ETIMEDOUT) {
-      // the head may not have been written, and then a retry may still
-      // complete the upload: drop the record. but write_meta also fails
-      // after the head write, when the index completion or its bilog flush
-      // does: then the head carries the tag, and the record has to stay, or
-      // a retry would write a new head over these parts and send them to GC
-      std::unique_ptr<rgw::sal::Object> written = bucket->get_object(rgw_obj_key(mp_obj.get_key(), recorded_instance));
-      if (head_carries(dpp, y, written.get(), tag_bl) == 0) {
-        std::ignore = set_completion_record(dpp, y, nullptr, {});
-      }
+      // the head was not written, so a retry may still complete the upload
+      std::ignore = set_completion_record(dpp, y, nullptr, {});
     }
     return ret;
   }
