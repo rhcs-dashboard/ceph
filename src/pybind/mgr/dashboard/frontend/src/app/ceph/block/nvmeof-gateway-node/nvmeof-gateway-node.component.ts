@@ -460,7 +460,7 @@ export class NvmeofGatewayNodeComponent implements OnInit, OnDestroy, OnChanges 
         label: $localize`mTLS`,
         value: $localize`Disabled`,
         type: 'status',
-        statusIcon: 'error'
+       statusIcon: serviceSpec.spec?.enable_auth ? 'success' : 'error'
       }
     ];
   }
