@@ -15,6 +15,7 @@ from dashboard.exceptions import DashboardException
 
 from .. import mgr
 from ..security import Scope
+from ..services.module_status import mgr_module_state, unavailable
 from . import APIDoc, APIRouter, Endpoint, ReadPermission, RESTController, UIRouter
 
 logger = logging.getLogger(__name__)
@@ -496,13 +497,19 @@ class SMBStatus(RESTController):
     @Endpoint()
     @ReadPermission
     def status(self):
+        if mgr_module_state('smb') == 'disabled':
+            return unavailable('SMB module is not enabled', 'module_disabled', 'smb')
         status = {'available': False, 'message': None}
         try:
             if not mgr.remote('smb', 'db_ready'):
                 status['message'] = 'SMB DB not ready. SMB module is unavailable.'
+                status['reason'] = 'not_configured'
+                status['module'] = 'smb'
                 return status
             mgr.remote('smb', 'show', ['ceph.smb.cluster'])
             status['available'] = True
         except (ImportError, RuntimeError):
             status['message'] = 'SMB module is not enabled'
+            status['reason'] = 'module_disabled'
+            status['module'] = 'smb'
         return status

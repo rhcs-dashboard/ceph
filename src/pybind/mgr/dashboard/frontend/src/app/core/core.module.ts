@@ -15,6 +15,7 @@ import {
 import { ContextComponent } from '~/app/core/context/context.component';
 import { SharedModule } from '~/app/shared/shared.module';
 import { ErrorComponent } from './error/error.component';
+import { ModuleStatusPromptComponent } from './error/module-status-prompt/module-status-prompt.component';
 import { BlankLayoutComponent } from './layouts/blank-layout/blank-layout.component';
 import { LoginLayoutComponent } from './layouts/login-layout/login-layout.component';
 import { WorkbenchLayoutComponent } from './layouts/workbench-layout/workbench-layout.component';
@@ -28,6 +29,7 @@ import { NavigationModule } from './navigation/navigation.module';
     NgbDropdownModule,
     RouterModule,
     SharedModule,
+    ModuleStatusPromptComponent,
     PlaceholderModule,
     IconModule,
     ThemeModule,

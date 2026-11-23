@@ -5,6 +5,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { SharedModule } from '~/app/shared/shared.module';
 import { configureTestBed } from '~/testing/unit-test-helper';
 import { ErrorComponent } from './error.component';
+import { ModuleStatusPromptComponent } from './module-status-prompt/module-status-prompt.component';
 
 describe('ErrorComponent', () => {
   let component: ErrorComponent;
@@ -12,7 +13,12 @@ describe('ErrorComponent', () => {
 
   configureTestBed({
     declarations: [ErrorComponent],
-    imports: [HttpClientTestingModule, RouterTestingModule, SharedModule]
+    imports: [
+      HttpClientTestingModule,
+      RouterTestingModule,
+      SharedModule,
+      ModuleStatusPromptComponent
+    ]
   });
 
   beforeEach(() => {

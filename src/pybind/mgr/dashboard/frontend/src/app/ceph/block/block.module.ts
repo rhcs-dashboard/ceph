@@ -7,6 +7,7 @@ import { NgbNavModule, NgbPopoverModule, NgbTooltipModule } from '@ng-bootstrap/
 import { PipesModule } from '~/app/shared/pipes/pipes.module';
 
 import { ActionLabels, URLVerbs } from '~/app/shared/constants/app.constants';
+import { ModuleStatusPromptComponent } from '~/app/core/error/module-status-prompt/module-status-prompt.component';
 import { FeatureTogglesGuardService } from '~/app/shared/services/feature-toggles-guard.service';
 import { ModuleStatusGuardService } from '~/app/shared/services/module-status-guard.service';
 import { SharedModule } from '~/app/shared/shared.module';
@@ -242,16 +243,27 @@ const routes: Routes = [
     data: {
       moduleStatusGuardConfig: {
         uiApiPath: 'block/rbd',
-        redirectTo: 'error',
+        redirectTo: 'block/rbd/unavailable',
         header: $localize`Block Pool is not configured`,
         button_name: $localize`Configure Default pool`,
         button_route: '/pool/create',
         component: 'Default Pool',
-        uiConfig: true
+        uiConfig: true,
+        navigate_to: 'block/rbd'
       },
       breadcrumbs: 'Images'
     },
     children: [
+      {
+        path: 'unavailable',
+        component: ModuleStatusPromptComponent,
+        data: {
+          pageHeader: {
+            title: $localize`Images`,
+            description: $localize`Block images stored in RADOS.`
+          }
+        }
+      },
       { path: '', component: RbdListComponent },
       {
         path: 'namespaces',
@@ -327,18 +339,40 @@ const routes: Routes = [
     ]
   },
   {
+    path: 'mirroring/unavailable',
+    component: ModuleStatusPromptComponent,
+    data: {
+      breadcrumbs: 'Mirroring',
+      pageHeader: {
+        title: $localize`Mirroring`,
+        description: $localize`Replicate block images to another cluster.`
+      },
+      moduleStatusGuardConfig: {
+        uiApiPath: 'block/mirroring',
+        redirectTo: 'block/mirroring/unavailable',
+        header: $localize`Block Mirroring is not configured`,
+        button_name: $localize`Configure Block Mirroring`,
+        button_title: $localize`This will create \"rbd-mirror\" service and a replicated Block pool`,
+        component: 'Block Mirroring',
+        uiConfig: true,
+        navigate_to: 'block/mirroring'
+      }
+    }
+  },
+  {
     path: 'mirroring',
     component: RbdMirroringComponent,
     canActivate: [FeatureTogglesGuardService, ModuleStatusGuardService],
     data: {
       moduleStatusGuardConfig: {
         uiApiPath: 'block/mirroring',
-        redirectTo: 'error',
+        redirectTo: 'block/mirroring/unavailable',
         header: $localize`Block Mirroring is not configured`,
         button_name: $localize`Configure Block Mirroring`,
         button_title: $localize`This will create \"rbd-mirror\" service and a replicated Block pool`,
         component: 'Block Mirroring',
-        uiConfig: true
+        uiConfig: true,
+        navigate_to: 'block/mirroring'
       },
       breadcrumbs: 'Mirroring'
     },
@@ -353,9 +387,29 @@ const routes: Routes = [
   // iSCSI
   {
     path: 'iscsi',
-    canActivate: [FeatureTogglesGuardService],
-    data: { breadcrumbs: 'iSCSI' },
+    canActivate: [FeatureTogglesGuardService, ModuleStatusGuardService],
+    data: {
+      breadcrumbs: 'iSCSI',
+      moduleStatusGuardConfig: {
+        uiApiPath: 'iscsi',
+        redirectTo: 'block/iscsi/unavailable',
+        header: $localize`iSCSI is not configured`,
+        button_name: $localize`Create iSCSI service`,
+        button_route: '/services/create/iscsi',
+        navigate_to: 'block/iscsi'
+      }
+    },
     children: [
+      {
+        path: 'unavailable',
+        component: ModuleStatusPromptComponent,
+        data: {
+          pageHeader: {
+            title: $localize`iSCSI`,
+            description: $localize`Export block images through iSCSI gateways.`
+          }
+        }
+      },
       { path: '', redirectTo: 'overview', pathMatch: 'full' },
       { path: 'overview', component: IscsiComponent, data: { breadcrumbs: 'Overview' } },
       {
@@ -379,6 +433,27 @@ const routes: Routes = [
   },
   // NVMe/TCP
   {
+    path: 'nvmeof/unavailable',
+    component: ModuleStatusPromptComponent,
+    data: {
+      breadcrumbs: 'NVMe/TCP',
+      disableSplit: true,
+      pageHeader: {
+        title: $localize`NVMe/TCP`,
+        description: $localize`Export block images through NVMe over Fabrics.`
+      },
+      moduleStatusGuardConfig: {
+        uiApiPath: 'nvmeof',
+        redirectTo: 'block/nvmeof/unavailable',
+        header: $localize`NVMe/TCP Gateway not configured`,
+        button_name: $localize`Configure NVMe/TCP`,
+        button_route: '/services/create/nvmeof',
+        uiConfig: false,
+        navigate_to: 'block/nvmeof'
+      }
+    }
+  },
+  {
     path: 'nvmeof',
     canActivate: [ModuleStatusGuardService],
     component: NvmeofTabsComponent,
@@ -389,11 +464,12 @@ const routes: Routes = [
       disableSplit: true,
       moduleStatusGuardConfig: {
         uiApiPath: 'nvmeof',
-        redirectTo: 'error',
+        redirectTo: 'block/nvmeof/unavailable',
         header: $localize`NVMe/TCP Gateway not configured`,
         button_name: $localize`Configure NVMe/TCP`,
-        button_route: ['/services', { outlets: { modal: ['create', 'nvmeof'] } }],
-        uiConfig: false
+        button_route: '/services/create/nvmeof',
+        uiConfig: false,
+        navigate_to: 'block/nvmeof'
       }
     },
     children: [
@@ -556,6 +632,6 @@ const routes: Routes = [
 ];
 
 @NgModule({
-  imports: [BlockModule, RouterModule.forChild(routes)]
+  imports: [BlockModule, ModuleStatusPromptComponent, RouterModule.forChild(routes)]
 })
 export class RoutedBlockModule {}

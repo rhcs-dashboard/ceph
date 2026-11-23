@@ -1,5 +1,6 @@
 import { Route, Routes } from '@angular/router';
 
+import { ModuleStatusPromptComponent } from '~/app/core/error/module-status-prompt/module-status-prompt.component';
 import { ActionLabels, URLVerbs } from '~/app/shared/constants/app.constants';
 import { FeatureTogglesGuardService } from '~/app/shared/services/feature-toggles-guard.service';
 import { ModuleStatusGuardService } from '~/app/shared/services/module-status-guard.service';
@@ -43,7 +44,18 @@ export const nfsClusterChildRoutes: Routes = [
  * CephFS-specific CREATE path variant that carries fs_name/subvolume_group.
  */
 export function nfsParentRoute(isRgw: boolean, breadcrumbs: string): Route {
+  const basePath = isRgw ? 'rgw/nfs' : 'cephfs/nfs';
   const children: Routes = [
+    {
+      path: 'unavailable',
+      component: ModuleStatusPromptComponent,
+      data: {
+        pageHeader: {
+          title: $localize`NFS`,
+          description: $localize`Share a file system over NFS.`
+        }
+      }
+    },
     { path: '', redirectTo: 'cluster', pathMatch: 'full' },
     {
       path: 'cluster',
@@ -77,10 +89,12 @@ export function nfsParentRoute(isRgw: boolean, breadcrumbs: string): Route {
     data: {
       moduleStatusGuardConfig: {
         uiApiPath: 'nfs-ganesha',
-        redirectTo: 'error',
+        redirectTo: `${basePath}/unavailable`,
         section: 'nfs-ganesha',
         section_info: 'NFS GANESHA',
-        header: 'NFS-Ganesha is not configured'
+        header: $localize`NFS is not configured`,
+        module_name: 'nfs',
+        navigate_to: basePath
       },
       breadcrumbs
     },

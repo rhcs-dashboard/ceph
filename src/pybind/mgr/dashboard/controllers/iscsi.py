@@ -49,6 +49,8 @@ class IscsiUi(BaseController):
             gateway = get_available_gateway()
         except DashboardException as e:
             status['message'] = str(e)
+            status['reason'] = 'not_configured'
+            status['module'] = 'iscsi'
             return status
         try:
             config = IscsiClient.instance(gateway_name=gateway).get_config()
@@ -59,6 +61,8 @@ class IscsiUi(BaseController):
                                     ' {}.'.format(IscsiUi.REQUIRED_CEPH_ISCSI_CONFIG_MIN_VERSION,
                                                   IscsiUi.REQUIRED_CEPH_ISCSI_CONFIG_MAX_VERSION,
                                                   config['version'])
+                status['reason'] = 'not_configured'
+                status['module'] = 'iscsi'
                 return status
             status['available'] = True
         except RequestException as e:
@@ -70,6 +74,8 @@ class IscsiUi(BaseController):
                     content_message = e.content
                 if content_message:
                     status['message'] = content_message
+            status['reason'] = 'not_configured'
+            status['module'] = 'iscsi'
 
         return status
 

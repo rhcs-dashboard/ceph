@@ -1,26 +1,55 @@
-<cds-modal
-  size="lg"
-  [open]="open"
-  (overlaySelected)="closeModal()"
->
-  <cds-modal-header (closeSelect)="closeModal()">
-    <h3
-      cdsModalHeaderHeading
-      i18n
-    >
-      {{ action | titlecase }} {{ resource }}
-    </h3>
-    <cd-help-text></cd-help-text>
-  </cds-modal-header>
-  <section
-    cdsModalContent
-    hasForm="true"
+@if (isPage) {
+  <div
+    cdsCol
+    [columnNumbers]="{ md: 4 }"
   >
-    <form
-      #frm="ngForm"
-      [formGroup]="serviceForm"
-      novalidate
+    <ng-container *ngTemplateOutlet="serviceFormBody"></ng-container>
+  </div>
+} @else {
+  <cds-modal
+    size="lg"
+    [open]="open"
+    (overlaySelected)="closeModal()"
+  >
+    <cds-modal-header (closeSelect)="closeModal()">
+      <h3
+        cdsModalHeaderHeading
+        i18n
+      >
+        {{ action | titlecase }} {{ resource }}
+      </h3>
+      <cd-help-text></cd-help-text>
+    </cds-modal-header>
+    <section
+      cdsModalContent
+      hasForm="true"
     >
+      <ng-container *ngTemplateOutlet="serviceFormBody"></ng-container>
+    </section>
+    <cd-form-button-panel
+      (submitActionEvent)="onSubmit()"
+      [form]="serviceForm"
+      [submitText]="submitAction"
+      [modalForm]="true"
+    ></cd-form-button-panel>
+  </cds-modal>
+}
+
+<ng-template #serviceFormBody>
+  <form
+    #frm="ngForm"
+    name="serviceForm"
+    [formGroup]="serviceForm"
+    novalidate
+  >
+    @if (isPage) {
+      <div
+        i18n="form title"
+        class="form-header"
+      >
+        {{ action | titlecase }} {{ resource | upperFirst }}
+      </div>
+    }
       @if (serviceForm.controls.service_type.value === 'rgw' && showRealmCreationForm) {
         <cd-alert-panel
           type="info"
@@ -74,6 +103,12 @@
       }
 
       <!-- Service type -->
+      <p
+        class="cds--type-heading-03 cds-mb-4"
+        i18n
+      >
+        Details
+      </p>
       <div class="form-item">
         <cds-select
           formControlName="service_type"
@@ -92,10 +127,14 @@
           >
             -- Select a service type --
           </option>
-          @for (serviceType of serviceTypes; track serviceType) {
-            <option [value]="serviceType">
-              {{ serviceType }}
-            </option>
+          @for (group of serviceTypeGroups; track group.label) {
+            <optgroup [label]="group.label">
+              @for (serviceType of group.types; track serviceType.type) {
+                <option [value]="serviceType.type">
+                  {{ serviceType.label }}
+                </option>
+              }
+            </optgroup>
           }
         </cds-select>
 
@@ -208,6 +247,7 @@
                   [disabled]="editing"
                   i18n
                 >
+                  Service
                   <input
                     cdsText
                     type="text"
@@ -222,9 +262,9 @@
                 "
                 [disabled]="editing"
                 [invalidText]="serviceIdError"
+                i18n
               >
-                <!-- Invisible character to set input fields on same line -->
-                &#8203;
+                ID
                 <input
                   cdsText
                   type="text"
@@ -362,6 +402,12 @@
       }
 
       <!-- unmanaged -->
+      <p
+        class="cds--type-heading-03 cds-mb-4 cds-mt-5"
+        i18n
+      >
+        Deployment
+      </p>
       <div class="form-item">
         <fieldset>
           <label
@@ -481,6 +527,29 @@
           >
           </cds-number>
         </div>
+      }
+
+      @if (
+        [
+          'rgw',
+          'iscsi',
+          'ingress',
+          'smb',
+          'snmp-gateway',
+          'oauth2-proxy',
+          'mgmt-gateway',
+          'grafana',
+          'nvmeof'
+        ].includes(serviceForm.controls.service_type.value) ||
+        (!serviceForm.controls.unmanaged.value &&
+          serviceForm.controls.service_type.value === 'nfs')
+      ) {
+        <p
+          class="cds--type-heading-03 cds-mb-4 cds-mt-5"
+          i18n
+        >
+          Configuration
+        </p>
       }
 
       <!-- RGW -->
@@ -2223,15 +2292,16 @@
           }
         }
       }
-    </form>
-  </section>
-  <cd-form-button-panel
-    (submitActionEvent)="onSubmit()"
-    [form]="serviceForm"
-    [submitText]="submitAction"
-    [modalForm]="true"
-  ></cd-form-button-panel>
-</cds-modal>
+    @if (isPage) {
+      <cd-form-button-panel
+        (submitActionEvent)="onSubmit()"
+        [form]="serviceForm"
+        [submitText]="submitAction"
+        wrappingClass="text-right"
+      ></cd-form-button-panel>
+    }
+  </form>
+</ng-template>
 
 <ng-template #cipherListLink>
   <span>

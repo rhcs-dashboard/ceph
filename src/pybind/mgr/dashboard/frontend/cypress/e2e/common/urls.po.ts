@@ -14,7 +14,7 @@ export class UrlsCollection extends PageHelper {
 
     // Services
     services: { url: '#/services', id: 'cd-services' },
-    'create services': { url: '#/services/(modal:create)', id: 'cd-service-form' },
+    'create services': { url: '#/services/create', id: 'cd-service-form' },
 
     // Physical Disks
     'physical disks': { url: '#/inventory', id: 'cd-inventory' },

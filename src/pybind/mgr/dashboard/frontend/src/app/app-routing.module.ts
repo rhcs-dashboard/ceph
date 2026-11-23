@@ -34,6 +34,7 @@ import { ServiceFormComponent } from './ceph/cluster/services/service-form/servi
 import { ServiceResourceBreadcrumbResolver } from './ceph/cluster/services/service-resource-page/service-resource-breadcrumb.resolver';
 import { ServiceResourcePageComponent } from './ceph/cluster/services/service-resource-page/service-resource-page.component';
 import { ServiceResourceSidebarComponent } from './ceph/cluster/services/service-resource-sidebar/service-resource-sidebar.component';
+import { SERVICES_PAGE_HEADER } from './ceph/cluster/services/service-type-catalog';
 import { ServicesComponent } from './ceph/cluster/services/services.component';
 import { TelemetryComponent } from './ceph/cluster/telemetry/telemetry.component';
 import { PerformanceCounterComponent } from './ceph/performance-counter/performance-counter/performance-counter.component';
@@ -41,6 +42,7 @@ import { LoginPasswordFormComponent } from './core/auth/login-password-form/logi
 import { LoginComponent } from './core/auth/login/login.component';
 import { UserPasswordFormComponent } from './core/auth/user-password-form/user-password-form.component';
 import { ErrorComponent } from './core/error/error.component';
+import { ModuleStatusPromptComponent } from './core/error/module-status-prompt/module-status-prompt.component';
 import { BlankLayoutComponent } from './core/layouts/blank-layout/blank-layout.component';
 import { LoginLayoutComponent } from './core/layouts/login-layout/login-layout.component';
 import { WorkbenchLayoutComponent } from './core/layouts/workbench-layout/workbench-layout.component';
@@ -236,73 +238,81 @@ const routes: Routes = [
         data: { breadcrumbs: 'Cluster/Monitors' }
       },
       {
-        path: 'services/:service_name',
-        component: ServiceResourceSidebarComponent,
-        canActivate: [ModuleStatusGuardService],
-        data: {
-          moduleStatusGuardConfig: {
-            uiApiPath: 'orchestrator',
-            redirectTo: 'error',
-            section: 'orch',
-            section_info: 'Orchestrator',
-            header: 'Orchestrator is not available'
-          },
-          breadcrumbs: ServiceResourceBreadcrumbResolver,
-          showBreadcrumbsLayout: false
-        },
-        children: [
-          { path: '', redirectTo: 'overview', pathMatch: 'full' },
-          {
-            path: 'overview',
-            component: ServiceResourcePageComponent,
-            data: { breadcrumbs: 'Overview', section: 'overview' }
-          },
-          {
-            path: 'service-instances',
-            component: ServiceResourcePageComponent,
-            data: { breadcrumbs: 'Service Instances', section: 'service-instances' }
-          },
-          {
-            path: 'certificate',
-            component: ServiceResourcePageComponent,
-            data: { breadcrumbs: 'Certificate', section: 'certificate' }
-          },
-          {
-            path: 'events',
-            component: ServiceResourcePageComponent,
-            data: { breadcrumbs: 'Service Events', section: 'events' }
-          }
-        ]
-      },
-      {
         path: 'services',
-        component: ServicesComponent,
         canActivate: [ModuleStatusGuardService],
         data: {
           moduleStatusGuardConfig: {
             uiApiPath: 'orchestrator',
-            redirectTo: 'error',
+            redirectTo: 'services/unavailable',
             section: 'orch',
             section_info: 'Orchestrator',
-            header: 'Orchestrator is not available'
+            header: $localize`Orchestrator is not available`,
+            navigate_to: 'services'
           },
           breadcrumbs: 'Administration/Services'
         },
         children: [
           {
+            path: 'unavailable',
+            component: ModuleStatusPromptComponent,
+            data: {
+              pageHeader: {
+                title: $localize`Services`,
+                description: $localize`Services deployed by the orchestrator.`
+              }
+            }
+          },
+          {
+            path: '',
+            component: ServicesComponent,
+            data: { pageHeader: SERVICES_PAGE_HEADER }
+          },
+          {
+            // Keep ahead of :service_name so "create" is not treated as a service name.
             path: URLVerbs.CREATE,
             component: ServiceFormComponent,
-            outlet: 'modal'
+            data: { breadcrumbs: ActionLabels.CREATE }
           },
           {
             path: `${URLVerbs.CREATE}/:type`,
             component: ServiceFormComponent,
-            outlet: 'modal'
+            data: { breadcrumbs: ActionLabels.CREATE }
           },
           {
             path: `${URLVerbs.EDIT}/:type/:name`,
             component: ServiceFormComponent,
-            outlet: 'modal'
+            data: { breadcrumbs: ActionLabels.EDIT }
+          },
+          {
+            path: ':service_name',
+            component: ServiceResourceSidebarComponent,
+            data: {
+              breadcrumbs: ServiceResourceBreadcrumbResolver,
+              showBreadcrumbsLayout: false
+            },
+            children: [
+              { path: '', redirectTo: 'overview', pathMatch: 'full' },
+              {
+                path: 'overview',
+                component: ServiceResourcePageComponent,
+                data: { breadcrumbs: 'Overview', section: 'overview' }
+              },
+              {
+                path: 'service-instances',
+                component: ServiceResourcePageComponent,
+                data: { breadcrumbs: 'Service Instances', section: 'service-instances' }
+              },
+              {
+                path: 'certificate',
+                component: ServiceResourcePageComponent,
+                data: { breadcrumbs: 'Certificate', section: 'certificate' }
+              },
+              {
+                path: 'events',
+                component: ServiceResourcePageComponent,
+                data: { breadcrumbs: 'Service Events', section: 'events' }
+              }
+            ]
           }
         ]
       },
@@ -339,16 +349,36 @@ const routes: Routes = [
         ]
       },
       {
+        path: 'inventory/unavailable',
+        component: ModuleStatusPromptComponent,
+        data: {
+          breadcrumbs: 'Cluster/Physical Disks',
+          pageHeader: {
+            title: $localize`Physical Disks`,
+            description: $localize`Disks reported by the orchestrator.`
+          },
+          moduleStatusGuardConfig: {
+            uiApiPath: 'orchestrator',
+            redirectTo: 'inventory/unavailable',
+            section: 'orch',
+            section_info: 'Orchestrator',
+            header: $localize`Orchestrator is not available`,
+            navigate_to: 'inventory'
+          }
+        }
+      },
+      {
         path: 'inventory',
         canActivate: [ModuleStatusGuardService],
         component: InventoryComponent,
         data: {
           moduleStatusGuardConfig: {
             uiApiPath: 'orchestrator',
-            redirectTo: 'error',
+            redirectTo: 'inventory/unavailable',
             section: 'orch',
             section_info: 'Orchestrator',
-            header: 'Orchestrator is not available'
+            header: $localize`Orchestrator is not available`,
+            navigate_to: 'inventory'
           },
           breadcrumbs: 'Cluster/Physical Disks'
         }
@@ -456,16 +486,37 @@ const routes: Routes = [
         ]
       },
       {
+        path: 'upgrade/unavailable',
+        component: ModuleStatusPromptComponent,
+        data: {
+          breadcrumbs: 'Administration/Upgrade',
+          pageHeader: {
+            title: $localize`Upgrade`,
+            description: $localize`Upgrade the cluster with the orchestrator.`
+          },
+          moduleStatusGuardConfig: {
+            uiApiPath: 'orchestrator',
+            redirectTo: 'upgrade/unavailable',
+            backend: 'cephadm',
+            section: 'orch',
+            section_info: 'Orchestrator',
+            header: $localize`Orchestrator is not available`,
+            navigate_to: 'upgrade'
+          }
+        }
+      },
+      {
         path: 'upgrade',
         canActivate: [ModuleStatusGuardService],
         data: {
           moduleStatusGuardConfig: {
             uiApiPath: 'orchestrator',
-            redirectTo: 'error',
+            redirectTo: 'upgrade/unavailable',
             backend: 'cephadm',
             section: 'orch',
             section_info: 'Orchestrator',
-            header: 'Orchestrator is not available'
+            header: $localize`Orchestrator is not available`,
+            navigate_to: 'upgrade'
           },
           breadcrumbs: 'Administration/Upgrade'
         },
@@ -609,15 +660,39 @@ const routes: Routes = [
       },
       // Object Gateway
       {
+        path: 'rgw/unavailable',
+        component: ModuleStatusPromptComponent,
+        data: {
+          breadcrumbs: 'Object',
+          pageHeader: {
+            title: $localize`Object`,
+            description: $localize`Manage buckets, users, and the Object Gateway.`
+          },
+          moduleStatusGuardConfig: {
+            uiApiPath: 'rgw',
+            redirectTo: 'rgw/unavailable',
+            section: 'rgw',
+            section_info: 'Object Gateway',
+            header: $localize`The Object Gateway service is not configured`,
+            button_name: $localize`Create Object Gateway`,
+            button_route: '/services/create/rgw',
+            navigate_to: 'rgw/overview'
+          }
+        }
+      },
+      {
         path: 'rgw',
         canActivate: [FeatureTogglesGuardService, ModuleStatusGuardService],
         data: {
           moduleStatusGuardConfig: {
             uiApiPath: 'rgw',
-            redirectTo: 'error',
+            redirectTo: 'rgw/unavailable',
             section: 'rgw',
             section_info: 'Object Gateway',
-            header: 'The Object Gateway Service is not configured'
+            header: $localize`The Object Gateway service is not configured`,
+            button_name: $localize`Create Object Gateway`,
+            button_route: '/services/create/rgw',
+            navigate_to: 'rgw/overview'
           },
           breadcrumbs: true,
           text: 'Object',
@@ -667,6 +742,7 @@ const routes: Routes = [
 
 @NgModule({
   imports: [
+    ModuleStatusPromptComponent,
     RouterModule.forRoot(routes, {
       useHash: true,
       preloadingStrategy: PreloadAllModules

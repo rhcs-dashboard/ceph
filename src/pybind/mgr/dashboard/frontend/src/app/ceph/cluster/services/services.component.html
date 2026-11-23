@@ -27,22 +27,54 @@
     </cd-table-actions>
   </cd-table>
 }
-<router-outlet name="modal"></router-outlet>
+
+<ng-template
+  #typeTpl
+  let-row="data.row"
+>
+  {{ serviceTypeLabel(row.service_type) }}
+</ng-template>
+
+<ng-template
+  #statusTpl
+  let-row="data.row"
+>
+  @if (isServiceWarning(row)) {
+    <cds-tag
+      class="table-tag tag-warning"
+      size="sm"
+      i18n
+      >Warning</cds-tag
+    >
+  } @else {
+    <cds-tag
+      class="table-tag tag-success"
+      size="sm"
+      i18n
+      >Running</cds-tag
+    >
+  }
+</ng-template>
+
+<ng-template
+  #placementTpl
+  let-row="data.row"
+>
+  {{ placementText(row) }}
+</ng-template>
 
 <ng-template
   #runningTpl
-  let-value="data.value"
+  let-row="data.row"
 >
-  <span ngbTooltip="Service instances running out of the total number of services requested.">
-    {{ value.running }} / {{ value.size }}
-  </span>
-  @if (value.running == 0 || value.size == 0) {
-    <svg
-      [cdsIcon]="icons.warning"
-      [size]="icons.size16"
-      class="cds-warning-color"
-    ></svg>
-  }
+  <cds-tag
+    class="table-tag"
+    [class.tag-warning]="isServiceWarning(row)"
+    [class.tag-success]="!isServiceWarning(row)"
+    size="sm"
+  >
+    {{ row.status?.running ?? 0 }} / {{ row.status?.size ?? 0 }}
+  </cds-tag>
 </ng-template>
 
 <ng-template

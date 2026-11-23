@@ -1706,4 +1706,6 @@ class CephFSMirrorStatus(RESTController):
             status['available'] = True
         except (ImportError, RuntimeError):
             status['message'] = 'Cephfs mirror module is not enabled'
+            status['reason'] = 'module_disabled'
+            status['module'] = 'mirroring'
         return status

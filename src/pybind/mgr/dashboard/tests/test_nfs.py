@@ -243,7 +243,12 @@ class NFSGaneshaUiControllerTest(ControllerTestCase):
         mgr.remote = Mock(side_effect=RuntimeError('Test'))
         self._get('/ui-api/nfs-ganesha/status')
         self.assertStatus(200)
-        self.assertJsonBody({'available': False, 'message': 'Test'})
+        self.assertJsonBody({
+            'available': False,
+            'message': 'Test',
+            'reason': 'not_configured',
+            'module': 'nfs'
+        })
 
 
 class NFSGaneshaClusterTest(ControllerTestCase):

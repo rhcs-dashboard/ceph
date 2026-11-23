@@ -46,6 +46,7 @@ import {
 import { ModalCdsService } from '~/app/shared/services/modal-cds.service';
 import { TaskWrapperService } from '~/app/shared/services/task-wrapper.service';
 import { TimerService } from '~/app/shared/services/timer.service';
+import { getServiceTypeCatalog } from '../service-type-catalog';
 
 @Component({
   selector: 'cd-service-form',
@@ -85,6 +86,7 @@ export class ServiceFormComponent extends CdForm implements OnInit {
   resource: string;
   submitAction: string;
   serviceTypes: string[] = [];
+  serviceTypeGroups: { label: string; types: { type: string; label: string }[] }[] = [];
   serviceIds: string[] = [];
   selectedHosts: string[] = [];
   labels: string[];
@@ -712,30 +714,70 @@ export class ServiceFormComponent extends CdForm implements OnInit {
     );
   }
 
+  private buildServiceTypeGroups(
+    availableTypes: string[]
+  ): { label: string; types: { type: string; label: string }[] }[] {
+    const available = new Set(availableTypes);
+    const grouped = new Set<string>();
+    const groups = getServiceTypeCatalog()
+      .map((group) => {
+        const types = group.types
+          .filter((serviceType) => available.has(serviceType.type))
+          .map((serviceType) => ({
+            type: serviceType.type,
+            label:
+              serviceType.name === serviceType.type
+                ? serviceType.type
+                : $localize`${serviceType.name} (${serviceType.type})`
+          }))
+          .sort((a, b) => a.label.localeCompare(b.label));
+        types.forEach((serviceType) => grouped.add(serviceType.type));
+        return { label: group.label, types };
+      })
+      .filter((group) => group.types.length > 0);
+
+    const other = availableTypes
+      .filter((type) => !grouped.has(type))
+      .sort()
+      .map((type) => ({ type, label: type }));
+    if (other.length > 0) {
+      groups.push({ label: $localize`Other`, types: other });
+    }
+    return groups;
+  }
+
+  get isPage(): boolean {
+    return this.pageURL === 'services';
+  }
+
   resolveRoute() {
-    if (this.router.url.includes('services/(modal:create')) {
-      this.pageURL = 'services';
-      this.route.params.subscribe((params: { type: string }) => {
-        if (params?.type) {
-          this.serviceType = params.type;
-          this.serviceForm.get('service_type').setValue(this.serviceType);
-        }
-      });
-    } else if (this.router.url.includes('services/(modal:edit')) {
+    const url = this.router.url.split('?')[0];
+    const params = this.route.snapshot.params;
+    const creating = /\/services\/create(\/|$)/.test(url);
+    const editing = /\/services\/edit(\/|$)/.test(url);
+    if (!creating && !editing) {
+      return;
+    }
+
+    this.pageURL = 'services';
+    if (editing) {
       this.editing = true;
-      this.pageURL = 'services';
-      this.route.params.subscribe((params: { type: string; name: string }) => {
-        this.serviceName = params.name;
-        this.serviceType = params.type;
-      });
+      this.serviceName = params['name'];
+      this.serviceType = params['type'];
+      return;
+    }
+
+    if (params['type']) {
+      this.serviceType = params['type'];
+      this.serviceForm.get('service_type').setValue(this.serviceType);
     }
   }
 
   ngOnInit(): void {
-    this.open = true;
     this.action = this.actionLabels.CREATE;
     this.submitAction = `${this.action} ${this.resource}`;
     this.resolveRoute();
+    this.open = !this.isPage;
     this.getRgwModuleStatus();
     this.mgrModuleService.updateCompleted$.subscribe(() => this.getRgwModuleStatus());
 
@@ -755,7 +797,8 @@ export class ServiceFormComponent extends CdForm implements OnInit {
       // promtail  - This is deprecated and replaced by alloy.
       this.hiddenServices.push('osd', 'container', 'promtail');
 
-      this.serviceTypes = _.difference(resp, this.hiddenServices).sort();
+      this.serviceTypes = _.difference(resp, this.hiddenServices);
+      this.serviceTypeGroups = this.buildServiceTypeGroups(this.serviceTypes);
     });
     this.hostsAndLabels$ = forkJoin({
       hosts: this.hostService.getAllHosts(),

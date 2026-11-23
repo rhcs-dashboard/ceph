@@ -5,7 +5,24 @@
 <div class="container h-75">
   <div class="row h-100 justify-content-center align-items-center">
     <div class="blank-page">
-      @if (header && message) {
+      @if (showModulePrompt) {
+        <cd-module-status-prompt
+          [embedded]="true"
+          [reason]="reason"
+          [header]="header"
+          [message]="message"
+          [moduleName]="module_name"
+          [buttonLabel]="buttonName"
+          [buttonRoute]="buttonRoute"
+          [buttonTitle]="buttonTitle"
+          [uiConfig]="!!uiConfig"
+          [uiApiPath]="uiApiPath"
+          [navigateTo]="navigateTo"
+          [section]="section"
+          [sectionInfo]="sectionInfo"
+          [componentName]="component"
+        ></cd-module-status-prompt>
+      } @else if (header && message) {
         <div>
           <svg
             [cdsIcon]="icon"
@@ -46,6 +63,7 @@
         </div>
       }
 
+      @if (!showModulePrompt) {
       <div class="mt-4">
         @if ((buttonName && buttonRoute) || uiConfig) {
           <div class="text-center">
@@ -110,6 +128,7 @@
           }
         }
       </div>
+      }
     </div>
   </div>
 </div>

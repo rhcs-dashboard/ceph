@@ -2,7 +2,7 @@ import { PageHelper } from '../page-helper.po';
 
 const pages = {
   index: { url: '#/services', id: 'cd-services' },
-  create: { url: '#/services/(modal:create)', id: 'cd-service-form' }
+  create: { url: '#/services/create', id: 'cd-service-form' }
 };
 
 export class ServicesPageHelper extends PageHelper {
@@ -10,10 +10,12 @@ export class ServicesPageHelper extends PageHelper {
 
   columnIndex = {
     service_name: 1,
-    placement: 2,
-    running: 3,
-    size: 4,
-    last_refresh: 5
+    type: 2,
+    status: 3,
+    placement: 4,
+    running: 5,
+    size: 6,
+    last_refresh: 7
   };
 
   serviceDetailColumnIndex = {
@@ -181,8 +183,7 @@ export class ServicesPageHelper extends PageHelper {
       .parent()
       .find(`[cdstabledata]:nth-child(${this.columnIndex.placement})`)
       .should(($ele) => {
-        const running = $ele.text().split(';');
-        expect(running).to.include(`count:${expectedCount}`);
+        expect($ele.text()).to.include(expectedCount);
       });
   }
 
@@ -205,7 +206,7 @@ export class ServicesPageHelper extends PageHelper {
       .parent()
       .find(`[cdstabledata]:nth-child(${this.columnIndex.placement})`)
       .should(($ele) => {
-        const placement = $ele.text().split(';');
+        const placement = $ele.text().toLowerCase();
         unmanaged
           ? expect(placement).to.include('unmanaged')
           : expect(placement).to.not.include('unmanaged');

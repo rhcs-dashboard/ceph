@@ -60,6 +60,9 @@ export class ModuleStatusGuardService {
     if (route.url.length > 0 && ModuleStatusGuardService.ALLOWLIST.includes(route.url[0].path)) {
       return observableOf(true);
     }
+    if (this.isPromptNavigation(route)) {
+      return observableOf(true);
+    }
     const config = this.getGuardConfig(route);
     if (!config?.uiApiPath) {
       return observableOf(true);
@@ -91,7 +94,8 @@ export class ModuleStatusGuardService {
               secondary_button_name: config.secondary_button_name,
               secondary_button_route: config.secondary_button_route,
               secondary_button_title: config.secondary_button_title,
-              module_name: config.module_name,
+              module_name: resp.module || config.module_name,
+              reason: resp.reason,
               navigate_to: config.navigate_to,
               uiConfig: config.uiConfig,
               uiApiPath: config.uiApiPath,
@@ -107,6 +111,17 @@ export class ModuleStatusGuardService {
         return observableOf(false);
       })
     );
+  }
+
+  private isPromptNavigation(route: ActivatedRouteSnapshot): boolean {
+    const urlTree = this.router.getCurrentNavigation()?.extractedUrl;
+    const url = urlTree ? this.router.serializeUrl(urlTree) : '';
+    const path = url.split('?')[0].split('#')[0];
+    if (path.endsWith('/unavailable')) {
+      return true;
+    }
+    const routePath = route?.routeConfig?.path ?? '';
+    return routePath === 'unavailable' || routePath.endsWith('/unavailable');
   }
 
   private getGuardConfig(route: ActivatedRouteSnapshot): any {

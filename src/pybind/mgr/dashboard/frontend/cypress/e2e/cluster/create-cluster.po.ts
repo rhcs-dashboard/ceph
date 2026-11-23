@@ -57,9 +57,11 @@ export class CreateClusterServicePageHelper extends ServicesPageHelper {
 
   columnIndex = {
     service_name: 1,
-    placement: 2,
-    running: 3,
-    size: 4,
-    last_refresh: 5
+    type: 2,
+    status: 3,
+    placement: 4,
+    running: 5,
+    size: 6,
+    last_refresh: 7
   };
 }

@@ -97,6 +97,8 @@ class Rgw(BaseController):
             status['available'] = True
         except (DashboardException, RequestException, NoRgwDaemonsException) as ex:
             status['message'] = str(ex)  # type: ignore
+            status['reason'] = 'not_configured'
+            status['module'] = 'rgw'
         return status
 
 

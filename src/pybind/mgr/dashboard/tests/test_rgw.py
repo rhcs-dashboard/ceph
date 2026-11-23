@@ -38,7 +38,9 @@ class RgwControllerTestCase(ControllerTestCase):
         self._get('/test/ui-api/rgw/status')
         self.assertStatus(200)
         self.assertJsonBody({'available': False,
-                             'message': 'My test error'})
+                             'message': 'My test error',
+                             'reason': 'not_configured',
+                             'module': 'rgw'})
 
     @patch.object(RgwClient, '_get_user_id', Mock(return_value='fake-user'))
     @patch.object(RgwClient, 'is_service_online', Mock(return_value=False))
@@ -48,7 +50,9 @@ class RgwControllerTestCase(ControllerTestCase):
         self._get('/test/ui-api/rgw/status')
         self.assertStatus(200)
         self.assertJsonBody({'available': False,
-                             'message': "Failed to connect to the Object Gateway's Admin Ops API."})
+                             'message': "Failed to connect to the Object Gateway's Admin Ops API.",
+                             'reason': 'not_configured',
+                             'module': 'rgw'})
 
     @patch.object(RgwClient, '_get_user_id', Mock(return_value='fake-user'))
     @patch.object(RgwClient, 'is_service_online', Mock(return_value=True))
@@ -59,13 +63,18 @@ class RgwControllerTestCase(ControllerTestCase):
         self._get('/test/ui-api/rgw/status')
         self.assertStatus(200)
         self.assertJsonBody({'available': False,
-                             'message': 'The system flag is not set for user "fake-user".'})
+                             'message': 'The system flag is not set for user "fake-user".',
+                             'reason': 'not_configured',
+                             'module': 'rgw'})
 
     def test_status_no_service(self):
         RgwStub.get_mgr_no_services()
         self._get('/test/ui-api/rgw/status')
         self.assertStatus(200)
-        self.assertJsonBody({'available': False, 'message': 'No RGW service is running.'})
+        self.assertJsonBody({'available': False,
+                             'message': 'No RGW service is running.',
+                             'reason': 'not_configured',
+                             'module': 'rgw'})
 
 
 @patch('dashboard.services.rgw_client._is_reachable', Mock(return_value=True))

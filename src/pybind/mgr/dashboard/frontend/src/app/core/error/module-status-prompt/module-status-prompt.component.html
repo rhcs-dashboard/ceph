@@ -1,0 +1,80 @@
+@if (!loading) {
+  <div class="cd-module-status-prompt">
+    <cds-inline-notification
+      [notificationObj]="{
+        type: 'warning',
+        title: title,
+        message: detail,
+        lowContrast: true,
+        showClose: false
+      }"
+      class="mt-2 mb-2 full-width padding-inline-0"
+    ></cds-inline-notification>
+    <cds-tile>
+      <p class="cds--type-heading-compact-01">
+        {{ actionTitle }}
+      </p>
+      <p class="cds--type-body-compact-01">
+        {{ actionText }}
+      </p>
+      @if (mode === 'enable' && canEnable) {
+        <button
+          cdsButton="primary"
+          type="button"
+          (click)="enableModule()"
+        >
+          {{ buttonLabel }}
+        </button>
+      }
+      @if (mode === 'enable' && !canEnable) {
+        <p class="cds--type-body-compact-01">
+          {{ permissionNotice }}
+        </p>
+      }
+      @if (mode === 'configure') {
+        <button
+          cdsButton="primary"
+          type="button"
+          [attr.title]="buttonTitle"
+          (click)="configure()"
+        >
+          {{ buttonLabel }}
+        </button>
+      }
+      @if (mode === 'link') {
+        <button
+          cdsButton="primary"
+          type="button"
+          [attr.title]="buttonTitle"
+          (click)="openLink()"
+        >
+          {{ buttonLabel }}
+        </button>
+      }
+      @if (mode === 'info' && docUrl) {
+        <p class="cds--type-body-compact-01">
+          <a
+            [href]="docUrl"
+            target="_blank"
+            rel="noopener"
+            i18n
+            >Documentation</a
+          >
+        </p>
+      }
+    </cds-tile>
+    <div
+      cdsGrid
+      class="mt-5"
+    >
+      <div cdsRow>
+        <div cdsCol>
+          <img
+            src="assets/empty-state.png"
+            alt=""
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+}

@@ -111,6 +111,20 @@ describe('ModuleStatusGuardService', () => {
     testCanActivate({ available: true, message: 'foo' }, true, '/', 'rook', false);
   }));
 
+  it('should allow the in-section unavailable prompt without a status call', fakeAsync(() => {
+    (route as any).routeConfig = { path: 'unavailable' };
+    spyOn(httpClient, 'get');
+    let result: boolean;
+    ngZone.run(() => {
+      service.canActivate(route).subscribe((resp) => {
+        result = resp;
+      });
+    });
+    tick();
+    expect(result).toBe(true);
+    expect(httpClient.get).not.toHaveBeenCalled();
+  }));
+
   it('should allow nested child routes without moduleStatusGuardConfig', fakeAsync(() => {
     const child = new ActivatedRouteSnapshot();
     child.url = [];

@@ -26,8 +26,8 @@ import { RelativeDatePipe } from '~/app/shared/pipes/relative-date.pipe';
 import { AuthStorageService } from '~/app/shared/services/auth-storage.service';
 import { TaskWrapperService } from '~/app/shared/services/task-wrapper.service';
 import { URLBuilderService } from '~/app/shared/services/url-builder.service';
-import { PlacementPipe } from './placement.pipe';
 import { ServiceFormComponent } from './service-form/service-form.component';
+import { serviceTypeName } from './service-type-catalog';
 import { SettingsService } from '~/app/shared/api/settings.service';
 import { ModalCdsService } from '~/app/shared/services/modal-cds.service';
 import { CellTemplate } from '~/app/shared/enum/cell-template.enum';
@@ -51,6 +51,12 @@ export class ServicesComponent extends ListWithDetails implements OnChanges, OnI
   public runningTpl: TemplateRef<any>;
   @ViewChild('urlTpl', { static: true })
   public urlTpl: TemplateRef<any>;
+  @ViewChild('typeTpl', { static: true })
+  public typeTpl: TemplateRef<any>;
+  @ViewChild('statusTpl', { static: true })
+  public statusTpl: TemplateRef<any>;
+  @ViewChild('placementTpl', { static: true })
+  public placementTpl: TemplateRef<any>;
   @ViewChild('certificateStatusTpl', { static: true })
   public certificateStatusTpl: TemplateRef<any>;
 
@@ -135,15 +141,8 @@ export class ServicesComponent extends ListWithDetails implements OnChanges, OnI
 
     if (this.routedModal) {
       edit
-        ? this.router.navigate([
-            BASE_URL,
-            {
-              outlets: {
-                modal: [URLVerbs.EDIT, targetServiceType, targetServiceName]
-              }
-            }
-          ])
-        : this.router.navigate([BASE_URL, { outlets: { modal: [URLVerbs.CREATE] } }]);
+        ? this.router.navigate([BASE_URL, URLVerbs.EDIT, targetServiceType, targetServiceName])
+        : this.router.navigate([BASE_URL, URLVerbs.CREATE]);
     } else {
       const initialState = edit
         ? {
@@ -173,10 +172,22 @@ export class ServicesComponent extends ListWithDetails implements OnChanges, OnI
         cellTemplate: this.urlTpl
       },
       {
+        name: $localize`Type`,
+        prop: 'service_type',
+        flexGrow: 1,
+        cellTemplate: this.typeTpl
+      },
+      {
+        name: $localize`Status`,
+        prop: 'service_status',
+        flexGrow: 1,
+        cellTemplate: this.statusTpl
+      },
+      {
         name: $localize`Placement`,
-        prop: '',
-        pipe: new PlacementPipe(),
-        flexGrow: 2
+        prop: 'placement',
+        flexGrow: 2,
+        cellTemplate: this.placementTpl
       },
       {
         name: $localize`Running`,
@@ -317,6 +328,52 @@ export class ServicesComponent extends ListWithDetails implements OnChanges, OnI
             delay(5000)
           )
     });
+  }
+
+  serviceTypeLabel(serviceType: string): string {
+    return serviceTypeName(serviceType);
+  }
+
+  isServiceWarning(service: CephServiceSpec): boolean {
+    const running = service?.status?.running ?? 0;
+    const size = service?.status?.size ?? 0;
+    return size === 0 || running !== size;
+  }
+
+  placementText(service: CephServiceSpec): string {
+    if (!service) {
+      return $localize`no spec`;
+    }
+    if (service.unmanaged) {
+      return $localize`Unmanaged`;
+    }
+    const placement = service.placement as CephServiceSpec['placement'] & {
+      host_pattern?: string;
+    };
+    const hosts = Array.isArray(placement?.hosts) ? placement.hosts : [];
+    const count = placement?.count;
+    const label = Array.isArray(placement?.label) ? placement.label.join(', ') : placement?.label;
+    const hasCount = typeof count === 'number' && count > 0;
+
+    if (hosts.length > 0) {
+      const hostList = hosts.join(', ');
+      return hasCount
+        ? $localize`Hosts: ${hostList} (${count})`
+        : $localize`Hosts: ${hostList}`;
+    }
+    if (label) {
+      return hasCount ? $localize`Label: ${label} (${count})` : $localize`Label: ${label}`;
+    }
+    if (placement?.host_pattern) {
+      return placement.host_pattern;
+    }
+    if (hasCount && count === 1) {
+      return $localize`1 instance on any host`;
+    }
+    if (hasCount) {
+      return $localize`${count} instances on any host`;
+    }
+    return '-';
   }
 
   private configureServiceUrl(url: string, serviceType: string) {

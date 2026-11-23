@@ -235,6 +235,7 @@ class RbdStatus(BaseController):
         status: Dict[str, Any] = {'available': True, 'message': None}
         if not CephService.get_pool_list('rbd'):
             status['available'] = False
+            status['reason'] = 'not_configured'
             status['message'] = 'No Block Pool is available in the cluster. Please click ' \
                                 'on \"Configure Default Pool\" button to ' \
                                 'get started.'  # type: ignore

@@ -14,6 +14,7 @@ from ..security import Scope
 from ..services.cephfs import CephFS
 from ..services.exception import DashboardException, handle_cephfs_error, \
     serialize_dashboard_exception
+from ..services.module_status import mgr_module_state, unavailable
 from ..tools import str_to_bool
 from . import APIDoc, APIRouter, BaseController, CreatePermission, \
     DeletePermission, Endpoint, EndpointDoc, ReadPermission, RESTController, \
@@ -437,12 +438,19 @@ class NFSGaneshaUi(BaseController):
     @Endpoint()
     @ReadPermission
     def status(self):
+        if mgr_module_state('nfs') == 'disabled':
+            return unavailable(
+                'The NFS manager module is not enabled.',
+                'module_disabled',
+                'nfs')
         status = {'available': True, 'message': None}
         try:
             mgr.remote('nfs', 'cluster_ls')
         except (ImportError, RuntimeError) as error:
             logger.exception(error)
             status['available'] = False
+            status['reason'] = 'not_configured'
+            status['module'] = 'nfs'
             status['message'] = str(error)  # type: ignore
 
         return status

@@ -11,10 +11,12 @@ from .. import mgr
 from ..exceptions import DashboardException
 from ..model import nvmeof as model
 from ..security import Scope
+from ..services.module_status import unavailable
 from ..services.nvmeof_cli import NvmeofCLICommand, convert_to_bytes, \
     escape_address_if_ipv6, format_host_updates, \
     resolve_nvmeof_server_address
 from ..services.nvmeof_client import get_gateway_locations
+from ..services.nvmeof_conf import NvmeofGatewaysConfig
 from ..services.orchestrator import OrchClient
 from ..tools import str_to_bool
 from . import APIDoc, APIRouter, BaseController, CreatePermission, \
@@ -2854,9 +2856,32 @@ else:
                 orch = OrchClient.instance()
                 orch_status = orch.status()
                 if not orch_status['available']:
-                    status["available"] = False
-                    status["message"] = 'Orchestrator is not available'
+                    status['available'] = False
+                    status['reason'] = 'orchestrator_unavailable'
+                    status['message'] = (
+                        orch_status.get('message') or 'Orchestrator is not available')
+                    return status
+                if not self._gateway_present(orch):
+                    return unavailable(
+                        'No NVMe/TCP gateway service is deployed.',
+                        'not_configured',
+                        'nvmeof')
             return status
+
+        @staticmethod
+        def _gateway_present(orch) -> bool:
+            """True when a gateway is already known, or the check could not run."""
+            try:
+                gateways = NvmeofGatewaysConfig.get_gateways_config().get('gateways') or {}
+                if gateways:
+                    return True
+            except Exception:  # pylint: disable=broad-except
+                return True
+            try:
+                services, _count = orch.services.list(service_type='nvmeof')
+            except Exception:  # pylint: disable=broad-except
+                return True
+            return len(services) > 0
         # UI API for adding one or more than one hosts to subsystem
 
         @Endpoint('POST', "/subsystem/{subsystem_nqn}/host")

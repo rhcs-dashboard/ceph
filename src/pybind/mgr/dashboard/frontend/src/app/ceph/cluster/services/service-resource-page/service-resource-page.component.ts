@@ -61,14 +61,7 @@ export class ServiceResourcePageComponent implements OnInit, OnDestroy {
     const serviceName = payload?.serviceName ?? this.service?.service_name;
     const serviceType = payload?.serviceType ?? this.service?.service_type;
 
-    this.router.navigate([
-      '/services',
-      {
-        outlets: {
-          modal: [URLVerbs.EDIT, serviceType, serviceName]
-        }
-      }
-    ]);
+    this.router.navigate(['/services', URLVerbs.EDIT, serviceType, serviceName]);
   }
 
   private applyService(service: CephServiceSpec | null): void {

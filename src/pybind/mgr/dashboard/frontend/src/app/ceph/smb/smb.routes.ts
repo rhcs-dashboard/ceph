@@ -1,5 +1,6 @@
 import { Route, Routes } from '@angular/router';
 
+import { ModuleStatusPromptComponent } from '~/app/core/error/module-status-prompt/module-status-prompt.component';
 import { ActionLabels, URLVerbs } from '~/app/shared/constants/app.constants';
 import { ModuleStatusGuardService } from '~/app/shared/services/module-status-guard.service';
 import { SmbClusterFormComponent } from './smb-cluster-form/smb-cluster-form.component';
@@ -137,13 +138,25 @@ export function smbParentRoute(isRgw: boolean, breadcrumbs: string): Route {
       breadcrumbs,
       moduleStatusGuardConfig: {
         uiApiPath: 'smb',
-        redirectTo: 'error',
-        header: 'SMB module is not enabled',
+        redirectTo: `${ctx.basePath}/unavailable`,
+        header: $localize`SMB is not enabled`,
         module_name: 'smb',
         navigate_to: ctx.basePath
       }
     },
     providers: [{ provide: SMB_CONTEXT, useValue: ctx }],
-    children: smbChildRoutes
+    children: [
+      {
+        path: 'unavailable',
+        component: ModuleStatusPromptComponent,
+        data: {
+          pageHeader: {
+            title: $localize`SMB`,
+            description: $localize`Share a file system or bucket over SMB.`
+          }
+        }
+      },
+      ...smbChildRoutes
+    ]
   };
 }

@@ -35,6 +35,7 @@ export class ErrorComponent implements OnDestroy, OnInit {
   secondaryButtonName: string;
   secondaryButtonTitle: string;
   module_name: string;
+  reason: string;
   navigateTo: string;
   component: string;
   icons = Icons;
@@ -95,6 +96,7 @@ export class ErrorComponent implements OnDestroy, OnInit {
       this.secondaryButtonName = history.state.secondary_button_name;
       this.secondaryButtonTitle = history.state.secondary_button_title;
       this.module_name = history.state.module_name;
+      this.reason = history.state.reason;
       this.navigateTo = history.state.navigate_to;
       this.component = history.state.component;
       this.docUrl = this.docService.urlGenerator(this.section);
@@ -111,5 +113,14 @@ export class ErrorComponent implements OnDestroy, OnInit {
 
   enableModule(): void {
     this.mgrModuleService.updateModuleState(this.module_name, false, undefined, this.navigateTo);
+  }
+
+  get showModulePrompt(): boolean {
+    return !!(
+      this.reason ||
+      this.module_name ||
+      this.uiConfig ||
+      (this.buttonName && this.buttonRoute)
+    );
   }
 }

@@ -13,13 +13,14 @@ describe('smbParentRoute', () => {
 
     expect(route.path).toBe('smb');
     expect(route.canActivate).toEqual([ModuleStatusGuardService]);
-    expect(route.children).toBe(smbChildRoutes);
+    expect(route.children.slice(1)).toEqual(smbChildRoutes);
+    expect(route.children[0].path).toBe('unavailable');
     expect(route.data).toEqual({
       breadcrumbs: 'File/SMB',
       moduleStatusGuardConfig: {
         uiApiPath: 'smb',
-        redirectTo: 'error',
-        header: 'SMB module is not enabled',
+        redirectTo: `${SMB_CEPHFS_CONTEXT.basePath}/unavailable`,
+        header: 'SMB is not enabled',
         module_name: 'smb',
         navigate_to: SMB_CEPHFS_CONTEXT.basePath
       }
@@ -32,13 +33,14 @@ describe('smbParentRoute', () => {
 
     expect(route.path).toBe('smb');
     expect(route.canActivate).toEqual([ModuleStatusGuardService]);
-    expect(route.children).toBe(smbChildRoutes);
+    expect(route.children.slice(1)).toEqual(smbChildRoutes);
+    expect(route.children[0].path).toBe('unavailable');
     expect(route.data).toEqual({
       breadcrumbs: 'SMB',
       moduleStatusGuardConfig: {
         uiApiPath: 'smb',
-        redirectTo: 'error',
-        header: 'SMB module is not enabled',
+        redirectTo: `${SMB_RGW_CONTEXT.basePath}/unavailable`,
+        header: 'SMB is not enabled',
         module_name: 'smb',
         navigate_to: SMB_RGW_CONTEXT.basePath
       }

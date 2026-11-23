@@ -739,6 +739,7 @@ class RbdMirroringStatus(BaseController):
             return status
         if not CephService.get_service_list('rbd-mirror') and not CephService.get_pool_list('rbd'):
             status['available'] = False
+            status['reason'] = 'not_configured'
             status['message'] = 'No default "rbd" pool or "rbd-mirror" service ' \
                                 'in the cluster. Please click on ' \
                                 '"Configure Block Mirroring" ' \

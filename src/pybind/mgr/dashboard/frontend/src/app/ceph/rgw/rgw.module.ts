@@ -14,6 +14,7 @@ import { PipesModule } from '~/app/shared/pipes/pipes.module';
 import { ActionLabels, URLVerbs } from '~/app/shared/constants/app.constants';
 
 import { ContextComponent } from '~/app/core/context/context.component';
+import { ModuleStatusPromptComponent } from '~/app/core/error/module-status-prompt/module-status-prompt.component';
 import { SharedModule } from '~/app/shared/shared.module';
 import { PerformanceCounterModule } from '../performance-counter/performance-counter.module';
 import { RgwBucketFormComponent } from './rgw-bucket-form/rgw-bucket-form.component';
@@ -612,6 +613,6 @@ const routes: Routes = [
 ];
 
 @NgModule({
-  imports: [RgwModule, RouterModule.forChild(routes)]
+  imports: [RgwModule, ModuleStatusPromptComponent, RouterModule.forChild(routes)]
 })
 export class RoutedRgwModule {}
